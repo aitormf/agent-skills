@@ -8,7 +8,9 @@ agents/     Subagentes en formato Claude Code (fuente única)
 adapters/   Agentes generados para Codex y OpenCode (no editar a mano)
 docs/arnes/ Guías del arnés: el porqué de cada pieza. El código y las plantillas viven en los assets de las skills
 docs/sdd/   Guía de uso de SDD
+docs/review/ Guía de code review y material de Addy (UPSTREAM.md)
 scripts/    check.sh, generador de agentes y tests
+tests/      Sandbox con bugs plantados para probar la review
 ```
 
 ## Instalar
@@ -115,7 +117,7 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 ```
 idea-to-spec → [review-spec → apply-review] → persona: status: aprobada
   → spec-to-plan → [review-spec → apply-review] → persona: status: aprobada
-  → plan-to-tasks → implement → revisión del código y PR
+  → plan-to-tasks → implement → review-prepush → PR → review-pr
 ```
 
 Convenciones de SDD:
@@ -124,6 +126,20 @@ Convenciones de SDD:
 - `spec.md` y `plan.md` llevan `status: borrador | aprobada | obsoleta` en el frontmatter. **Solo una persona pone `aprobada`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación.
 - No hay backlog central. La gestión del trabajo (prioridad, responsable, hecho) vive en el tracker; la spec puede enlazarlo con `issue:`.
 - El contrato con los guardrails es el comando de verificación de la sección `Comandos` de `AGENTS.md`.
+
+### Code review
+
+Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agent-skills de Addy Osmani](https://github.com/addyosmani/agent-skills) (MIT, ver [NOTICE.md](NOTICE.md)).
+
+| Skill / agente | Qué hace |
+|---|---|
+| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
+| [`review-pr`](skills/review-pr/SKILL.md) | Review de una PR según su riesgo: tres personas en paralelo, verificador y revisión de la descripción. Nunca aprueba. Incluye la GitHub Action |
+| [`code-review-and-quality`](skills/code-review-and-quality/SKILL.md) | Review de cinco ejes en la sesión actual (Addy) |
+| [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |
+| agentes [`code-reviewer`](agents/code-reviewer.md), [`security-auditor`](agents/security-auditor.md), [`test-engineer`](agents/test-engineer.md), [`finding-verifier`](agents/finding-verifier.md) | Las personas que lanzan `review-prepush` y `review-pr` |
+
+Si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el código contra ella: criterios de aceptación con test, nada fuera de alcance, tareas `[x]` hechas de verdad.
 
 ## Desarrollo
 

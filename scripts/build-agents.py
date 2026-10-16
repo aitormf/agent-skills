@@ -25,10 +25,15 @@ def parse(path: Path) -> tuple[dict[str, str], str]:
     if not text.startswith("---\n"):
         raise SystemExit(f"{path}: falta el frontmatter")
     fm_text, body = text[4:].split("\n---\n", 1)
-    fm = {}
+    fm: dict[str, str] = {}
+    key = ""
     for line in fm_text.splitlines():
+        if line.startswith("  - ") and key:  # lista YAML: se guarda como "a, b"
+            fm[key] = ", ".join(filter(None, [fm[key], line[4:].strip()]))
+            continue
         key, _, value = line.partition(":")
-        fm[key.strip()] = value.strip()
+        key = key.strip()
+        fm[key] = value.strip()
     for key in ("name", "description", "tools"):
         if not fm.get(key):
             raise SystemExit(f"{path}: falta '{key}' en el frontmatter")

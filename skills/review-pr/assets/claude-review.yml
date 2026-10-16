@@ -1,0 +1,119 @@
+# review-kit — runs /review-pr on every PR and keeps ONE summary comment up to date.
+#
+# Two jobs on purpose:
+#   review  — runs Claude with a READ-ONLY token (it cannot comment, approve or merge, whatever it tries)
+#   publish — no Claude; posts/updates the single comment with the report produced by `review`
+#
+# Setup (see README "GitHub Action"):
+#   1. Secret ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN).
+#   2. The review skills available in the repo: committed under .claude/skills/ (npx skills) together with
+#      the agents in .claude/agents/, or set the repo variable REVIEW_KIT_MARKETPLACE to the git URL of
+#      aitormf/agent-skills to install the Claude Code plugin (a private repo needs credentials in CI).
+#   3. Edit the "Prepare project" step so the verification commands in AGENTS.md can run.
+#
+# Security: the review runs the check commands declared in the PR's own AGENTS.md with the
+# Anthropic secret in the environment. That is why fork PRs are skipped and why this uses
+# `pull_request` (never `pull_request_target`). Only collaborators with push access trigger it.
+
+name: claude-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}   # PR head, not the merge commit
+          fetch-depth: 0                                   # base branch needed for the diff
+
+      # ---- Edit me: whatever your AGENTS.md verification commands need (runtimes, deps). ----
+      - name: Prepare project
+        run: |
+          echo "Install project dependencies here (e.g. npm ci / pip install -e .[dev] / go mod download)."
+      # ----------------------------------------------------------------------------------------
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install the harness plugin (if the skills are not committed under .claude/)
+        if: ${{ vars.REVIEW_KIT_MARKETPLACE != '' }}
+        run: |
+          if [ ! -f .claude/skills/review-pr/SKILL.md ]; then
+            claude plugin marketplace add "${{ vars.REVIEW_KIT_MARKETPLACE }}"
+            claude plugin install harness@aitormf
+          fi
+
+      - name: Run /review-pr
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}   # read-only in this job
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f .claude/skills/review-pr/SKILL.md ]; then cmd="/review-pr"; else cmd="/harness:review-pr"; fi
+          set +e
+          claude -p "$cmd $PR" \
+            --output-format text \
+            --allowedTools "Read,Grep,Glob,Agent,Bash" \
+            --disallowedTools "Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(gh pr review:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh api:*)" \
+            </dev/null > report.md 2> claude-stderr.log
+          echo "exit=$?" > status.txt
+          exit 0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-report
+          path: |
+            report.md
+            status.txt
+            claude-stderr.log
+
+  publish:
+    needs: review
+    if: always() && needs.review.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: review-report
+        continue-on-error: true
+
+      - name: Post or update the single review comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          marker='<!-- review-kit:review-pr -->'
+          if [ -s report.md ] && grep -q '^REVIEW_RESULT:' report.md; then
+            # Keep everything from the marker on (drops any preamble the model printed).
+            body=$(awk -v m="$marker" 'found || index($0, m) { found=1; print }' report.md)
+            [ -z "$body" ] && body="$marker"$'\n'"$(cat report.md)"
+          else
+            body="$marker"$'\n'"**review-kit:** the review did not finish correctly ($(cat status.txt 2>/dev/null || echo 'no status')). Details in the [run]($RUN_URL)."
+          fi
+          body="$body"$'\n\n'"<sub>review-kit · [run]($RUN_URL) · advisory comment: it does not approve or block the PR.</sub>"
+
+          existing=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$marker\")) | .id" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -f body="$body" >/dev/null
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$body" >/dev/null
+          fi

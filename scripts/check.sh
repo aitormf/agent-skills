@@ -14,7 +14,7 @@ from pathlib import Path
 bad = []
 for f in sorted(Path("skills").glob("*/SKILL.md")) + sorted(Path("agents").glob("*.md")):
     m = re.match(r"---\n(.*?)\n---\n", f.read_text(encoding="utf-8"), re.S)
-    fm = dict(l.split(":", 1) for l in m.group(1).splitlines()) if m else {}
+    fm = dict(l.split(":", 1) for l in m.group(1).splitlines() if ":" in l and not l.startswith(" ")) if m else {}
     name = fm.get("name", "").strip()
     if not name or not fm.get("description", "").strip():
         bad.append(f"{f}: falta name o description")

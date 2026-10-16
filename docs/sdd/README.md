@@ -74,7 +74,7 @@ Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`
    │           │
    │     implement (agente) ► código + [x] en tasks.md + verificación en verde
    │           │
-   └──── revisión del código contra la spec → PR
+   └──── review-prepush (contra la spec) → PR → review-pr
 ```
 
 En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué specs hay abiertas?"*. La skill `sdd-next` te lo dice leyendo los artefactos.
@@ -91,7 +91,7 @@ En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué sp
 | **6. Revisar y aprobar el plan** | Como los pasos 2–4 (se genera `review-plan.md`) | — | Aprobar el plan |
 | **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | `tasks.md`: tareas pequeñas con los ficheros que tocan y cómo se verifican | Que el desglose es razonable |
 | **8. Implementar** | *"Implementa <trabajo>"* (agente `implement`, sesión limpia) | Código y tests, `[x]` en cada tarea verificada y el comando de verificación en verde | Revisar el diff. Si el agente para por un hueco, resolverlo, normalmente corrigiendo la spec |
-| **9. Revisar el código y PR** | Tu flujo de revisión habitual | PR | Merge |
+| **9. Revisar el código y PR** | *"¿Está lista para push?"* (`review-prepush`), y en la PR `review-pr` | Informe con hallazgos verificados y la cobertura de la spec: criterios con test, nada fuera de alcance, tareas `[x]` hechas | Corregir lo Critical y Required; hacer merge. Ver la [guía de code review](../review/README.md) |
 
 Consejos:
 

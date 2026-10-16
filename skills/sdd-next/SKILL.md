@@ -23,7 +23,7 @@ Para `docs/specs/<trabajo>/`, aplica la primera fila que encaje:
 | `plan.md` en `borrador` | Revisarlo (`review-spec`) o que la persona lo apruebe |
 | Plan aprobado (o spec aprobada en un cambio pequeño), sin `tasks.md` | Partir en tareas: `plan-to-tasks` |
 | `tasks.md` con casillas sin marcar | Implementar: agente `implement` (indica cuántas faltan) |
-| Todas las casillas marcadas | Revisar el código contra la spec y abrir la PR |
+| Todas las casillas marcadas | Revisar el código contra la spec (`review-prepush`) y abrir la PR (`review-pr`) |
 | `status: obsoleta` | Nada. Indica qué la sustituye, si lo dice |
 
 Una revisión tiene "hallazgos sin decidir" si alguno no tiene anotada debajo una decisión de `apply-review`.

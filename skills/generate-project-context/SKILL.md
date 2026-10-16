@@ -54,7 +54,7 @@ Una categoría cada vez. Para cada pregunta, ofrece opciones concretas (A, B, "d
 | 7. Dependencias | Política para añadirlas, librerías prohibidas, construir o comprar | Principio (si es innegociable) o `CONTRIBUTING.md` |
 | 8. Para el agente | Comandos (el de verificación es obligatorio), convenciones no obvias, zonas críticas o frágiles (brownfield), límites (siempre / preguntar / nunca) | `AGENTS.md` |
 
-En la ronda 8, el **comando de verificación** es el contrato con el resto de skills (`plan-to-tasks`, `implement`, review). Si no existe, propón `setup-guardrails-python` (u otra equivalente para el lenguaje) o déjalo como pregunta abierta en `AGENTS.md`.
+En la ronda 8, el **comando de verificación** es el contrato con el resto de skills (`plan-to-tasks`, `implement`, review). Si no existe, propón `setup-guardrails-python` (u otra equivalente para el lenguaje) o déjalo como pregunta abierta en `AGENTS.md`. Si el proyecto va a usar `review-prepush` o `review-pr`, ofrece también la sección opcional `## Code review` (plantilla en `review-context/assets/AGENTS-code-review.md`): rama base, rutas de alto riesgo, idioma del informe…
 
 ### 3. Redactar y escribir
 

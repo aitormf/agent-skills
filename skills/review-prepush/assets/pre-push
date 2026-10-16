@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# review-kit — git pre-push hook
+#
+# Runs /review-prepush headless with Claude Code and blocks the push ONLY when the
+# review reports at least one confirmed Critical finding. Anything else (Required,
+# Optional, tool errors, missing claude CLI) lets the push through with a message.
+#
+# Install:  cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+#
+# Environment knobs:
+#   SKIP_CLAUDE_REVIEW=1        skip the review for this push (or use `git push --no-verify`)
+#   REVIEW_KIT_COMMAND=...      skill to run (auto: /review-prepush if the skill is in
+#                               .claude/skills, e.g. via npx skills; else the plugin's /harness:review-prepush)
+#   REVIEW_KIT_TIMEOUT=900      seconds before giving up (fail-open)
+#   REVIEW_KIT_FAIL_CLOSED=1    block the push when the review itself fails
+#   REVIEW_KIT_ALLOWED_TOOLS    override --allowedTools (see README "Permisos en modo headless")
+#   REVIEW_KIT_MODEL            pass --model to claude (e.g. a faster model for pre-push)
+
+set -u
+
+[ "${SKIP_CLAUDE_REVIEW:-0}" = "1" ] && { echo "review-kit: SKIP_CLAUDE_REVIEW=1 — review skipped."; exit 0; }
+
+# Skip pushes that only delete refs.
+only_deletes=1
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  case "$local_sha" in
+    *[!0]*) only_deletes=0 ;;
+  esac
+done
+[ "$only_deletes" = "1" ] && exit 0
+
+fail() {
+  echo "review-kit: $1" >&2
+  if [ "${REVIEW_KIT_FAIL_CLOSED:-0}" = "1" ]; then
+    echo "review-kit: REVIEW_KIT_FAIL_CLOSED=1 → push blocked." >&2
+    exit 1
+  fi
+  echo "review-kit: push continues (fail-open)." >&2
+  exit 0
+}
+
+command -v claude >/dev/null 2>&1 || fail "'claude' CLI not found on PATH; review skipped."
+
+repo_root=$(git rev-parse --show-toplevel) || fail "could not determine the repo root."
+cd "$repo_root" || fail "could not cd into $repo_root."
+
+if [ -n "${REVIEW_KIT_COMMAND:-}" ]; then
+  cmd="$REVIEW_KIT_COMMAND"
+elif [ -f .claude/skills/review-prepush/SKILL.md ]; then
+  cmd="/review-prepush"
+else
+  cmd="/harness:review-prepush"
+fi
+
+# Read-only by design: no Edit/Write. Bash stays allowed because the repo's own check
+# commands (declared in AGENTS.md) are arbitrary; the prompt forbids state-changing
+# commands, and the deny list below plus the repo's .claude/settings.json deny rules
+# are enforced by Claude Code regardless of the prompt.
+allowed="${REVIEW_KIT_ALLOWED_TOOLS:-Read,Grep,Glob,Agent,Bash}"
+denied="Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(git reset:*),Bash(git checkout:*),Bash(git switch:*),Bash(git rebase:*),Bash(git merge:*),Bash(git stash:*),Bash(git clean:*),Bash(rm:*),Bash(gh:*)"
+
+out_dir="$(git rev-parse --git-dir)/review-kit"
+mkdir -p "$out_dir"
+report="$out_dir/last-prepush.md"
+
+echo "review-kit: running $cmd (Ctrl+C or SKIP_CLAUDE_REVIEW=1 to skip)…" >&2
+
+args=(-p "$cmd" --output-format text --allowedTools "$allowed" --disallowedTools "$denied")
+[ -n "${REVIEW_KIT_MODEL:-}" ] && args+=(--model "$REVIEW_KIT_MODEL")
+
+runner=()
+for t in timeout gtimeout; do   # gtimeout: macOS with coreutils
+  command -v "$t" >/dev/null 2>&1 && { runner=("$t" "${REVIEW_KIT_TIMEOUT:-900}"); break; }
+done
+# </dev/null: the hook's stdin holds the ref list; claude -p would read it as prompt input.
+# ${runner[@]+...}: empty-array safe under `set -u` on macOS's bash 3.2.
+${runner[@]+"${runner[@]}"} claude "${args[@]}" </dev/null >"$report" 2>&1
+status=$?
+
+cat "$report"
+echo
+echo "review-kit: report saved to $report" >&2
+
+[ $status -eq 124 ] && [ ${#runner[@]} -gt 0 ] && fail "timed out after ${REVIEW_KIT_TIMEOUT:-900}s."
+[ $status -ne 0 ] && fail "claude exited with code $status."
+
+result=$(grep -E '^REVIEW_RESULT:' "$report" | tail -n 1)
+[ -z "$result" ] && fail "output has no REVIEW_RESULT line; cannot decide."
+
+case "$result" in
+  *"REVIEW_RESULT: BLOCK"*)
+    echo "review-kit: ✋ push blocked — confirmed Critical findings." >&2
+    echo "review-kit: fix them, or force with 'git push --no-verify' if you know what you are doing." >&2
+    exit 1 ;;
+  *"REVIEW_RESULT: PASS"*)
+    echo "review-kit: ✅ no confirmed Critical findings ($result)." >&2
+    exit 0 ;;
+  *)
+    fail "unrecognised REVIEW_RESULT line: $result" ;;
+esac
