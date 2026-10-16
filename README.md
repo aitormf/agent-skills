@@ -10,6 +10,15 @@ docs/sdd/   Guía de uso de SDD
 scripts/    Tests de las skills
 ```
 
+## Instalar
+
+```bash
+npx skills add git@github.com:aitormf/agent-skills.git --list   # ver las skills
+npx skills add git@github.com:aitormf/agent-skills.git -s <skill> -a claude-code -a codex
+```
+
+Los subagentes de `agents/` no los instala `npx skills`: se copian a `.claude/agents/`. Detalles en la [guía de SDD](docs/sdd/README.md#instalar-las-skills).
+
 ## Skills
 
 ### Preparar el proyecto

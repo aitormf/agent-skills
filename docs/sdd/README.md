@@ -45,18 +45,40 @@ Las skills de SDD leen dos cosas del proyecto. Funcionan sin ellas, pero pierden
 
 ### Instalar las skills
 
-Con Claude Code, copia las skills y los agentes al proyecto. Si haces commit de `.claude/`, todo el equipo los tiene:
+Con [`npx skills`](https://github.com/vercel-labs/skills), desde la raíz del proyecto. Necesita Node.js. El repositorio es privado, así que se instala por SSH:
 
 ```bash
-KIT=/ruta/a/agent-skills
-mkdir -p .claude/skills .claude/agents
-cp -r "$KIT"/skills/{idea-to-spec,review-spec,apply-review,spec-to-plan,plan-to-tasks,sdd-next} .claude/skills/
-cp "$KIT"/agents/{implement,spec-reviewer}.md .claude/agents/
+npx skills add git@github.com:aitormf/agent-skills.git \
+  -s idea-to-spec -s review-spec -s apply-review -s spec-to-plan -s plan-to-tasks -s sdd-next \
+  -a claude-code -a codex
 ```
 
-Las skills siguen el estándar Agent Skills (`SKILL.md` + `assets/`), así que otros CLIs también pueden usarlas: muchos leen `.agents/skills/`. Comprueba la ruta en la documentación del tuyo. Los agentes están en formato de Claude Code.
+- **La URL:** si en tu `~/.ssh/config` usas un alias de host (p. ej. `github.com-personal`), pon ese alias en lugar de `github.com`. Si el repositorio pasa a ser público, basta con `npx skills add aitormf/agent-skills`.
+- **`-s`** elige las skills. Sin `-s`, el CLI pregunta cuáles instalar; para ver todas sin instalar nada, usa `--list`.
+- **`-a`** elige los agentes destino (`claude-code`, `codex`, `opencode`, `gemini-cli`, `cursor`…). Sin `-a`, el CLI pregunta.
+- **Dónde quedan:** las skills se copian a `.agents/skills/` (lo leen Codex, OpenCode, Gemini CLI y Cursor) y `.claude/skills/` tiene enlaces simbólicos a ellas. Si los enlaces dan problemas (p. ej. en Windows), añade `--copy`.
+- **Versión:** se registra en `skills-lock.json`.
 
-> Pendiente: instalar con `npx skills add` y como plugin de Claude Code. Hasta entonces, copiar.
+Haz commit de `.agents/skills/`, `.claude/skills/` y `skills-lock.json`: así todo el equipo y la CI tienen las mismas skills sin instalar nada.
+
+```bash
+npx skills list               # qué hay instalado
+npx skills update             # traer la última versión del repositorio
+npx skills remove sdd-next    # quitar una
+```
+
+**Los agentes se instalan aparte.** `npx skills` solo instala skills, no subagentes. `implement` y `spec-reviewer` están en formato de Claude Code y se copian a `.claude/agents/`:
+
+```bash
+git clone --depth 1 git@github.com:aitormf/agent-skills.git /tmp/agent-skills
+mkdir -p .claude/agents
+cp /tmp/agent-skills/agents/{implement,spec-reviewer}.md .claude/agents/
+rm -rf /tmp/agent-skills
+```
+
+Sin los agentes, el flujo funciona igual: la revisión y la implementación se hacen en la sesión principal, pero sin contexto limpio.
+
+Para preparar el proyecto, las skills `generate-project-context` y `setup-guardrails-python` se instalan del mismo modo (`-s generate-project-context -s setup-guardrails-python`).
 
 ---
 
