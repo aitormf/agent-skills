@@ -1,0 +1,63 @@
+# Sirve para prek y para pre-commit. Tras copiarlo: `prek autoupdate` (rellena los rev) y `prek install`.
+# Origen: herramientas-arnes.md §4.2 y plan-seguridad-codigo-ia.md §4.3.
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: <versión>
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: <versión>
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: <versión>
+    hooks:
+      - id: uv-lock          # uv.lock sincronizado con pyproject.toml
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: <versión>
+    hooks:
+      - id: gitleaks
+
+  # Conventional Commits (etapa commit-msg). Coméntalo si aún no lo usas.
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: <versión>
+    hooks:
+      - id: commitizen
+
+  # mypy e import-linter con `uv run` para usar las versiones de uv.lock.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+      # - id: lint-imports
+      #   name: import-linter
+      #   entry: uv run lint-imports
+      #   language: system
+      #   types: [python]
+      #   pass_filenames: false
+      - id: hidden-unicode
+        name: Unicode oculto en ficheros de agentes y docs
+        entry: uv run python scripts/check_hidden_unicode.py
+        language: system
+        files: '(^|/)(AGENTS|CLAUDE)\.md$|^\.claude/|^\.cursor/|^\.mcp\.json$|^\.github/|^docs/.*\.md$'
+      - id: zizmor
+        name: zizmor (seguridad de GitHub Actions)
+        entry: uvx zizmor
+        language: system
+        files: '^\.github/workflows/.*\.ya?ml$'

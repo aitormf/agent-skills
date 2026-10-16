@@ -1,0 +1,22 @@
+# Configuración mínima de git-cliff. Para la plantilla completa del changelog: `uvx git-cliff --init`
+# y conservad esta sección [git]. Origen: herramientas-arnes.md §3.15.
+#
+# Flujo de release:
+#   VERSION=$(uvx git-cliff --bumped-version)    # p. ej. v1.4.0
+#   uv version "${VERSION#v}"
+#   uvx git-cliff --bump -o CHANGELOG.md
+#   git commit -am "chore(release): $VERSION" && git tag "$VERSION"   # el push lo hace una persona
+
+[git]
+conventional_commits = true
+filter_unconventional = true     # los commits sin formato no entran en el changelog
+protect_breaking_commits = true  # un cambio incompatible nunca se omite
+tag_pattern = "v[0-9].*"
+commit_parsers = [                # gana la primera regla que coincida
+  { message = "^feat", group = "Añadido" },
+  { message = "^fix", group = "Corregido" },
+  { message = "^perf", group = "Rendimiento" },
+  { message = "^refactor", group = "Cambiado" },
+  { message = "^docs", group = "Documentación" },
+  { message = "^(chore|ci|test|style|build)", skip = true },
+]

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Herramientas
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Agentes de IA: personal
+CLAUDE.local.md
+.claude/settings.local.json
+
+# SO / editores
+.DS_Store
+.idea/

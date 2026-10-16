@@ -1,0 +1,63 @@
+# Fragmento para fusionar con el pyproject.toml del proyecto (no es un pyproject completo).
+# Las dependencias de desarrollo se añaden con `uv add --dev ...`, no copiando versiones de aquí.
+# Origen: herramientas-arnes.md §3.2–3.5 y plan-seguridad-codigo-ia.md §4.2.
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "UP", "SIM", "RUF", "S", "PLE"]
+# S = flake8-bandit (seguridad) · PLE incluye PLE2502 (Unicode bidireccional, "Trojan Source")
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]   # assert y contraseñas de prueba permitidos SOLO en tests
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+# Brownfield: deuda conocida. Esta lista solo puede encoger.
+# [[tool.mypy.overrides]]
+# module = ["mi_proyecto.legacy.*"]
+# ignore_errors = true   # issue #123
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80          # brownfield: la cobertura actual; solo sube
+show_missing = true
+
+[tool.uv]
+# Cooldown: no resolver versiones publicadas hace menos de 7 días (requiere uv >= 0.9.17).
+# Los paquetes maliciosos suelen retirarse en horas o días.
+exclude-newer = "7 days"
+# Excepción temporal para un parche urgente (quitarla después):
+# exclude-newer-package = { paquete-urgente = false }
+
+# import-linter: cuando haya capas. Los contratos salen de "Principios innegociables" de ARCHITECTURE.md.
+# [tool.importlinter]
+# root_package = "mi_proyecto"
+#
+# [[tool.importlinter.contracts]]
+# name = "Arquitectura por capas"
+# type = "layers"
+# layers = [
+#     "mi_proyecto.api | mi_proyecto.infra",
+#     "mi_proyecto.application",
+#     "mi_proyecto.domain",
+# ]
+# ignore_imports = []   # brownfield: violaciones actuales; solo puede encoger
+#
+# [[tool.importlinter.contracts]]
+# name = "Dominio puro"
+# type = "forbidden"
+# source_modules = ["mi_proyecto.domain"]
+# forbidden_modules = ["fastapi", "sqlalchemy", "httpx"]

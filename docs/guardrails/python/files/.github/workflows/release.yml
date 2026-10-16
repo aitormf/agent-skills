@@ -1,0 +1,25 @@
+# Origen: herramientas-arnes.md §3.15. Notas de la release generadas con git-cliff al publicar un tag.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # git-cliff necesita el historial y los tags
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      # Las notas pasan por fichero, no por outputs dentro de run:, para evitar inyección desde los commits.
+      - run: uvx git-cliff --latest --strip header -o RELEASE_NOTES.md
+      - run: gh release create "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+        env:
+          GH_TOKEN: ${{ github.token }}

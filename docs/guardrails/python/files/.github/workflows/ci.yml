@@ -1,0 +1,37 @@
+# Origen: herramientas-arnes.md §4.3. En producción, fijad las actions a un SHA completo.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked      # falla si uv.lock no corresponde con pyproject.toml
+      - run: ./scripts/check.sh
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0           # historial completo para gitleaks
+          persist-credentials: false
+      - name: gitleaks
+        # La imagen Docker evita la licencia que pide gitleaks-action en organizaciones.
+        # Fijad una versión concreta en lugar de latest.
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+            git /repo --redact --verbose
