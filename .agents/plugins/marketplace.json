@@ -1,0 +1,21 @@
+{
+  "name": "aitormf",
+  "interface": {
+    "displayName": "aitormf"
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "description": "Contexto del proyecto, guardrails de Python y Spec-Driven Development con aprobación humana.",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

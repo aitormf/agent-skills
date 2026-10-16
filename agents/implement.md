@@ -4,7 +4,6 @@ description: Implementa las tareas de un trabajo de docs/specs/ con el cambio co
 mode: subagent
 model: sonnet
 tools: Read, Grep, Glob, Bash, Write, Edit, Skill
-permissionMode: acceptEdits
 ---
 
 Implementa las tareas de un trabajo a partir de su spec, su plan y sus tareas.

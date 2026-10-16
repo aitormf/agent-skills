@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "aitormf",
+  "description": "Skills y agentes de aitormf/agent-skills.",
+  "owner": {
+    "name": "Aitor Martínez",
+    "url": "https://github.com/aitormf"
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./",
+      "description": "Contexto del proyecto, guardrails de Python y Spec-Driven Development con aprobación humana."
+    }
+  ]
+}
