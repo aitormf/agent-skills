@@ -63,10 +63,10 @@ Después, instalad los guardrails con la skill [`setup-guardrails-python`](../..
 
 Usad las plantillas y dejadlas **cortas**; crecerán con el proyecto:
 
-- [ ] `docs/ARCHITECTURE.md` (de `plantillas-es/plantilla-ARCHITECTURE.md`): propósito, mapa del código, capas y **principios innegociables**. Las secciones que aún no aplican, borradlas.
-- [ ] `CONTRIBUTING.md` (de `plantillas-es/plantilla-CONTRIBUTING.md`) con los `<...>` decididos en la fase 0.
+- [ ] `docs/ARCHITECTURE.md` (de [`assets/es/ARCHITECTURE.md`](../../skills/generate-project-context/assets/es/ARCHITECTURE.md)): propósito, mapa del código, capas y **principios innegociables**. Las secciones que aún no aplican, borradlas.
+- [ ] `CONTRIBUTING.md` (de [`assets/es/CONTRIBUTING.md`](../../skills/generate-project-context/assets/es/CONTRIBUTING.md)) con los `<...>` decididos en la fase 0.
 - [ ] `docs/adr/0000-plantilla.md` + ADRs de las decisiones de la fase 0 (p. ej. `0001-uv-ruff-mypy.md`, `0002-arquitectura-por-capas.md`).
-- [ ] `AGENTS.md` (de `plantillas-es/plantilla-AGENTS.md`), **escrito a mano**, de menos de 100 líneas: comandos, límites y enlaces. La sección "Trampas conocidas" empieza vacía.
+- [ ] `AGENTS.md` (de [`assets/es/AGENTS.md`](../../skills/generate-project-context/assets/es/AGENTS.md)), **escrito a mano**, de menos de 100 líneas: comandos, límites y enlaces. La sección "Trampas conocidas" empieza vacía.
 - [ ] `CLAUDE.md` con `@AGENTS.md`.
 - [ ] `README.md`: qué es y cómo se arranca.
 

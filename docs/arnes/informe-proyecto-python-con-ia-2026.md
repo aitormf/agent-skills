@@ -226,7 +226,7 @@ Es lo más valioso para el agente: un comando que devuelve verde o rojo.
 
 ## 7. Plantilla de `AGENTS.md`
 
-Basada en el análisis de GitHub de más de 2.500 ficheros de agentes (citado por Addy Osmani): **comandos, testing, estructura, estilo, flujo de git y límites**. Objetivo: **menos de 150 líneas**. Versión lista para copiar: `plantillas-es/plantilla-AGENTS.md` (en inglés: `templates-en/template-AGENTS.md`).
+Basada en el análisis de GitHub de más de 2.500 ficheros de agentes (citado por Addy Osmani): **comandos, testing, estructura, estilo, flujo de git y límites**. Objetivo: **menos de 150 líneas**. Versión lista para copiar: [`assets/es/AGENTS.md`](../../skills/generate-project-context/assets/es/AGENTS.md) (en inglés: [`assets/en/AGENTS.md`](../../skills/generate-project-context/assets/en/AGENTS.md)).
 
 ```markdown
 # AGENTS.md
@@ -373,11 +373,11 @@ git init
 - [ ] `scripts/check.sh` (un comando verde/rojo) y CI que lo ejecuta
 - [ ] Pre-commit: ruff (lint + format), gitleaks y comprobaciones básicas (EOF, espacios, ficheros grandes)
 - [ ] `.gitignore` (sección 5), `.env.example`
-- [ ] `AGENTS.md` (menos de 150 líneas, de `plantillas-es/plantilla-AGENTS.md`) + `CLAUDE.md` con `@AGENTS.md`
+- [ ] `AGENTS.md` (menos de 150 líneas, de [`assets/es/AGENTS.md`](../../skills/generate-project-context/assets/es/AGENTS.md)) + `CLAUDE.md` con `@AGENTS.md`
 - [ ] `.claude/settings.json` con permisos permitidos y algún hook útil
-- [ ] `README.md`, `CONTRIBUTING.md` (plantilla en `plantillas-es/plantilla-CONTRIBUTING.md`), `docs/ARCHITECTURE.md` (aunque sea breve) con su sección "Principios innegociables" (plantilla en `plantillas-es/plantilla-ARCHITECTURE.md`)
-- [ ] `docs/adr/0000-plantilla.md` (de `plantillas-es/plantilla-ADR.md`), índice `docs/adr/README.md` (de `plantillas-es/plantilla-adr-README.md`) y `docs/adr/0001-...` con las primeras decisiones (uv, ruff, layout, framework)
-- [ ] `.github/pull_request_template.md` (de `plantillas-es/plantilla-pull_request_template.md`) y `SECURITY.md` (de `plantillas-es/plantilla-SECURITY.md`)
+- [ ] `README.md`, `CONTRIBUTING.md` (plantilla en [`assets/es/CONTRIBUTING.md`](../../skills/generate-project-context/assets/es/CONTRIBUTING.md)), `docs/ARCHITECTURE.md` (aunque sea breve) con su sección "Principios innegociables" (plantilla en [`assets/es/ARCHITECTURE.md`](../../skills/generate-project-context/assets/es/ARCHITECTURE.md))
+- [ ] `docs/adr/0000-plantilla.md` (de [`assets/es/ADR.md`](../../skills/generate-project-context/assets/es/ADR.md)), índice `docs/adr/README.md` (de [`assets/es/adr-README.md`](../../skills/generate-project-context/assets/es/adr-README.md)) y `docs/adr/0001-...` con las primeras decisiones (uv, ruff, layout, framework)
+- [ ] `.github/pull_request_template.md` (de [`assets/es/pull_request_template.md`](../../skills/generate-project-context/assets/es/pull_request_template.md)) y `SECURITY.md` (de [`assets/es/SECURITY.md`](../../skills/generate-project-context/assets/es/SECURITY.md))
 - [ ] `docs/specs/` y `docs/plans/` creados, con una plantilla
 - [ ] Primer test que pasa en CI antes de escribir funcionalidad
 - [ ] Prueba de fuego (shanraisshan/claude-code-best-practice): un desarrollador nuevo abre el agente, dice "ejecuta los tests" y **funciona a la primera**
