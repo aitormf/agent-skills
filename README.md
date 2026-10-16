@@ -4,20 +4,90 @@ Skills y guías para trabajar con agentes de IA en repositorios de código.
 
 ```
 skills/     Skills autocontenidas (SKILL.md + assets/ + references/)
-agents/     Subagentes (contexto limpio)
+agents/     Subagentes en formato Claude Code (fuente única)
+adapters/   Agentes generados para Codex y OpenCode (no editar a mano)
 docs/arnes/ Guías del arnés: el porqué de cada pieza. El código y las plantillas viven en los assets de las skills
 docs/sdd/   Guía de uso de SDD
-scripts/    Tests de las skills
+scripts/    check.sh, generador de agentes y tests
 ```
 
 ## Instalar
 
-```bash
-npx skills add git@github.com:aitormf/agent-skills.git --list   # ver las skills
-npx skills add git@github.com:aitormf/agent-skills.git -s <skill> -a claude-code -a codex
+El repositorio es privado: se instala por SSH y solo funciona para quien tenga acceso. En los comandos, `git@github.com:aitormf/agent-skills.git` es la URL SSH. Si en `~/.ssh/config` usas un alias de host (p. ej. `github.com-personal`), pon el alias. Si el repositorio pasa a ser público, en Claude Code, Codex y `npx skills` basta con `aitormf/agent-skills`.
+
+| Herramienta | Skills | Agentes (`implement`, `spec-reviewer`) |
+|---|---|---|
+| Claude Code | Plugin | Incluidos en el plugin |
+| Codex | Plugin o `npx skills` | Copiar `adapters/codex/agents/` |
+| OpenCode | `npx skills` | Copiar `adapters/opencode/agents/` |
+| pi | Paquete de pi | — (pi no tiene subagentes) |
+
+Sin los agentes, el flujo funciona igual: la revisión y la implementación se hacen en la sesión principal, pero sin contexto limpio.
+
+### Claude Code
+
+```
+/plugin marketplace add git@github.com:aitormf/agent-skills.git
+/plugin install harness@aitormf
 ```
 
-Los subagentes de `agents/` no los instala `npx skills`: se copian a `.claude/agents/`. Detalles en la [guía de SDD](docs/sdd/README.md#instalar-las-skills).
+- Como plugin, todo va con namespace: las skills son `/harness:idea-to-spec`, `/harness:sdd-next`… y los agentes, `harness:implement` y `harness:spec-reviewer`.
+- Para que el equipo lo tenga en un proyecto, declara el catálogo en el `.claude/settings.json` del proyecto. Claude Code ofrecerá instalarlo al abrir el proyecto:
+
+  ```json
+  {
+    "extraKnownMarketplaces": {
+      "aitormf": { "source": { "source": "git", "url": "git@github.com:aitormf/agent-skills.git" } }
+    },
+    "enabledPlugins": { "harness@aitormf": true }
+  }
+  ```
+
+  Comprueba el formato de `source` con la documentación de plugins de tu versión.
+- Para probar cambios sin instalar nada: `claude --plugin-dir /ruta/a/agent-skills`.
+
+### Codex
+
+```bash
+codex plugin marketplace add git@github.com:aitormf/agent-skills.git
+codex plugin add harness@aitormf
+```
+
+Los agentes se copian aparte: Codex no los carga desde plugins.
+
+```bash
+git clone --depth 1 git@github.com:aitormf/agent-skills.git /tmp/agent-skills
+mkdir -p .codex/agents && cp /tmp/agent-skills/adapters/codex/agents/*.toml .codex/agents/
+```
+
+En Codex, el sandbox y las aprobaciones de un subagente salen siempre de la sesión principal. Lo que el agente puede hacer lo limitan sus instrucciones, no su fichero.
+
+### OpenCode
+
+OpenCode no tiene manifiesto de plugins. Las skills se instalan con `npx skills`, que las deja en `.agents/skills/`:
+
+```bash
+npx skills add git@github.com:aitormf/agent-skills.git -a opencode     # pregunta qué skills
+git clone --depth 1 git@github.com:aitormf/agent-skills.git /tmp/agent-skills
+mkdir -p .opencode/agents && cp /tmp/agent-skills/adapters/opencode/agents/*.md .opencode/agents/
+```
+
+### pi
+
+```bash
+pi install git:git@github.com:aitormf/agent-skills.git -l   # -l: solo en este proyecto (.pi/settings.json)
+```
+
+pi encuentra las skills por la carpeta `skills/`, sin manifiesto.
+
+### Cualquier otro agente: `npx skills`
+
+```bash
+npx skills add git@github.com:aitormf/agent-skills.git --list                    # ver las skills
+npx skills add git@github.com:aitormf/agent-skills.git -s <skill> -a <agente>    # claude-code, codex, opencode, gemini-cli, cursor…
+```
+
+Copia las skills a `.agents/skills/`, enlaza `.claude/skills/` y registra las versiones en `skills-lock.json`. Haz commit de las tres cosas. `npx skills update` trae la versión nueva.
 
 ## Skills
 
@@ -55,8 +125,13 @@ Convenciones de SDD:
 - No hay backlog central. La gestión del trabajo (prioridad, responsable, hecho) vive en el tracker; la spec puede enlazarlo con `issue:`.
 - El contrato con los guardrails es el comando de verificación de la sección `Comandos` de `AGENTS.md`.
 
-## Tests
+## Desarrollo
 
 ```bash
-scripts/test-guardrails-python.sh   # requiere uv, jq y red
+scripts/check.sh                    # agentes generados al día, frontmatter y manifiestos (rápido, sin red)
+scripts/test-guardrails-python.sh   # smoke test de setup-guardrails-python (requiere uv, jq y red)
 ```
+
+- **Al cambiar `agents/*.md`**, ejecuta `scripts/build-agents.py` y haz commit de `adapters/`. `check.sh` falla si se te olvida.
+- **Al publicar cambios**, sube `version` en `.claude-plugin/plugin.json` y en `.codex-plugin/plugin.json`, que deben coincidir. Claude Code y Codex solo actualizan cuando cambia la versión.
+- Los catálogos (`.claude-plugin/marketplace.json` y `.agents/plugins/marketplace.json`) no llevan versión: la toman del plugin.
