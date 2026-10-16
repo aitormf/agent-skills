@@ -1,6 +1,6 @@
 # Fragmento para fusionar con el pyproject.toml del proyecto (no es un pyproject completo).
 # Las dependencias de desarrollo se añaden con `uv add --dev ...`, no copiando versiones de aquí.
-# Origen: herramientas-arnes.md §3.2–3.5 y plan-seguridad-codigo-ia.md §4.2.
+# Por qué: docs/arnes/herramientas-arnes.md §3.2–3.5 y docs/arnes/plan-seguridad-codigo-ia.md §4.2.
 
 [tool.ruff]
 line-length = 100

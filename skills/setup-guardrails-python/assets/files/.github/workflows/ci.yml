@@ -1,4 +1,4 @@
-# Origen: herramientas-arnes.md §4.3. En producción, fijad las actions a un SHA completo.
+# Por qué: docs/arnes/herramientas-arnes.md §4.3. En producción, fijad las actions a un SHA completo.
 name: CI
 
 on:

@@ -1,4 +1,4 @@
-# Origen: plan-seguridad-codigo-ia.md §4.5. En producción, fijad las actions a un SHA completo.
+# Por qué: docs/arnes/plan-seguridad-codigo-ia.md §4.5. En producción, fijad las actions a un SHA completo.
 name: Security
 
 on:

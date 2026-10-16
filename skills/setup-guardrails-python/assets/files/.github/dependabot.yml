@@ -1,4 +1,4 @@
-# Origen: herramientas-arnes.md §3.9 y §3.15, plan-seguridad-codigo-ia.md §3.B.
+# Por qué: docs/arnes/herramientas-arnes.md §3.9 y §3.15, docs/arnes/plan-seguridad-codigo-ia.md §3.B.
 version: 2
 updates:
   - package-ecosystem: "uv"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .claude/hooks/check-on-stop.sh
 # Impide que Claude dé el trabajo por terminado si check.sh no pasa.
-# Origen: herramientas-arnes.md §4.4.
+# Por qué: docs/arnes/herramientas-arnes.md §4.4.
 input=$(cat)
 # Evita bucles infinitos: si ya se bloqueó una vez en este turno, deja terminar.
 if [ "$(echo "$input" | jq -r '.stop_hook_active')" = "true" ]; then

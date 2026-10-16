@@ -1,5 +1,5 @@
 # Configuración mínima de git-cliff. Para la plantilla completa del changelog: `uvx git-cliff --init`
-# y conservad esta sección [git]. Origen: herramientas-arnes.md §3.15.
+# y conservad esta sección [git]. Por qué: docs/arnes/herramientas-arnes.md §3.15.
 #
 # Flujo de release:
 #   VERSION=$(uvx git-cliff --bumped-version)    # p. ej. v1.4.0

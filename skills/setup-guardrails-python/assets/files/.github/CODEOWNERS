@@ -1,7 +1,7 @@
 # Cambios en estas rutas requieren aprobación del equipo indicado.
 # Sustituid @org/... por vuestros equipos y ajustad las rutas sensibles.
 # Activad "Require review from Code Owners" en la protección de main.
-# Origen: plan-seguridad-codigo-ia.md §4.8.
+# Por qué: docs/arnes/plan-seguridad-codigo-ia.md §4.8.
 
 # El arnés: que nadie (ni un agente) lo relaje sin revisión
 /.github/                    @org/plataforma

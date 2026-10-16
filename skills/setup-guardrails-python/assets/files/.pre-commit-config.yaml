@@ -1,5 +1,5 @@
 # Sirve para prek y para pre-commit. Tras copiarlo: `prek autoupdate` (rellena los rev) y `prek install`.
-# Origen: herramientas-arnes.md §4.2 y plan-seguridad-codigo-ia.md §4.3.
+# Por qué: docs/arnes/herramientas-arnes.md §4.2 y docs/arnes/plan-seguridad-codigo-ia.md §4.3.
 default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
