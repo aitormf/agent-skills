@@ -6,6 +6,7 @@ Skills y guías para trabajar con agentes de IA en repositorios de código.
 skills/     Skills autocontenidas (SKILL.md + assets/ + references/)
 agents/     Subagentes (contexto limpio)
 docs/arnes/ Guías del arnés: el porqué de cada pieza. El código y las plantillas viven en los assets de las skills
+docs/sdd/   Guía de uso de SDD
 scripts/    Tests de las skills
 ```
 
@@ -19,6 +20,8 @@ scripts/    Tests de las skills
 | [`setup-guardrails-python`](skills/setup-guardrails-python/SKILL.md) | Instala los guardrails deterministas de un repo Python: check.sh, pre-commit, CI, seguridad, y permisos y hooks de Claude Code |
 
 ### Spec-Driven Development
+
+Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 
 | Skill / agente | Qué hace |
 |---|---|
