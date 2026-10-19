@@ -78,7 +78,7 @@ Las capas son las de `herramientas-arnes.md`. **Universal** significa que vale p
 | **Detectar Unicode invisible** en `AGENTS.md`, `CLAUDE.md`, `.claude/**`, `.mcp.json` y reglas | Script `check_hidden_unicode.py` (§4.3) | Pre-commit, CI |
 | Los ficheros de configuración de agentes se revisan como código sensible | `CODEOWNERS` | CI |
 | El agente no puede modificar el arnés | `permissions.deny` de `Edit` sobre `.github/`, `.pre-commit-config.yaml` y `.claude/settings.json` | Agente |
-| El agente no puede saltarse controles | `deny` de `git commit --no-verify` y `git push`; CI como autoridad final | Agente + CI |
+| El agente no puede saltarse controles | `deny` de `git commit --no-verify`; CI y la protección de `main` como autoridad final | Agente + CI |
 | **Sin `--dangerously-skip-permissions`** fuera de un contenedor desechable | Política en `CONTRIBUTING.md` y `SECURITY.md` | Proceso |
 | Ejecución desatendida o autónoma **en sandbox** con salida de red restringida | `/sandbox` de Claude Code o devcontainer con firewall | Entorno |
 | No combinar la lethal trifecta | Revisar cada servidor MCP con la matriz del §4.6 | Proceso |
@@ -174,7 +174,7 @@ Va en `.pre-commit-config.yaml` junto con zizmor:
 
 ### 4.4 Claude Code: permisos y hook contra paquetes alucinados
 
-Permisos de seguridad de `.claude/settings.json` (el fichero del enlace ya los incluye junto con los de `herramientas-arnes.md` §4.4): `ask` para `uv add`/`uv remove`; `deny` para `pip install`, `--no-verify`, `git push`, leer `.env` y credenciales (`~/.ssh`, `~/.aws`, `~/.config/gcloud`) y editar `.github/`, `.pre-commit-config.yaml` y el propio `settings.json`. Un hook `PreToolUse` comprueba cada `uv add`.
+Permisos de seguridad de `.claude/settings.json` (el fichero del enlace ya los incluye junto con los de `herramientas-arnes.md` §4.4): `ask` para `uv add`/`uv remove`; `deny` para `pip install`, `--no-verify`, leer `.env` y credenciales (`~/.ssh`, `~/.aws`, `~/.config/gcloud`) y editar `.github/`, `.pre-commit-config.yaml` y el propio `settings.json`. Un hook `PreToolUse` comprueba cada `uv add`.
 
 > **Código:** [`files/.claude/settings.json`](../../skills/setup-guardrails-python/assets/files/.claude/settings.json). Es la fuente única: la skill `setup-guardrails-python` lo instala.
 

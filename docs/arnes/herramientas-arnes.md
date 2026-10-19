@@ -215,7 +215,7 @@ Configuración en la sección 4.4. Recordad: solo los ejecuta Claude Code. Lo es
 
 ### 3.11 Permisos y sandbox de Claude Code
 
-- **Permisos** (`permissions.allow` / `deny` en `.claude/settings.json`): permitid lo seguro y repetitivo (`uv run`, `git status`, `git diff`) y denegad lo peligroso (leer `.env`, `git push`). Boris Cherny comparte los permisos con su equipo en este fichero en lugar de usar `--dangerously-skip-permissions`.
+- **Permisos** (`permissions.allow` / `deny` en `.claude/settings.json`): permitid lo seguro y repetitivo (`uv run`, `git status`, `git diff`) y denegad lo peligroso (leer `.env`, `git commit --no-verify`). Boris Cherny comparte los permisos con su equipo en este fichero en lugar de usar `--dangerously-skip-permissions`.
 - **Sandbox** (`/sandbox`): aislamiento del sistema de ficheros y de la red a nivel de sistema operativo, para que el agente trabaje con libertad dentro de unos límites.
 - Diseñad los permisos pensando en la **lethal trifecta** de Simon Willison: no combinéis acceso a datos privados, contenido no fiable y salida al exterior.
 

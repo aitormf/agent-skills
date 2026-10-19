@@ -33,6 +33,7 @@ Find out and summarize in a table:
 - **What already exists** of each component: `scripts/check.sh` (or `make check`, `just check`), `.pre-commit-config.yaml`, `.github/workflows/`, `dependabot.yml`, `CODEOWNERS`, `.claude/settings.json`, ruff and mypy config.
 - **Package:** name of the package in `src/` (for CODEOWNERS and import-linter).
 - **Tools:** `jq` and `prek` (or `pre-commit`) installed.
+- **Agents:** which coding agents the team uses (Claude Code, Codex, OpenCode). Each one has its own config in `assets/files/`.
 
 Brownfield: run `gitleaks git . --redact` if available. If it finds secrets, **stop** and warn: they must be rotated before going on. Removing them from history is not enough.
 
@@ -68,8 +69,10 @@ Propose which phases to apply and ask. Default: phases 1 and 2. Phase 3 only for
 
 ### 4. Phase 2: agent and supply chain
 
-1. `.claude/settings.json` and `.claude/hooks/` already come in `assets/files/`.
-   - If the repo had its own `settings.json`, merge `permissions` and `hooks` without losing what was there.
+1. The agent config already comes in `assets/files/`. Keep only the files for the agents the team uses and delete the rest:
+   - **Claude Code:** `.claude/settings.json` (permissions and hooks) and `.claude/hooks/`. If the repo had its own `settings.json`, merge `permissions` and `hooks` without losing what was there.
+   - **Codex:** `.codex/rules/guardrails.rules` (asks before a forced push). It only loads once the person trusts the project's `.codex/` layer.
+   - **OpenCode:** `opencode.json` (asks before a forced push). If the repo already had one, merge `permission.bash`.
    - Make the hooks and scripts executable: `chmod +x scripts/*.sh .claude/hooks/*`.
    - Brownfield: ask whether there are critical areas where broad write permissions should not be granted.
 2. Add the `## Security` section from `assets/snippets/AGENTS-guardrails.md` to `AGENTS.md` (`## Seguridad`, translated, if `AGENTS.md` is in Spanish).
@@ -78,6 +81,8 @@ Propose which phases to apply and ask. Default: phases 1 and 2. Phase 3 only for
    ```bash
    echo '{"tool_input":{"command":"uv add package-that-does-not-exist-xyz"}}' | uv run python .claude/hooks/check_new_package.py   # must exit with 2
    uv run python scripts/check_hidden_unicode.py AGENTS.md CLAUDE.md                                                            # must exit with 0
+   echo '{"tool_input":{"command":"git push --force"}}' | uv run python .claude/hooks/ask_on_force_push.py                       # must print "permissionDecision": "ask"
+   codex execpolicy check --rules .codex/rules/guardrails.rules -- git push --force                                             # Codex: must print "decision": "prompt"
    ```
 
 ### 5. Phase 3: when needed (only what is asked for)
@@ -95,5 +100,5 @@ Summarize what was installed, what was left out and why. Then give the user **th
 - [ ] *Settings → Actions*: *Require approval for all external contributors*.
 - [ ] Pin the gitleaks image in `ci.yml` and the actions to a SHA.
 - [ ] Rotate any secret found during the diagnosis.
-- [ ] Check `/permissions` and `/hooks` in Claude Code.
+- [ ] Check `/permissions` and `/hooks` in Claude Code; trust the project's `.codex/` layer in Codex.
 - [ ] **Acid test:** in a clean clone, ask the agent to *"run the tests"*. It has to work on the first try.

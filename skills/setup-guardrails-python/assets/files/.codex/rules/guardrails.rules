@@ -1,0 +1,23 @@
+# .codex/rules/guardrails.rules
+# Codex equivalent of .claude/hooks/ask_on_force_push.py: ask before a forced push.
+# Rules match a prefix of the command, so they cover the force flag right after `push`
+# or after `push <remote>`. Loaded only if the project's .codex/ layer is trusted.
+# Test: codex execpolicy check --pretty --rules .codex/rules/guardrails.rules -- git push --force
+
+FORCE = ["--force", "-f", "--force-with-lease", "--force-if-includes"]
+
+prefix_rule(
+    pattern = ["git", "push", FORCE],
+    decision = "prompt",
+    justification = "Forced push: it can overwrite others' history.",
+    match = ["git push --force", "git push -f origin main"],
+    not_match = ["git push", "git push origin main"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["origin", "upstream"], FORCE],
+    decision = "prompt",
+    justification = "Forced push: it can overwrite others' history.",
+    match = ["git push origin --force", "git push origin -f main"],
+    not_match = ["git push origin main", "git push -u origin main"],
+)

@@ -39,6 +39,25 @@ code=$?
 set -e
 [ "$code" = 2 ] || fail "no bloquea un paquete inexistente (exit $code)"
 echo "✔ check_new_package.py"
+hook=.claude/hooks/ask_on_force_push.py
+for cmd in "git push --force" "git push -f origin main" "git push origin +main" "git status && git push --force-with-lease"; do
+  jq -nc --arg c "$cmd" '{tool_input:{command:$c}}' | uv run python "$hook" | grep -q '"ask"' || fail "no pregunta con: $cmd"
+done
+for cmd in "git push" "git push -u origin main"; do
+  [ -z "$(jq -nc --arg c "$cmd" '{tool_input:{command:$c}}' | uv run python "$hook")" ] || fail "pregunta con un push normal: $cmd"
+done
+echo "✔ ask_on_force_push.py"
+jq -e '.permission.bash' opencode.json >/dev/null || fail "opencode.json sin permission.bash"
+if command -v codex >/dev/null; then
+  for cmd in "git push --force" "git push origin -f main"; do
+    codex execpolicy check --rules .codex/rules/guardrails.rules -- $cmd | grep -q '"prompt"' || fail "Codex no pregunta con: $cmd"
+  done
+  [ "$(codex execpolicy check --rules .codex/rules/guardrails.rules -- git push origin main)" = '{"matchedRules":[]}' ] \
+    || fail "Codex pregunta con un push normal"
+  echo "✔ .codex/rules/guardrails.rules"
+else
+  echo "  (codex no está instalado: se omiten las reglas de Codex)"
+fi
 
 echo '{"stop_hook_active":false}' | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/check-on-stop.sh || fail "el hook Stop bloquea con check.sh en verde"
 echo 'x=1' > src/demo/roto.py   # sin formatear: check.sh debe fallar
