@@ -62,6 +62,12 @@ git clone --depth 1 git@github.com:aitormf/agent-skills.git /tmp/agent-skills
 mkdir -p .codex/agents && cp /tmp/agent-skills/adapters/codex/agents/*.toml .codex/agents/
 ```
 
+Para tenerlos en todos los proyectos, cópialos a `~/.codex/agents/` (o `$CODEX_HOME/agents/`). Si hay un agente con el mismo nombre en el proyecto, gana el del proyecto.
+
+```bash
+mkdir -p ~/.codex/agents && cp /tmp/agent-skills/adapters/codex/agents/*.toml ~/.codex/agents/
+```
+
 En Codex, el sandbox y las aprobaciones de un subagente salen siempre de la sesión principal. Lo que el agente puede hacer lo limitan sus instrucciones, no su fichero.
 
 ### OpenCode
@@ -72,6 +78,12 @@ OpenCode no tiene manifiesto de plugins. Las skills se instalan con `npx skills`
 npx skills add git@github.com:aitormf/agent-skills.git -a opencode     # pregunta qué skills
 git clone --depth 1 git@github.com:aitormf/agent-skills.git /tmp/agent-skills
 mkdir -p .opencode/agents && cp /tmp/agent-skills/adapters/opencode/agents/*.md .opencode/agents/
+```
+
+Para tenerlos en todos los proyectos, cópialos a `~/.config/opencode/agents/` (en versiones antiguas, `~/.config/opencode/agent/`). Si hay un agente con el mismo nombre en el proyecto, gana el del proyecto.
+
+```bash
+mkdir -p ~/.config/opencode/agents && cp /tmp/agent-skills/adapters/opencode/agents/*.md ~/.config/opencode/agents/
 ```
 
 ### pi
