@@ -1,62 +1,61 @@
 ---
-status: borrador   # borrador | aprobada | obsoleta. Solo una persona la marca como aprobada.
-issue:             # opcional: enlace o ID en el tracker (p. ej. TRIBBU-123)
+status: draft      # draft | approved | obsolete. Only a person marks it approved.
+issue:             # optional: tracker link or ID (e.g. TRIBBU-123)
 ---
 
-# Nombre de la funcionalidad
+# Feature name
 
-## Objetivo
-<!-- Qué queremos conseguir. Una o dos frases que resuman la funcionalidad y su propósito. -->
+## Goal
+<!-- What we want to achieve. One or two sentences summarizing the feature and its purpose. -->
 
-## Problema que resuelve
-<!-- Qué dolor existe hoy. Describe la situación actual y por qué es insatisfactoria. No incluir la solución. -->
+## Problem
+<!-- What pain exists today. Describe the current situation and why it is unsatisfactory. Do not include the solution. -->
 
-## Usuarios
-<!-- Para quién construimos esto. Define perfiles con rol, nivel técnico y contexto de uso. -->
+## Users
+<!-- Who we are building this for. Define profiles with role, technical level and context of use. -->
 
 ## User stories
-<!-- Qué necesita cada usuario y por qué. Formato: "Como [usuario], quiero [acción] para [beneficio]". -->
+<!-- What each user needs and why. Format: "As a [user], I want [action] so that [benefit]". -->
 
-## Requisitos funcionales
-<!-- Qué debe hacer el sistema. Comportamientos observables y verificables. Formato: "RF-01: El sistema debe..." -->
+## Functional requirements
+<!-- What the system must do. Observable, verifiable behaviours. Format: "FR-01: The system must..." -->
 
-## Requisitos no funcionales
-<!-- Restricciones de calidad: rendimiento, seguridad, accesibilidad, compatibilidad. Formato: "RNF-01: ..." -->
+## Non-functional requirements
+<!-- Quality constraints: performance, security, accessibility, compatibility. Format: "NFR-01: ..." -->
 
-## Casos límite
-<!-- Qué pasa en situaciones raras o extremas: datos vacíos, masivos, corruptos, acciones simultáneas. -->
+## Edge cases
+<!-- What happens in rare or extreme situations: empty, massive or corrupt data, concurrent actions. -->
 
-## Criterios de aceptación
-<!-- Cómo se verifica que funciona. Formato: "Dado [contexto], cuando [acción], entonces [resultado]". -->
+## Acceptance criteria
+<!-- How we verify it works. Format: "Given [context], when [action], then [result]". -->
 
-## Alcance
-<!-- Hasta dónde llega esta spec. Qué SÍ se incluye. Opcional en tareas pequeñas. -->
+## Scope
+<!-- How far this spec goes. What IS included. Optional for small tasks. -->
 
-## Fuera de alcance
-<!-- Qué NO entra aunque parezca relacionado. Importante para agentes AI: no infieren por omisión. -->
+## Out of scope
+<!-- What is NOT included even if it looks related. Important for AI agents: they do not infer by omission. -->
 
-## Entidades / Modelo de datos
-<!-- Conceptos principales del dominio, atributos clave y relaciones. No es diseño de base de datos. Opcional. -->
+## Entities / Data model
+<!-- Main domain concepts, key attributes and relationships. Not a database design. Optional. -->
 
-## Métricas de éxito
-<!-- Cómo sabremos que funciona en el mundo real. Métricas medibles post-lanzamiento. Opcional. -->
+## Success metrics
+<!-- How we will know it works in the real world. Measurable post-launch metrics. Optional. -->
 
-## Dependencias
-<!-- Sistemas, APIs o funcionalidades que deben existir antes o durante la implementación. Opcional. -->
+## Dependencies
+<!-- Systems, APIs or features that must exist before or during implementation. Optional. -->
 
-## Riesgos
-<!-- Qué puede salir mal o complicar la implementación. Incertidumbres técnicas o de negocio. Opcional. -->
+## Risks
+<!-- What can go wrong or complicate the implementation. Technical or business uncertainties. Optional. -->
 
-## Supuestos
-<!-- Qué damos por hecho sin haberlo validado. Hacerlos explícitos permite cuestionarlos. Opcional. -->
+## Assumptions
+<!-- What we take for granted without having validated it. Making them explicit lets us question them. Optional. -->
 
-## Preguntas abiertas
-<!-- Qué no sabemos todavía. Es preferible listarlas a inventar la respuesta. Opcional. -->
+## Open questions
+<!-- What we do not know yet. Better to list them than to invent the answer. Optional. -->
 
-
-## Seguridad
-<!-- Obligatoria si la funcionalidad toca datos, autenticación o entradas externas. Si no, bórrala. -->
-- Datos que maneja y su sensibilidad:
-- Quién puede hacer qué (matriz de autorización):
-- Entradas no fiables y cómo se validan:
-- Tests negativos requeridos (sin auth, otro usuario, entrada maliciosa, límites):
+## Security
+<!-- Mandatory if the feature touches data, authentication or external input. Otherwise, delete it. -->
+- Data handled and its sensitivity:
+- Who can do what (authorization matrix):
+- Untrusted inputs and how they are validated:
+- Required negative tests (no auth, another user, malicious input, limits):

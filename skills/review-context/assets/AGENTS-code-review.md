@@ -1,26 +1,26 @@
 <!--
-  Sección opcional de AGENTS.md para las skills de review (review-prepush, review-pr).
-  Copia lo que necesites y borra estos comentarios.
+  Optional AGENTS.md section for the review skills (review-prepush, review-pr).
+  Copy what you need and delete these comments.
 
-  OJO: AGENTS.md se carga en TODAS las sesiones del agente, no solo en las reviews.
-  Mantén esta sección corta (10–20 líneas).
+  NOTE: AGENTS.md is loaded in EVERY agent session, not only in reviews.
+  Keep this section short (10–20 lines).
 
-  Los comandos de verificación NO van aquí: la review los lee de la sección `## Comandos`
-  de AGENTS.md, la misma que usan implement y plan-to-tasks. Si hay un comando agregado
-  (`./scripts/check.sh`, `make check`), solo ejecuta ese. Solo ejecuta comandos que comprueban:
-  nunca deploy, migraciones, install, --fix ni --write.
+  Verification commands do NOT go here: the review reads them from the `## Commands` section
+  of AGENTS.md, the same one implement and plan-to-tasks use. If there is an aggregate command
+  (`./scripts/check.sh`, `make check`), it runs only that one. It only runs commands that check:
+  never deploy, migrations, install, --fix or --write.
 -->
 
 ## Code review
-<!-- Todo opcional. Lo que no pongas usa el valor por defecto indicado. -->
-- Rama base: `main`                       <!-- defecto: rama por defecto del remoto -->
-- Output language: Spanish                <!-- defecto: inglés. Títulos y etiquetas siempre en inglés -->
-- Rutas de alto riesgo: `src/auth/**`, `src/billing/**`, `migrations/**`
-  <!-- fuerzan tier 2 en review-pr y más profundidad en seguridad.
-       defecto: rutas que contengan auth, session, token, payment, billing, migration, secret, webhook, admin… -->
-- Marcar siempre: queries SQL construidas a mano; llamadas HTTP sin timeout
-- Ignorar: `src/generated/**`, `*.snap`, cambios de formato en `docs/`
-- Convenciones que no cubre el linter: los errores de dominio se lanzan como `DomainError`, nunca `Error`
-- Max Optional: 3                          <!-- cuántos Optional se muestran (los de más impacto y menos coste). 0 = ninguno -->
-- Max Nits: 3                              <!-- ídem para Nits -->
-- Semgrep: no                              <!-- "no" si ya lo ejecuta vuestro comando de verificación (setup-guardrails-python lo hace en CI) -->
+<!-- All optional. Anything you leave out uses the default shown. -->
+- Base branch: `main`                     <!-- default: the remote's default branch -->
+- Output language: Spanish                <!-- default: English. Headings and labels are always in English -->
+- High-risk paths: `src/auth/**`, `src/billing/**`, `migrations/**`
+  <!-- force tier 2 in review-pr and deeper security review.
+       default: paths containing auth, session, token, payment, billing, migration, secret, webhook, admin… -->
+- Always flag: hand-built SQL queries; HTTP calls without a timeout
+- Ignore: `src/generated/**`, `*.snap`, formatting changes in `docs/`
+- Conventions the linter does not cover: domain errors are raised as `DomainError`, never `Error`
+- Max Optional: 3                          <!-- how many Optional findings are shown (highest impact, lowest cost). 0 = none -->
+- Max Nits: 3                              <!-- same for Nits -->
+- Semgrep: no                              <!-- "no" if your verification command already runs it (setup-guardrails-python does it in CI) -->

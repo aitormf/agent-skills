@@ -85,7 +85,7 @@ Si lo encuentra, cada persona comprueba en la parte de la spec que toca el cambi
 
 - que cada criterio de aceptación está implementado y tiene un test que fallaría sin él;
 - que existen los tests negativos de la sección Seguridad;
-- que no se ha construido nada de "Fuera de alcance";
+- que no se ha construido nada de "Out of scope" ("Fuera de alcance" en specs en español);
 - que cada tarea marcada con `[x]` está hecha de verdad;
 - que no se rompe un principio de `docs/ARCHITECTURE.md`.
 

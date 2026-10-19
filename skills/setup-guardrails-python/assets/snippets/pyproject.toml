@@ -1,6 +1,6 @@
-# Fragmento para fusionar con el pyproject.toml del proyecto (no es un pyproject completo).
-# Las dependencias de desarrollo se añaden con `uv add --dev ...`, no copiando versiones de aquí.
-# Por qué: docs/arnes/herramientas-arnes.md §3.2–3.5 y docs/arnes/plan-seguridad-codigo-ia.md §4.2.
+# Fragment to merge into the project's pyproject.toml (not a complete pyproject).
+# Dev dependencies are added with `uv add --dev ...`, not by copying versions from here.
+# Why: docs/arnes/herramientas-arnes.md §3.2–3.5 and docs/arnes/plan-seguridad-codigo-ia.md §4.2.
 
 [tool.ruff]
 line-length = 100
@@ -8,19 +8,19 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "C4", "UP", "SIM", "RUF", "S", "PLE"]
-# S = flake8-bandit (seguridad) · PLE incluye PLE2502 (Unicode bidireccional, "Trojan Source")
+# S = flake8-bandit (security) · PLE includes PLE2502 (bidirectional Unicode, "Trojan Source")
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106"]   # assert y contraseñas de prueba permitidos SOLO en tests
+"tests/**" = ["S101", "S105", "S106"]   # assert and test passwords allowed ONLY in tests
 
 [tool.mypy]
 strict = true
 files = ["src", "tests"]
 
-# Brownfield: deuda conocida. Esta lista solo puede encoger.
+# Brownfield: known debt. This list can only shrink.
 # [[tool.mypy.overrides]]
-# module = ["mi_proyecto.legacy.*"]
+# module = ["my_project.legacy.*"]
 # ignore_errors = true   # issue #123
 
 [tool.pytest.ini_options]
@@ -32,32 +32,32 @@ source = ["src"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 80          # brownfield: la cobertura actual; solo sube
+fail_under = 80          # brownfield: the current coverage; only goes up
 show_missing = true
 
 [tool.uv]
-# Cooldown: no resolver versiones publicadas hace menos de 7 días (requiere uv >= 0.9.17).
-# Los paquetes maliciosos suelen retirarse en horas o días.
+# Cooldown: do not resolve versions published less than 7 days ago (requires uv >= 0.9.17).
+# Malicious packages are usually pulled within hours or days.
 exclude-newer = "7 days"
-# Excepción temporal para un parche urgente (quitarla después):
-# exclude-newer-package = { paquete-urgente = false }
+# Temporary exception for an urgent patch (remove it afterwards):
+# exclude-newer-package = { urgent-package = false }
 
-# import-linter: cuando haya capas. Los contratos salen de "Principios innegociables" de ARCHITECTURE.md.
+# import-linter: once there are layers. The contracts come from the non-negotiable principles of ARCHITECTURE.md.
 # [tool.importlinter]
-# root_package = "mi_proyecto"
+# root_package = "my_project"
 #
 # [[tool.importlinter.contracts]]
-# name = "Arquitectura por capas"
+# name = "Layered architecture"
 # type = "layers"
 # layers = [
-#     "mi_proyecto.api | mi_proyecto.infra",
-#     "mi_proyecto.application",
-#     "mi_proyecto.domain",
+#     "my_project.api | my_project.infra",
+#     "my_project.application",
+#     "my_project.domain",
 # ]
-# ignore_imports = []   # brownfield: violaciones actuales; solo puede encoger
+# ignore_imports = []   # brownfield: current violations; can only shrink
 #
 # [[tool.importlinter.contracts]]
-# name = "Dominio puro"
+# name = "Pure domain"
 # type = "forbidden"
-# source_modules = ["mi_proyecto.domain"]
+# source_modules = ["my_project.domain"]
 # forbidden_modules = ["fastapi", "sqlalchemy", "httpx"]

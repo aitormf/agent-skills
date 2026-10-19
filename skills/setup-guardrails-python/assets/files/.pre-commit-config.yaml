@@ -1,10 +1,10 @@
-# Sirve para prek y para pre-commit. Tras copiarlo: `prek autoupdate` (rellena los rev) y `prek install`.
-# Por qué: docs/arnes/herramientas-arnes.md §4.2 y docs/arnes/plan-seguridad-codigo-ia.md §4.3.
+# Works with prek and pre-commit. After copying it: `prek autoupdate` (fills in the revs) and `prek install`.
+# Why: docs/arnes/herramientas-arnes.md §4.2 and docs/arnes/plan-seguridad-codigo-ia.md §4.3.
 default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: <versión>
+    rev: <version>
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -14,29 +14,29 @@ repos:
       - id: check-added-large-files
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: <versión>
+    rev: <version>
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: <versión>
+    rev: <version>
     hooks:
-      - id: uv-lock          # uv.lock sincronizado con pyproject.toml
+      - id: uv-lock          # uv.lock in sync with pyproject.toml
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: <versión>
+    rev: <version>
     hooks:
       - id: gitleaks
 
-  # Conventional Commits (etapa commit-msg). Coméntalo si aún no lo usas.
+  # Conventional Commits (commit-msg stage). Comment it out if you do not use them yet.
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: <versión>
+    rev: <version>
     hooks:
       - id: commitizen
 
-  # mypy e import-linter con `uv run` para usar las versiones de uv.lock.
+  # mypy and import-linter with `uv run` to use the versions in uv.lock.
   - repo: local
     hooks:
       - id: mypy
@@ -52,12 +52,12 @@ repos:
       #   types: [python]
       #   pass_filenames: false
       - id: hidden-unicode
-        name: Unicode oculto en ficheros de agentes y docs
+        name: Hidden Unicode in agent files and docs
         entry: uv run python scripts/check_hidden_unicode.py
         language: system
         files: '(^|/)(AGENTS|CLAUDE)\.md$|^\.claude/|^\.cursor/|^\.mcp\.json$|^\.github/|^docs/.*\.md$'
       - id: zizmor
-        name: zizmor (seguridad de GitHub Actions)
+        name: zizmor (GitHub Actions security)
         entry: uvx zizmor
         language: system
         files: '^\.github/workflows/.*\.ya?ml$'

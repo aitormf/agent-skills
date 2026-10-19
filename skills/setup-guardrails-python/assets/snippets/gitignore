@@ -6,24 +6,24 @@ dist/
 build/
 *.egg-info/
 
-# Herramientas
+# Tools
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Secretos
+# Secrets
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 
-# Agentes de IA: personal
+# AI agents: personal
 CLAUDE.local.md
 .claude/settings.local.json
 
-# SO / editores
+# OS / editors
 .DS_Store
 .idea/

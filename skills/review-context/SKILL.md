@@ -44,15 +44,15 @@ Repos that use Spec-Driven Development keep one directory per work item in `docs
    - a commit message names the directory.
 
    If several match, or the match is doubtful, list the candidates under Verification and use none. If none matches, review against the task inferred from the branch and commits, as usual.
-2. **Read it:** `spec.md`, plus `plan.md` and `tasks.md` if they exist, and the "Principios innegociables" (non-negotiable principles) section of `docs/ARCHITECTURE.md` if it exists. Note each artifact's `status:` from its frontmatter.
+2. **Read it:** `spec.md`, plus `plan.md` and `tasks.md` if they exist, and the non-negotiable principles section of `docs/ARCHITECTURE.md` if it exists ("Non-negotiable principles", or "Principios innegociables" in Spanish-language projects). Note each artifact's `status:` from its frontmatter.
 3. **Pass to every persona**, verbatim: the paths of those files and this instruction:
 
    > The change implements the spec at `<path>`. Read it. Check, for the parts of the spec this change touches:
    > - each acceptance criterion is implemented and has a test that would fail without it;
    > - for the security section, the negative tests it lists exist;
-   > - nothing listed under "Fuera de alcance" (out of scope) was built;
+   > - nothing listed under "Out of scope" ("Fuera de alcance" in Spanish-language specs) was built;
    > - every task marked `[x]` in `tasks.md` is actually done in the code;
    > - the change does not break a principle of `docs/ARCHITECTURE.md`.
    >
    > A criterion or `[x]` task with no implementation, a missing negative test, an out-of-scope addition, or a broken principle is at least **Required** (`Source: spec`). Do not report criteria that belong to tasks still unchecked: they are pending work, not defects.
-4. **In the report**, add one line to the Summary: `Spec: <path> (spec <status>, plan <status>) — <N>/<M> acceptance criteria covered by this change`. If the spec or plan is not `aprobada`, say so; it is information, not a finding.
+4. **In the report**, add one line to the Summary: `Spec: <path> (spec <status>, plan <status>) — <N>/<M> acceptance criteria covered by this change`. If the spec or plan is not `approved`, say so; it is information, not a finding.

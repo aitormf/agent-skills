@@ -1,44 +1,41 @@
 ---
 name: plan-to-tasks
-description: Parte un plan técnico aprobado en tareas pequeñas, ordenadas por dependencias, con ficheros afectados, verificación por tarea y grupos en paralelo. Úsala cuando haya un plan y pidan desglosarlo en tareas o prepararlo para implementar.
+description: Splits an approved technical plan into small tasks, ordered by dependencies, with affected files, per-task verification and parallel groups. Use it when there is a plan and someone asks to break it down into tasks or get it ready for implementation.
 ---
 
-# De plan a tareas
+# From plan to tasks
 
-Convierte un plan en una lista de tareas ejecutable que el agente `implement` pueda seguir y marcar.
+Turn a plan into an executable task list that the `implement` agent can follow and tick off.
 
-## Artefactos y estado
+- Each work item lives in `docs/specs/<YYYYMMDD>-<type>-<name>/`.
+- `tasks.md` has no status: its progress is the `[x]` checkboxes.
 
-- Cada trabajo vive en `docs/specs/<AAAAMMDD>-<tipo>-<nombre>/`.
-- `spec.md` y `plan.md` llevan en el frontmatter `status: borrador | aprobada | obsoleta`. Solo una persona pone `aprobada`.
-- `tasks.md` no tiene status: su progreso son las casillas `[x]`.
+## Before you start
 
-## Antes de empezar
+1. Identify the work item and read `plan.md` and `spec.md`.
+2. **Gate:** if the plan does not have `status: approved`, stop and ask:
+   > The plan is `<status>`. Shall I continue anyway, review it first with `review-spec`, or will you approve it now?
 
-1. Identifica el trabajo y lee `plan.md` y `spec.md`.
-2. **Puerta:** si el plan no tiene `status: aprobada`, para y pregunta:
-   > El plan está en `<status>`. ¿Continúo de todas formas, lo revisamos antes con `review-spec`, o lo apruebas ahora?
+   Continue only with an explicit answer. For a small change with no plan, the gate applies to the spec.
+3. Read the **verification command** in the `Commands` section of `AGENTS.md` (`Comandos` in Spanish-language projects). If there is none, ask what it is or leave the wrap-up task with a warning.
 
-   Sigue solo con una respuesta explícita. En un cambio pequeño sin plan, la puerta se aplica a la spec.
-3. Lee el **comando de verificación** en la sección `Comandos` de `AGENTS.md`. Si no lo hay, pregunta cuál es o deja la tarea de cierre con un aviso.
+## How to split
 
-## Cómo partir
+- Small tasks: each one is a reviewable change that leaves the project green.
+- Ordered by dependencies. Mark with `[P]` those that can be done in parallel with the previous one.
+- Each task lists the **files** it touches, if known, and **how it is verified**: which test, or which command.
+- If the project works with TDD (`CONTRIBUTING.md` or `AGENTS.md` will say so), the test goes before the code or in the same task, never at the end.
+- Every acceptance criterion of the spec and every negative test from Security must be covered by at least one task. If one is not, say so.
+- The **Wrap-up** phase is mandatory: acceptance criteria with tests and the verification command green.
+- Do not add work that is not in the plan. If something is missing from the plan, raise it as a question.
 
-- Tareas pequeñas: cada una es un cambio revisable que deja el proyecto en verde.
-- Ordenadas por dependencias. Marca con `[P]` las que se pueden hacer en paralelo con la anterior.
-- Cada tarea indica los **ficheros** que toca, si se saben, y **cómo se verifica**: qué test, o qué comando.
-- Si el proyecto trabaja con TDD (lo dirá `CONTRIBUTING.md` o `AGENTS.md`), el test va antes que el código o en la misma tarea, nunca al final.
-- Cada criterio de aceptación de la spec y cada test negativo de Seguridad debe estar cubierto por al menos una tarea. Si alguno no lo está, dilo.
-- La fase de **Cierre** es obligatoria: criterios de aceptación con test y el comando de verificación en verde.
-- No añadas trabajo que no esté en el plan. Si falta algo en el plan, señálalo como pregunta.
+## Result
 
-## Resultado
-
-1. Redacta `tasks.md` a partir de `assets/tasks-template.md`.
-2. Enseña el borrador con:
-   - las tareas;
-   - los grupos en paralelo;
-   - los puntos de verificación;
-   - las preguntas que queden.
-3. Escribe solo cuando la persona lo apruebe.
-4. Siguiente paso sugerido: implementar con el agente `implement`.
+1. Draft `tasks.md` from `assets/tasks-template.md`.
+2. Show the draft with:
+   - the tasks;
+   - the parallel groups;
+   - the verification points;
+   - any remaining questions.
+3. Write it only once the person approves.
+4. Suggested next step: implement it with the `implement` agent.

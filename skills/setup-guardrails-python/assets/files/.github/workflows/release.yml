@@ -1,4 +1,4 @@
-# Por qué: docs/arnes/herramientas-arnes.md §3.15. Notas de la release generadas con git-cliff al publicar un tag.
+# Why: docs/arnes/herramientas-arnes.md §3.15. Release notes generated with git-cliff when a tag is pushed.
 name: Release
 on:
   push:
@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0          # git-cliff necesita el historial y los tags
+          fetch-depth: 0          # git-cliff needs the history and the tags
           persist-credentials: false
       - uses: astral-sh/setup-uv@v6
-      # Las notas pasan por fichero, no por outputs dentro de run:, para evitar inyección desde los commits.
+      # The notes go through a file, not through outputs inside run:, to avoid injection from commits.
       - run: uvx git-cliff --latest --strip header -o RELEASE_NOTES.md
       - run: gh release create "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
         env:

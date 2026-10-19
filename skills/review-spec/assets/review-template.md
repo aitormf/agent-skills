@@ -1,22 +1,22 @@
-# Revisión: <spec | plan> de <nombre de la funcionalidad>
+# Review: <spec | plan> of <feature name>
 
-<!-- Escrita por review-spec. Es una recomendación: la aprobación la hace una persona cambiando status. -->
+<!-- Written by review-spec. It is a recommendation: approval is done by a person changing status. -->
 
-## Recomendación
-<!-- "Listo para aprobar" o "Devolver", con una frase de motivo. -->
+## Recommendation
+<!-- "Ready to approve" or "Send back", with a one-sentence reason. -->
 
-## Hallazgos
-<!-- Numerados y por prioridad. Cada uno: sección afectada, qué falla y arreglo sugerido. -->
+## Findings
+<!-- Numbered and by priority. Each one: affected section, what is wrong and suggested fix. -->
 
-### Bloqueantes
+### Blocking
 
-### Importantes
+### Important
 
-### Menores
+### Minor
 
-## Principios y ADRs
-<!-- Choques con "Principios innegociables" de docs/ARCHITECTURE.md o con ADRs aceptados. -->
+## Principles and ADRs
+<!-- Clashes with the non-negotiable principles of docs/ARCHITECTURE.md or with accepted ADRs. -->
 
-## Preguntas
+## Questions
 
-## Riesgos
+## Risks

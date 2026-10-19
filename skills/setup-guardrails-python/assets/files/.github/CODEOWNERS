@@ -1,24 +1,24 @@
-# Cambios en estas rutas requieren aprobación del equipo indicado.
-# Sustituid @org/... por vuestros equipos y ajustad las rutas sensibles.
-# Activad "Require review from Code Owners" en la protección de main.
-# Por qué: docs/arnes/plan-seguridad-codigo-ia.md §4.8.
+# Changes to these paths require approval from the given team.
+# Replace @org/... with your teams and adjust the sensitive paths.
+# Enable "Require review from Code Owners" in main's branch protection.
+# Why: docs/arnes/plan-seguridad-codigo-ia.md §4.8.
 
-# El arnés: que nadie (ni un agente) lo relaje sin revisión
-/.github/                    @org/plataforma
-/.pre-commit-config.yaml     @org/plataforma
-/.claude/                    @org/plataforma
-/AGENTS.md                   @org/plataforma
-/CLAUDE.md                   @org/plataforma
-/.mcp.json                   @org/seguridad
-/scripts/check.sh            @org/plataforma
+# The harness: nobody (not even an agent) loosens it without review
+/.github/                    @org/platform
+/.pre-commit-config.yaml     @org/platform
+/.claude/                    @org/platform
+/AGENTS.md                   @org/platform
+/CLAUDE.md                   @org/platform
+/.mcp.json                   @org/security
+/scripts/check.sh            @org/platform
 
-# Dependencias
-/pyproject.toml              @org/plataforma
-/uv.lock                     @org/plataforma
+# Dependencies
+/pyproject.toml              @org/platform
+/uv.lock                     @org/platform
 
-# Tests: que no se borren ni debiliten para que pasen
-/tests/                      @org/plataforma
+# Tests: not deleted or weakened to make them pass
+/tests/                      @org/platform
 
-# Zonas sensibles del código
-# /src/mi_proyecto/auth/       @org/seguridad
-# /src/mi_proyecto/payments/   @org/seguridad
+# Sensitive areas of the code
+# /src/my_project/auth/       @org/security
+# /src/my_project/payments/   @org/security

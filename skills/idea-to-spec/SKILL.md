@@ -1,70 +1,70 @@
 ---
 name: idea-to-spec
-description: Convierte una idea vaga o a medio definir en una spec (problema, usuarios, historias de usuario, requisitos, casos límite y criterios de aceptación) mediante una entrevista por rondas. Úsala cuando pidan escribir una spec, definir una funcionalidad, aclarar requisitos o pasar de una idea a algo implementable.
+description: Turns a vague or half-defined idea into a spec (problem, users, user stories, requirements, edge cases and acceptance criteria) through a round-based interview. Use it when asked to write a spec, define a feature, clarify requirements or go from an idea to something implementable.
 ---
 
-# De idea a spec
+# From idea to spec
 
-Ayuda a la persona a transformar una idea en una spec lista para planificar. Conduces la conversación; **las respuestas las da la persona**.
+Help the person turn an idea into a spec ready for planning. You lead the conversation; **the person gives the answers**.
 
-## Artefactos y estado
+## Artifacts and status
 
-- Cada trabajo vive en `docs/specs/<AAAAMMDD>-<tipo>-<nombre>/`. El tipo sigue Conventional Commits (`feat`, `fix`, `refactor`, `docs`…) y el nombre va en kebab-case. Si ya existe ese directorio, añade `-2`.
-- `spec.md` y `plan.md` llevan en el frontmatter `status: borrador | aprobada | obsoleta`. Solo una persona pone `aprobada`.
-- Si modificas un artefacto aprobado, devuélvelo a `borrador` y avisa.
-- La gestión del trabajo (prioridad, responsable, hecho) no es cosa de esta skill: vive en el tracker. Si hay issue, su ID va en `issue:`.
+- Each work item lives in `docs/specs/<YYYYMMDD>-<type>-<name>/`. The type follows Conventional Commits (`feat`, `fix`, `refactor`, `docs`…) and the name is kebab-case. If that directory already exists, append `-2`.
+- `spec.md` and `plan.md` carry `status: draft | approved | obsolete` in their frontmatter. Only a person sets `approved`.
+- If you modify an approved artifact, set it back to `draft` and say so.
+- Work management (priority, owner, done) is not this skill's job: it lives in the tracker. If there is an issue, its ID goes in `issue:`.
 
-## Comportamiento
+## Behaviour
 
-- Empieza resumiendo la idea en un párrafo corto.
-- Identifica qué falta para escribir una buena spec y haz el **mínimo de preguntas útiles**, primero las que bloquean.
-- Céntrate en el qué y el porqué, no en el cómo: nada de frameworks ni arquitectura salvo que la persona lo pida. Eso es de `spec-to-plan`.
-- Si `docs/ARCHITECTURE.md` existe, léelo para usar el vocabulario del glosario y detectar choques con los principios.
+- Start by summarizing the idea in a short paragraph.
+- Identify what is missing to write a good spec and ask the **minimum number of useful questions**, blocking ones first.
+- Focus on the what and the why, not the how: no frameworks or architecture unless the person asks for them. That belongs to `spec-to-plan`.
+- If `docs/ARCHITECTURE.md` exists, read it to use the glossary's vocabulary and to spot clashes with the principles.
 
-## Preguntas por rondas
+## Questions by round
 
-1. Problema y resultado esperado.
-2. Usuarios y actores.
-3. Historias de usuario (qué necesita cada uno y para qué).
-4. Alcance y fuera de alcance.
-5. Comportamiento y casos límite: datos vacíos, inválidos o masivos; fallos de dependencias externas; acciones simultáneas.
-6. Restricciones no funcionales.
-7. Seguridad, si toca datos, autenticación o entradas externas: sensibilidad de los datos, quién puede hacer qué, qué entradas no son fiables y qué tests negativos hacen falta.
-8. Criterios de aceptación ("Dado…, cuando…, entonces…").
+1. Problem and expected outcome.
+2. Users and actors.
+3. User stories (what each one needs and why).
+4. Scope and out of scope.
+5. Behaviour and edge cases: empty, invalid or massive data; external dependency failures; concurrent actions.
+6. Non-functional constraints.
+7. Security, if it touches data, authentication or external input: data sensitivity, who can do what, which inputs are untrusted and which negative tests are needed.
+8. Acceptance criteria ("Given…, when…, then…").
 
-Si tras una ronda algo sigue ambiguo, pregunta solo por esa parte.
+If something is still ambiguous after a round, ask only about that part.
 
-## Preguntas abiertas
+## Open questions
 
-**Nunca asumas una respuesta en silencio.** Para cada pregunta sin resolver:
+**Never silently assume an answer.** For each unresolved question:
 
-> **[Pregunta]**
-> - A) [Tu propuesta por defecto, si la hay]
-> - B) [Alternativa evidente]
-> - C) Dejarla como pregunta abierta en la spec
-> - D) Otra respuesta
+> **[Question]**
+> - A) [Your default proposal, if any]
+> - B) [Obvious alternative]
+> - C) Leave it as an open question in the spec
+> - D) Another answer
 
-Solo es resuelta cuando la persona responde o elige dejarla abierta.
+It is resolved only when the person answers or chooses to leave it open.
 
-Formato de cada respuesta: `Lo que entiendo` · `Preguntas abiertas` · `Siguiente paso`.
+Format of each reply: `What I understand` · `Open questions` · `Next step`.
 
-## Tamaño
+## Size
 
-Ajusta la profundidad al cambio. Propón el recorrido y que la persona decida:
+Match the depth to the change. Propose the path and let the person decide:
 
-| Cambio | Artefactos |
+| Change | Artifacts |
 |---|---|
-| Bug de una línea | Ninguno, o solo `tasks.md` |
-| Bug complejo | `spec.md` + `tasks.md` |
-| Funcionalidad pequeña | `spec.md` + `plan.md` + `tasks.md` |
-| Funcionalidad de producción o refactor arquitectural | Todo, con revisión de spec y de plan |
+| One-line bug | None, or only `tasks.md` |
+| Complex bug | `spec.md` + `tasks.md` |
+| Small feature | `spec.md` + `plan.md` + `tasks.md` |
+| Production feature or architectural refactor | Everything, with spec and plan review |
 
-## Cuándo parar
+## When to stop
 
-Para cuando haya suficiente para: objetivo, problema, usuarios, historias de usuario, alcance y fuera de alcance, requisitos funcionales y no funcionales, casos límite y criterios de aceptación.
+Stop when there is enough for: goal, problem, users, user stories, scope and out of scope, functional and non-functional requirements, edge cases and acceptance criteria.
 
-Entonces:
+Then:
 
-1. Propón el nombre del directorio y redacta `spec.md` a partir de `assets/spec-template.md`, con `status: borrador`. Borra las secciones opcionales que no aplican.
-2. Enseña el borrador y escribe solo cuando la persona lo apruebe.
-3. Siguiente paso sugerido: revisarla con `review-spec`. Si es pequeña y la persona la da por buena, puede marcarla como `aprobada` y pasar a `spec-to-plan`.
+1. Propose the directory name and draft `spec.md` from `assets/spec-template.md`, with `status: draft`. Delete the optional sections that do not apply.
+2. Show the draft and write it only once the person approves.
+3. Suggested next step: review it with `review-spec`. If it is small and the person is happy with it, they can mark it `approved` and move on to `spec-to-plan`.

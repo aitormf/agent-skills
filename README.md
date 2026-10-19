@@ -115,17 +115,17 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 
 ```
-idea-to-spec → [review-spec → apply-review] → persona: status: aprobada
-  → spec-to-plan → [review-spec → apply-review] → persona: status: aprobada
+idea-to-spec → [review-spec → apply-review] → persona: status: approved
+  → spec-to-plan → [review-spec → apply-review] → persona: status: approved
   → plan-to-tasks → implement → review-prepush → PR → review-pr
 ```
 
 Convenciones de SDD:
 
 - Cada trabajo vive en `docs/specs/<AAAAMMDD>-<tipo>-<nombre>/` (`spec.md`, `plan.md`, `tasks.md` y las revisiones).
-- `spec.md` y `plan.md` llevan `status: borrador | aprobada | obsoleta` en el frontmatter. **Solo una persona pone `aprobada`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación.
+- `spec.md` y `plan.md` llevan `status: draft | approved | obsolete` en el frontmatter. **Solo una persona pone `approved`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación.
 - No hay backlog central. La gestión del trabajo (prioridad, responsable, hecho) vive en el tracker; la spec puede enlazarlo con `issue:`.
-- El contrato con los guardrails es el comando de verificación de la sección `Comandos` de `AGENTS.md`.
+- El contrato con los guardrails es el comando de verificación de la sección `Commands` (o `Comandos`) de `AGENTS.md`.
 
 ### Code review
 

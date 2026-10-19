@@ -1,32 +1,32 @@
 ---
-status: borrador   # borrador | aprobada | obsoleta. Solo una persona lo marca como aprobado.
+status: draft      # draft | approved | obsolete. Only a person marks it approved.
 ---
 
-# Plan: <nombre de la funcionalidad>
+# Plan: <feature name>
 
-## Objetivo técnico
-<!-- Qué hay que construir para cumplir la spec, en dos o tres frases. -->
+## Technical goal
+<!-- What has to be built to meet the spec, in two or three sentences. -->
 
-## Arquitectura propuesta
-<!-- Dónde encaja en las capas de docs/ARCHITECTURE.md. Lo mínimo que exige la spec. -->
+## Proposed architecture
+<!-- Where it fits in the layers of docs/ARCHITECTURE.md. The minimum the spec requires. -->
 
-## Componentes y responsabilidades
-<!-- Módulos o ficheros nuevos o modificados y qué hace cada uno. -->
+## Components and responsibilities
+<!-- New or modified modules or files and what each one does. -->
 
-## Modelo de datos mínimo
+## Minimal data model
 
-## Contratos
-<!-- APIs, eventos, firmas públicas. -->
+## Contracts
+<!-- APIs, events, public signatures. -->
 
-## Comprobación de principios
-<!-- Uno por fila, de la sección "Principios innegociables" de docs/ARCHITECTURE.md.
-Si un principio no aplica, indícalo. Si el plan lo incumple, justifícalo y propón un ADR. -->
-| Principio | ¿Se cumple? | Nota |
+## Principles check
+<!-- One per row, from the non-negotiable principles section of docs/ARCHITECTURE.md.
+If a principle does not apply, say so. If the plan breaks it, justify it and propose an ADR. -->
+| Principle | Met? | Note |
 |---|---|---|
 
-## Pruebas
-<!-- Qué tests prueban cada criterio de aceptación de la spec, incluidos los negativos de la sección Seguridad. -->
+## Tests
+<!-- Which tests prove each acceptance criterion of the spec, including the negative ones from the Security section. -->
 
-## Riesgos
+## Risks
 
-## Decisiones abiertas
+## Open decisions

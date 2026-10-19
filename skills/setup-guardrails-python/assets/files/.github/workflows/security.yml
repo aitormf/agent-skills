@@ -1,4 +1,4 @@
-# Por qué: docs/arnes/plan-seguridad-codigo-ia.md §4.5. En producción, fijad las actions a un SHA completo.
+# Why: docs/arnes/plan-seguridad-codigo-ia.md §4.5. In production, pin the actions to a full SHA.
 name: Security
 
 on:
@@ -6,10 +6,10 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 5 * * *"   # diario: nuevas CVE en dependencias que no han cambiado
+    - cron: "0 5 * * *"   # daily: new CVEs in dependencies that have not changed
 
 permissions:
-  contents: read           # mínimo privilegio para todo el workflow
+  contents: read           # least privilege for the whole workflow
 
 jobs:
   dependencies:
@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v6
-      - name: Vulnerabilidades conocidas (pip-audit sobre el lockfile)
+      - name: Known vulnerabilities (pip-audit on the lockfile)
         run: |
           uv export --frozen --no-emit-project -o requirements-audit.txt
           uvx pip-audit -r requirements-audit.txt --disable-pip
@@ -29,23 +29,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0               # la comparación con la base necesita el historial
+          fetch-depth: 0               # comparing with the base needs the history
           persist-credentials: false
       - uses: astral-sh/setup-uv@v6
-      - name: Semgrep (en PR, solo hallazgos introducidos por la PR)
+      - name: Semgrep (on PRs, only findings introduced by the PR)
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           BASE=$(git merge-base "origin/$BASE_REF" HEAD)
-          test -n "$BASE"   # sin base, fallar: evita que el check pase en silencio
+          test -n "$BASE"   # no base, fail: keeps the check from passing silently
           uvx semgrep scan --config p/python --config p/owasp-top-ten \
             --baseline-commit "$BASE" --error --metrics off
-      - name: Semgrep (en main y diario, escaneo completo)
+      - name: Semgrep (on main and daily, full scan)
         if: github.event_name != 'pull_request'
         run: uvx semgrep scan --config p/python --config p/owasp-top-ten --error --metrics off
 
-  # CodeQL: gratis en repos públicos; en privados requiere GitHub Advanced Security.
+  # CodeQL: free in public repos; private ones require GitHub Advanced Security.
   # codeql:
   #   runs-on: ubuntu-latest
   #   permissions:
@@ -81,17 +81,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: astral-sh/setup-uv@v6
-      - name: Unicode oculto en ficheros de agentes
+      - name: Hidden Unicode in agent files
         run: |
           git ls-files 'AGENTS.md' '**/AGENTS.md' 'CLAUDE.md' '**/CLAUDE.md' '.claude/**' '.mcp.json' '.github/**' \
             | xargs -r uv run python scripts/check_hidden_unicode.py
-      - name: No silenciar reglas de seguridad sin justificar
+      - name: Do not silence security rules without justification
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          # Un "# noqa: S…" nuevo exige el texto "security-reviewed:" con el motivo en la misma línea.
+          # A new "# noqa: S…" requires the text "security-reviewed:" with the reason on the same line.
           if git diff "origin/$BASE_REF...HEAD" -- '*.py' \
              | grep -E '^\+.*noqa:.*\bS[0-9]{3}' | grep -v 'security-reviewed:'; then
-            echo "::error::Hay '# noqa: S…' sin 'security-reviewed: <motivo>'."
+            echo "::error::Found '# noqa: S…' without 'security-reviewed: <reason>'."
             exit 1
           fi

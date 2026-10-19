@@ -1,18 +1,18 @@
-# Tareas: <nombre de la funcionalidad>
+# Tasks: <feature name>
 
-<!-- Tareas pequeñas, en orden de dependencias. [P] = se puede hacer en paralelo con la anterior.
-Cada tarea dice qué ficheros toca y cómo se verifica. El agente implement marca [x] al terminarlas. -->
+<!-- Small tasks, in dependency order. [P] = can be done in parallel with the previous one.
+Each task states which files it touches and how it is verified. The implement agent marks [x] when it finishes them. -->
 
-## Fase 1: <nombre>
+## Phase 1: <name>
 
-- [ ] T1. <tarea> — ficheros: `<ruta>` — verificación: <test o comando>
-- [ ] T2. [P] <tarea> — ficheros: `<ruta>` — verificación: <test o comando>
+- [ ] T1. <task> — files: `<path>` — verification: <test or command>
+- [ ] T2. [P] <task> — files: `<path>` — verification: <test or command>
 
-## Fase 2: <nombre>
+## Phase 2: <name>
 
-- [ ] T3. <tarea> — ficheros: `<ruta>` — verificación: <test o comando>
+- [ ] T3. <task> — files: `<path>` — verification: <test or command>
 
-## Cierre
+## Wrap-up
 
-- [ ] Todos los criterios de aceptación de la spec tienen un test que pasa.
-- [ ] El comando de verificación de AGENTS.md sale en verde.
+- [ ] Every acceptance criterion of the spec has a passing test.
+- [ ] The verification command from AGENTS.md is green.

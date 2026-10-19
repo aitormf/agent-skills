@@ -1,4 +1,4 @@
-# Por qué: docs/arnes/herramientas-arnes.md §4.3. En producción, fijad las actions a un SHA completo.
+# Why: docs/arnes/herramientas-arnes.md §4.3. In production, pin the actions to a full SHA.
 name: CI
 
 on:
@@ -19,7 +19,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --locked      # falla si uv.lock no corresponde con pyproject.toml
+      - run: uv sync --locked      # fails if uv.lock does not match pyproject.toml
       - run: ./scripts/check.sh
 
   secrets:
@@ -27,11 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0           # historial completo para gitleaks
+          fetch-depth: 0           # full history for gitleaks
           persist-credentials: false
       - name: gitleaks
-        # La imagen Docker evita la licencia que pide gitleaks-action en organizaciones.
-        # Fijad una versión concreta en lugar de latest.
+        # The Docker image avoids the license gitleaks-action requires for organizations.
+        # Pin a specific version instead of latest.
         run: |
           docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
             git /repo --redact --verbose

@@ -1,63 +1,63 @@
 ---
 name: apply-review
-description: Recorre los hallazgos de una revisión de spec o plan con la persona y aplica solo los cambios que apruebe explícitamente, uno a uno. Después busca otras specs en borrador afectadas por las decisiones. Úsala cuando haya un review-spec.md o review-plan.md y quieran aplicar o descartar sus hallazgos.
+description: Walks through the findings of a spec or plan review with the person and applies only the changes they explicitly approve, one by one. Then looks for other draft specs affected by the decisions. Use it when there is a review-spec.md or review-plan.md and they want to apply or discard its findings.
 ---
 
-# Aplicar una revisión
+# Apply a review
 
-Ayuda a la persona a decidir sobre cada hallazgo y aplica solo lo que apruebe.
+Help the person decide on each finding and apply only what they approve.
 
-**Regla central:** nunca asumas, deduzcas ni apliques un cambio sin una decisión explícita. Si un hallazgo es ambiguo, pide aclaración antes de dar opciones. Cada hallazgo se decide por separado; nunca los agrupes.
+**Core rule:** never assume, infer or apply a change without an explicit decision. If a finding is ambiguous, ask for clarification before offering options. Each finding is decided separately; never group them.
 
-## Artefactos y estado
+## Artifacts and status
 
-- Cada trabajo vive en `docs/specs/<AAAAMMDD>-<tipo>-<nombre>/`.
-- `spec.md` y `plan.md` llevan en el frontmatter `status: borrador | aprobada | obsoleta`. Solo una persona pone `aprobada`.
-- Si cambias un artefacto que estaba `aprobada`, devuélvelo a `borrador` y avisa.
+- Each work item lives in `docs/specs/<YYYYMMDD>-<type>-<name>/`.
+- `spec.md` and `plan.md` carry `status: draft | approved | obsolete` in their frontmatter. Only a person sets `approved`.
+- If you change an artifact that was `approved`, set it back to `draft` and say so.
 
-## Paso 1: presentar los hallazgos
+## Step 1: present the findings
 
-1. Identifica el trabajo y la revisión (`review-spec.md` o `review-plan.md`). Pregunta si no está claro.
-2. Lista todos los hallazgos numerados, primero los bloqueantes. Para cada uno muestra:
-   - **Hallazgo [N]:** qué señala la revisión.
-   - **Arreglo sugerido**, si lo hay.
-   - **Opciones:**
-     - A) Aplicar el arreglo tal cual.
-     - B) Aplicar un arreglo modificado (lo indica la persona).
-     - C) Descartar, con el motivo.
-     - D) Aplazar.
+1. Identify the work item and the review (`review-spec.md` or `review-plan.md`). Ask if it is not clear.
+2. List all findings, numbered, blocking ones first. For each one show:
+   - **Finding [N]:** what the review points out.
+   - **Suggested fix**, if any.
+   - **Options:**
+     - A) Apply the fix as is.
+     - B) Apply a modified fix (the person describes it).
+     - C) Discard, with the reason.
+     - D) Defer.
 
-Espera a que la persona responda a **todos** antes de seguir.
+Wait for the person to answer **all** of them before going on.
 
-## Paso 2: confirmar
+## Step 2: confirm
 
 ```
-Resumen de decisiones
-─────────────────────
-[N] <título> → aplicar / modificado / descartado / aplazado
+Decision summary
+────────────────
+[N] <title> → apply / modified / discarded / deferred
 ```
 
-Pregunta: "¿Confirmas estas decisiones antes de aplicarlas?" No sigas sin confirmación.
+Ask: "Do you confirm these decisions before I apply them?" Do not go on without confirmation.
 
-## Paso 3: aplicar
+## Step 3: apply
 
-1. Aplica solo los cambios confirmados (A y B), y solo en los artefactos revisados. No toques nada más.
-2. Anota en el fichero de revisión, debajo de cada hallazgo, la decisión tomada:
-   - para los descartados, el motivo;
-   - para los aplazados, qué queda pendiente.
-3. Dile a la persona cómo queda:
-   - Si no quedan bloqueantes abiertos, el artefacto está listo para que ella lo marque como `aprobada`, o para otra pasada de `review-spec`.
-   - Si quedan bloqueantes aplazados o descartados con riesgo, señálalo.
+1. Apply only the confirmed changes (A and B), and only to the reviewed artifacts. Touch nothing else.
+2. In the review file, below each finding, note the decision taken:
+   - for discarded ones, the reason;
+   - for deferred ones, what is still pending.
+3. Tell the person where things stand:
+   - If no blocking findings remain open, the artifact is ready for them to mark it `approved`, or for another `review-spec` pass.
+   - If deferred blocking findings remain, or discarded ones that carry risk, point it out.
 
-## Paso 4: otras specs afectadas
+## Step 4: other affected specs
 
-Comprueba si alguna decisión del paso 2 afecta a otras specs en curso:
+Check whether any decision from step 2 affects other specs in progress:
 
-1. Busca en `docs/specs/*/spec.md` las que tengan `status: borrador`.
-2. Para cada una, razona si alguna decisión introduce un conflicto, cambia una dependencia o invalida un supuesto.
-3. Para cada spec que *pueda* verse afectada:
-   - enseña qué spec, qué sección y qué habría que cambiar;
-   - pregunta: "¿Le afecta esta decisión? ¿Propongo un cambio?". **Espera un sí o un no.**
-4. Si dice que sí, redacta solo el cambio mínimo (la sección y las líneas exactas), enseña el diff y **aplícalo solo tras aprobación**.
+1. Look in `docs/specs/*/spec.md` for those with `status: draft`.
+2. For each one, reason whether any decision introduces a conflict, changes a dependency or invalidates an assumption.
+3. For each spec that *may* be affected:
+   - show which spec, which section and what would need to change;
+   - ask: "Does this decision affect it? Shall I propose a change?". **Wait for a yes or a no.**
+4. If the answer is yes, draft only the minimal change (the exact section and lines), show the diff and **apply it only after approval**.
 
-No mejores, amplíes ni reformatees nada más en esas specs. Si en algún momento no está claro qué hacer, para y pregunta.
+Do not improve, extend or reformat anything else in those specs. If at any point it is unclear what to do, stop and ask.

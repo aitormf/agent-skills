@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # .claude/hooks/check_new_package.py
-"""PreToolUse: antes de `uv add`, comprueba que cada paquete existe en PyPI y tiene historial."""
+"""PreToolUse: before `uv add`, checks that each package exists on PyPI and has a history."""
 
 import json
 import re
@@ -19,7 +19,7 @@ def requested_packages(command: str) -> list[str]:
     lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     try:
-        tokens = list(lexer)  # separa ";", "&&", "|"… aunque vayan pegados
+        tokens = list(lexer)  # splits ";", "&&", "|"… even when not space-separated
     except ValueError:
         return []
     packages = []
@@ -60,20 +60,20 @@ def main() -> int:
     for name in requested_packages(command):
         try:
             first = first_upload(name)
-        except Exception as exc:  # sin red: avisar, no bloquear
-            print(f"Aviso: no se pudo comprobar '{name}' en PyPI ({exc}).", file=sys.stderr)
+        except Exception as exc:  # no network: warn, do not block
+            print(f"Warning: could not check '{name}' on PyPI ({exc}).", file=sys.stderr)
             continue
         if first is None:
-            problems.append(f"'{name}' no existe en PyPI o no tiene versiones: posible paquete alucinado.")
+            problems.append(f"'{name}' does not exist on PyPI or has no releases: possibly a hallucinated package.")
         elif (datetime.now(UTC) - first).days < MIN_AGE_DAYS:
-            problems.append(f"'{name}' se publicó por primera vez el {first:%Y-%m-%d} (hace menos de {MIN_AGE_DAYS} días).")
+            problems.append(f"'{name}' was first published on {first:%Y-%m-%d} (less than {MIN_AGE_DAYS} days ago).")
     if problems:
         print(
-            "Dependencia bloqueada:\n- " + "\n- ".join(problems)
-            + "\nComprueba el nombre exacto y confírmalo con una persona antes de añadirlo.",
+            "Dependency blocked:\n- " + "\n- ".join(problems)
+            + "\nCheck the exact name and confirm it with a person before adding it.",
             file=sys.stderr,
         )
-        return 2  # exit 2 = bloquear la herramienta y devolver el motivo al agente
+        return 2  # exit 2 = block the tool and return the reason to the agent
     return 0
 
 

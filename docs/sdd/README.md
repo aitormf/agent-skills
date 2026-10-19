@@ -56,19 +56,19 @@ Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`
 ```
               idea
                │
-   ┌───── idea-to-spec ─────► spec.md (borrador)
+   ┌───── idea-to-spec ─────► spec.md (draft)
    │           │
    │     review-spec ───────► review-spec.md   (recomendación)
    │           │
    │     apply-review ──────► spec.md corregida
    │           │
-   │   ★ persona: status: aprobada
+   │   ★ persona: status: approved
    │           │
-   │     spec-to-plan ──────► plan.md (borrador) + comprobación de principios
+   │     spec-to-plan ──────► plan.md (draft) + comprobación de principios
    │           │
    │     review-spec / apply-review  (si el cambio lo merece)
    │           │
-   │   ★ persona: status: aprobada
+   │   ★ persona: status: approved
    │           │
    │     plan-to-tasks ─────► tasks.md
    │           │
@@ -83,11 +83,11 @@ En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué sp
 
 | Paso | Cómo pedirlo | Qué produce | Qué decides tú |
 |---|---|---|---|
-| **1. Spec** | *"Quiero una spec para <idea>"* | `docs/specs/<trabajo>/spec.md` en borrador | Las respuestas a cada pregunta. El agente ofrece opciones, pero nunca asume |
+| **1. Spec** | *"Quiero una spec para <idea>"* | `docs/specs/<trabajo>/spec.md` en `draft` | Las respuestas a cada pregunta. El agente ofrece opciones, pero nunca asume |
 | **2. Revisar la spec** | *"Revisa la spec de <trabajo>"* (mejor con el subagente `spec-reviewer`) | `review-spec.md`: hallazgos por prioridad y una recomendación | Nada todavía |
 | **3. Aplicar la revisión** | *"Aplica la revisión de <trabajo>"* | La spec corregida y las decisiones anotadas en la revisión | Cada hallazgo: aplicar, modificar, descartar o aplazar. Luego, si afecta a otras specs en borrador |
-| **4. Aprobar** | Tú, a mano: `status: aprobada` en el frontmatter | — | Que la spec está lista. **Es la puerta principal** |
-| **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en borrador, con la tabla de principios | Las preguntas abiertas del plan. Los principios que se incumplen se justifican o llevan un ADR |
+| **4. Aprobar** | Tú, a mano: `status: approved` en el frontmatter | — | Que la spec está lista. **Es la puerta principal** |
+| **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en `draft`, con la tabla de principios | Las preguntas abiertas del plan. Los principios que se incumplen se justifican o llevan un ADR |
 | **6. Revisar y aprobar el plan** | Como los pasos 2–4 (se genera `review-plan.md`) | — | Aprobar el plan |
 | **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | `tasks.md`: tareas pequeñas con los ficheros que tocan y cómo se verifican | Que el desglose es razonable |
 | **8. Implementar** | *"Implementa <trabajo>"* (agente `implement`, sesión limpia) | Código y tests, `[x]` en cada tarea verificada y el comando de verificación en verde | Revisar el diff. Si el agente para por un hueco, resolverlo, normalmente corrigiendo la spec |
@@ -108,31 +108,31 @@ No hay backlog central ni máquina de estados. Cada trabajo es un directorio, y 
 ```
 docs/specs/
 ├── 20261016-feat-alertas-retraso/
-│   ├── spec.md            status: aprobada
+│   ├── spec.md            status: approved
 │   ├── review-spec.md
-│   ├── plan.md            status: aprobada
+│   ├── plan.md            status: approved
 │   ├── review-plan.md
 │   └── tasks.md           5/8 tareas [x]
 └── 20261020-fix-zona-horaria/
-    ├── spec.md            status: borrador
+    ├── spec.md            status: draft
     └── tasks.md
 ```
 
-- **Nombre del directorio:** `AAAAMMDD-tipo-nombre`. La fecha es la de creación (da orden y evita colisiones entre ramas). El tipo va como en Conventional Commits: `feat`, `fix`, `refactor`, `docs`…
+- **Nombre del directorio:** `YYYYMMDD-tipo-nombre`. La fecha es la de creación (da orden y evita colisiones entre ramas). El tipo va como en Conventional Commits: `feat`, `fix`, `refactor`, `docs`…
 - **`status`** en el frontmatter de `spec.md` y `plan.md`:
 
   | Valor | Significa |
   |---|---|
-  | `borrador` | Se está escribiendo o corrigiendo |
-  | `aprobada` | Una persona la ha dado por buena. Lo siguiente puede construirse encima |
-  | `obsoleta` | Ya no aplica: descartada o sustituida (indica por cuál) |
+  | `draft` | Se está escribiendo o corrigiendo |
+  | `approved` | Una persona la ha dado por buena. Lo siguiente puede construirse encima |
+  | `obsolete` | Ya no aplica: descartada o sustituida (indica por cuál) |
 
-- **Solo una persona pone `aprobada`.** Ninguna skill ni agente lo hace. Las revisiones recomiendan; no aprueban.
+- **Solo una persona pone `approved`.** Ninguna skill ni agente lo hace. Las revisiones recomiendan; no aprueban.
 - **Las puertas preguntan.** Si pides planificar una spec en borrador, o implementar sin plan aprobado, la skill para, te avisa y te pregunta si sigues. Puedes seguir, pero queda anotado y `sdd-next` lo señalará.
-- **Si cambia algo aprobado,** vuelve a `borrador`. `sdd-next` avisa cuando la spec es más reciente que el plan, porque el plan puede estar desfasado.
+- **Si cambia algo aprobado,** vuelve a `draft`. `sdd-next` avisa cuando la spec es más reciente que el plan, porque el plan puede estar desfasado.
 - **El progreso de la implementación** son las casillas de `tasks.md`. Solo se marcan las tareas verificadas.
 
-En equipo, una opción más robusta es que la spec vaya en **su propia PR**: el cambio a `status: aprobada` lo hace quien la aprueba, y el merge deja constancia de quién y cuándo.
+En equipo, una opción más robusta es que la spec vaya en **su propia PR**: el cambio a `status: approved` lo hace quien la aprueba, y el merge deja constancia de quién y cuándo.
 
 ### ¿Y la gestión del trabajo?
 
@@ -140,7 +140,7 @@ Prioridad, responsable, sprint y "hecho" **no son cosa de SDD**. Viven en tu tra
 
 ```yaml
 ---
-status: aprobada
+status: approved
 issue: TRIBBU-123
 ---
 ```
@@ -172,7 +172,7 @@ Una buena spec deja poco margen de interpretación y se puede verificar.
 - Describe **comportamiento observable**, no implementación. Las decisiones técnicas van en el plan, salvo que sean restricciones reales.
 - **Lenguaje simple** y los términos del glosario de `ARCHITECTURE.md`.
 - **Cada criterio de aceptación se puede probar** ("Dado…, cuando…, entonces…"). Si no se puede demostrar, reformúlalo.
-- **"Fuera de alcance" explícito.** Los agentes no infieren por omisión: lo que no excluyes, puede aparecer.
+- **"Out of scope" explícito.** Los agentes no infieren por omisión: lo que no excluyes, puede aparecer.
 - **Preguntas abiertas listadas**, en lugar de respuestas inventadas.
 - **Sección Seguridad** si toca datos, autenticación o entradas externas. De ahí salen los tests negativos.
 
@@ -191,10 +191,10 @@ Qué va en cada sección y ejemplos: [secciones-de-la-spec.md](secciones-de-la-s
    > **¿Avisamos de todas las líneas o solo de las que sigue el usuario?**
    > A) Solo las que sigue · B) Todas · C) Dejarla abierta · D) Otra
 
-   Tú eliges A. El resultado es `docs/specs/20261016-feat-alertas-retraso/spec.md` en `borrador`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
+   Tú eliges A. El resultado es `docs/specs/20261016-feat-alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
 2. *"Revisa la spec"*. `review-spec.md` recomienda "Devolver" por un bloqueante: no dice qué pasa si el retraso baja y vuelve a subir, así que puede haber avisos duplicados. Importante: falta la sección Seguridad, y el aviso incluye datos del usuario.
 3. *"Aplica la revisión"*. Para el bloqueante eliges la opción B: un aviso por tren y trayecto, con una ventana de 15 minutos. Para el importante, A. La spec queda corregida.
-4. Cambias tú `status: aprobada`.
+4. Cambias tú `status: approved`.
 5. *"Planifica"*. `plan.md` encaja la detección en la capa `application` y el envío en `infra`. En la tabla de principios, "El dominio no tiene E/S" se cumple porque la regla de detección es una función pura. Si el plan hubiera propuesto llamar a la API desde el dominio, saldría ahí como incumplimiento.
 6. Lo apruebas y pides *"Parte el plan en tareas"*. `tasks.md` tiene 6 tareas, cada una con su test. La última es `./scripts/check.sh` en verde.
 7. En una sesión nueva, *"Implementa alertas-retraso"*. El agente marca 6/6 y termina con la verificación en verde.
@@ -211,11 +211,11 @@ El kit `aitormf/sdd` usaba `.sdd/`, un `backlog.md` con 13 estados, un agente or
 
    | Estado en `backlog.md` | `spec.md` | `plan.md` |
    |---|---|---|
-   | `borrador`, `spec-escrita`, `spec-en-revisión` | `borrador` | — |
-   | `spec-aprobada` | `aprobada` | — |
-   | `plan-escrito`, `plan-en-revisión` | `aprobada` | `borrador` |
-   | `plan-aprobado` y posteriores | `aprobada` | `aprobada` |
-   | `descartado` | `obsoleta` | `obsoleta` |
+   | `borrador`, `spec-escrita`, `spec-en-revisión` | `draft` | — |
+   | `spec-aprobada` | `approved` | — |
+   | `plan-escrito`, `plan-en-revisión` | `approved` | `draft` |
+   | `plan-aprobado` y posteriores | `approved` | `approved` |
+   | `descartado` | `obsolete` | `obsolete` |
 
    Los estados posteriores a `tareas-listas` (implementando, validando, corrigiendo, hecho) son gestión del trabajo: van al tracker, si quieres conservarlos.
 3. Renombra `review.md` a `review-spec.md` o `review-plan.md`, según lo que revisara.

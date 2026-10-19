@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# scripts/check.sh: verificación completa. Debe pasar antes de dar algo por terminado.
-# Lo ejecutan las personas, el agente (hook Stop) y CI: una sola definición de "está bien".
-# Quita las líneas de lo que aún no uses; brownfield: empieza con lo que haya hoy.
+# scripts/check.sh: full verification. Must pass before considering anything done.
+# Run by people, the agent (Stop hook) and CI: a single definition of "it is fine".
+# Remove the lines for what you do not use yet; brownfield: start with what exists today.
 set -euo pipefail
 
-echo "▶ formato";       uv run ruff format --check .
+echo "▶ format";       uv run ruff format --check .
 echo "▶ lint";          uv run ruff check .
-echo "▶ tipos";         uv run mypy
-# echo "▶ arquitectura";  uv run lint-imports
+echo "▶ types";         uv run mypy
+# echo "▶ architecture";  uv run lint-imports
 echo "▶ tests";         uv run pytest --cov
-echo "✔ todo en verde"
+echo "✔ all green"

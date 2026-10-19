@@ -1,43 +1,43 @@
 ---
 name: sdd-next
-description: Dice en qué punto está un trabajo de docs/specs/ y cuál es el siguiente paso, mirando qué artefactos existen y su status; sin argumentos, resume todos los trabajos. Solo lee, nunca cambia estados. Úsala cuando pregunten "¿y ahora qué?", "¿en qué punto está X?", "¿qué specs hay abiertas?" o pidan el estado de las specs.
+description: Tells where a work item in docs/specs/ stands and what the next step is, by looking at which artifacts exist and their status; with no arguments, summarizes all work items. Read-only, never changes status. Use it when asked "what now?", "where is X at?", "which specs are open?" or for the status of the specs.
 ---
 
-# Siguiente paso SDD
+# SDD next step
 
-Deduce el estado de cada trabajo a partir de sus artefactos. No hay un backlog central ni una máquina de estados: la fuente de verdad son los ficheros y su frontmatter. **Solo lees**: nunca cambias `status` ni escribes artefactos, y no lanzas otras skills sin que la persona lo pida.
+Infer the state of each work item from its artifacts. There is no central backlog or state machine: the source of truth is the files and their frontmatter. **You only read**: you never change `status` or write artifacts, and you do not launch other skills unless the person asks.
 
-La gestión del trabajo (prioridad, responsable, si está hecho) vive en el tracker. Si un artefacto tiene `issue:`, muéstralo, pero no lo consultes.
+Work management (priority, owner, whether it is done) lives in the tracker. If an artifact has `issue:`, show it, but do not look it up.
 
-## Cómo deducir el siguiente paso
+## How to infer the next step
 
-Para `docs/specs/<trabajo>/`, aplica la primera fila que encaje:
+For `docs/specs/<work-item>/`, apply the first row that matches:
 
-| Situación | Siguiente paso |
+| Situation | Next step |
 |---|---|
-| No hay `spec.md` (ni `tasks.md`) | Escribir la spec: `idea-to-spec` |
-| `spec.md` en `borrador`, con una revisión con hallazgos sin decidir | Decidirlos: `apply-review` |
-| `spec.md` en `borrador` | Revisarla (`review-spec`) o que la persona la apruebe |
-| `spec.md` aprobada, sin `plan.md` | Planificar: `spec-to-plan` (o directamente tareas, si es un cambio pequeño) |
-| `plan.md` en `borrador`, con una revisión con hallazgos sin decidir | Decidirlos: `apply-review` |
-| `plan.md` en `borrador` | Revisarlo (`review-spec`) o que la persona lo apruebe |
-| Plan aprobado (o spec aprobada en un cambio pequeño), sin `tasks.md` | Partir en tareas: `plan-to-tasks` |
-| `tasks.md` con casillas sin marcar | Implementar: agente `implement` (indica cuántas faltan) |
-| Todas las casillas marcadas | Revisar el código contra la spec (`review-prepush`) y abrir la PR (`review-pr`) |
-| `status: obsoleta` | Nada. Indica qué la sustituye, si lo dice |
+| No `spec.md` (and no `tasks.md`) | Write the spec: `idea-to-spec` |
+| `spec.md` in `draft`, with a review that has undecided findings | Decide them: `apply-review` |
+| `spec.md` in `draft` | Review it (`review-spec`) or have the person approve it |
+| `spec.md` approved, no `plan.md` | Plan: `spec-to-plan` (or straight to tasks, for a small change) |
+| `plan.md` in `draft`, with a review that has undecided findings | Decide them: `apply-review` |
+| `plan.md` in `draft` | Review it (`review-spec`) or have the person approve it |
+| Plan approved (or spec approved for a small change), no `tasks.md` | Split into tasks: `plan-to-tasks` |
+| `tasks.md` with unchecked boxes | Implement: `implement` agent (say how many are left) |
+| All boxes checked | Review the code against the spec (`review-prepush`) and open the PR (`review-pr`) |
+| `status: obsolete` | Nothing. Say what replaces it, if stated |
 
-Una revisión tiene "hallazgos sin decidir" si alguno no tiene anotada debajo una decisión de `apply-review`.
+A review has "undecided findings" if any of them has no `apply-review` decision noted below it.
 
-## Avisos
+## Warnings
 
-Además del siguiente paso, avisa si:
+Besides the next step, warn if:
 
-- **El plan puede estar desfasado:** `spec.md` se modificó después que `plan.md`. Compáralo con `git log -1 --format=%cI -- <fichero>`. Lo mismo entre `plan.md` y `tasks.md`.
-- **Se ha saltado una puerta:** hay `plan.md` con la spec en `borrador`, o `tasks.md` con el plan en `borrador`. Puede ser una decisión consciente; solo dilo.
-- **Lleva tiempo parado:** más de 30 días sin commits en el directorio y sin terminar. Pregunta si sigue vivo o se marca como `obsoleta`.
+- **The plan may be stale:** `spec.md` was modified after `plan.md`. Compare with `git log -1 --format=%cI -- <file>`. Same between `plan.md` and `tasks.md`.
+- **A gate was skipped:** there is a `plan.md` with the spec in `draft`, or a `tasks.md` with the plan in `draft`. It may be a deliberate decision; just say it.
+- **It has been idle for a while:** more than 30 days without commits in the directory and not finished. Ask whether it is still alive or should be marked `obsolete`.
 
-## Formato
+## Format
 
-**Un trabajo:** directorio, artefactos con su status, progreso de tareas (`5/8`), siguiente paso y avisos.
+**One work item:** directory, artifacts with their status, task progress (`5/8`), next step and warnings.
 
-**Todos** (sin argumento): una tabla ordenada por fecha, más reciente primero. Columnas: trabajo, spec, plan, tareas, siguiente paso y aviso. Los terminados y los obsoletos van al final en una línea cada uno. Esta vista se genera cada vez: no la guardes en un fichero.
+**All** (no argument): a table sorted by date, most recent first. Columns: work item, spec, plan, tasks, next step and warning. Finished and obsolete items go at the end, one line each. This view is generated every time: do not save it to a file.
