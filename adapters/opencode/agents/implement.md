@@ -27,13 +27,13 @@ Implement the tasks of a work item from its spec, its plan and its tasks.
 - Do not invent scope: nothing that is not in the spec or the plan.
 - **Do not delete or weaken tests** to make them pass. If a test looks wrong, stop and report.
 - Respect the principles in `docs/ARCHITECTURE.md` and what `AGENTS.md` says.
-- After each task, run its verification and mark it `[x]` in `tasks.md`. Only what is verified gets marked.
+- After each task, mark it with the `task-done` skill: it runs the task's verification and ticks `[x]` in `tasks.md` only if it passes. Never tick a checkbox by hand. If the verification fails, fix the code and run it again.
 - If a requirement is ambiguous or information is missing, **stop and report the gap**; do not guess.
 - Do not change the `status` of any artifact.
 
 ## When finished
 
-Run the verification command and do not consider the work done unless it is green.
+Run the verification command and do not consider the work done unless it is green. In the current `tasks.md` template, this is wrap-up task `W2`, marked with `task-done` like the rest.
 
 Report:
 

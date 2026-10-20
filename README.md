@@ -124,6 +124,7 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 | [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
 | [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a `tasks.md`, con la verificación de cada tarea |
 | agente [`implement`](agents/implement.md) | Implementa las tareas, marca `[x]` y termina con el comando de verificación en verde |
+| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa. La usa `implement` |
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 
 ```
@@ -139,6 +140,14 @@ Convenciones de SDD:
 - No hay backlog central. La gestión del trabajo (prioridad, responsable, hecho) vive en el tracker; la spec puede enlazarlo con `issue:`.
 - El contrato con los guardrails es el comando de verificación de la sección `Commands` (o `Comandos`) de `AGENTS.md`.
 
+### Depuración
+
+| Skill | Qué hace |
+|---|---|
+| [`debug-root-cause`](skills/debug-root-cause/SKILL.md) | Ante un bug o un test que falla: reproducir, encontrar la causa raíz y arreglarla con un test de regresión que falla sin el arreglo |
+
+`debug-root-cause`, `apply-code-review` y `task-done` se inspiran en [superpowers](https://github.com/obra/superpowers) (MIT): `systematic-debugging`, `receiving-code-review` y los scripts `task-start`/`task-done`. Están reescritas para este flujo, no copiadas.
+
 ### Code review
 
 Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agent-skills de Addy Osmani](https://github.com/addyosmani/agent-skills) (MIT, ver [NOTICE.md](NOTICE.md)).
@@ -148,6 +157,7 @@ Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agen
 | [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
 | [`review-pr`](skills/review-pr/SKILL.md) | Review de una PR según su riesgo: tres personas en paralelo, verificador y revisión de la descripción. Nunca aprueba. Incluye la GitHub Action |
 | [`code-review-and-quality`](skills/code-review-and-quality/SKILL.md) | Review de cinco ejes en la sesión actual (Addy) |
+| [`apply-code-review`](skills/apply-code-review/SKILL.md) | Actúa sobre los hallazgos de una review: comprueba cada uno contra el código, rebate con evidencia y corrige uno a uno |
 | [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |
 | agentes [`code-reviewer`](agents/code-reviewer.md), [`security-auditor`](agents/security-auditor.md), [`test-engineer`](agents/test-engineer.md), [`finding-verifier`](agents/finding-verifier.md) | Las personas que lanzan `review-prepush` y `review-pr` |
 
@@ -156,7 +166,7 @@ Si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el códi
 ## Desarrollo
 
 ```bash
-scripts/check.sh                    # agentes generados al día, frontmatter y manifiestos (rápido, sin red)
+scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos y task-done (rápido, sin red)
 scripts/test-guardrails-python.sh   # smoke test de setup-guardrails-python (requiere uv, jq y red)
 ```
 

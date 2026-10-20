@@ -23,7 +23,7 @@ Turn a plan into an executable task list that the `implement` agent can follow a
 
 - Small tasks: each one is a reviewable change that leaves the project green.
 - Ordered by dependencies. Mark with `[P]` those that can be done in parallel with the previous one.
-- Each task lists the **files** it touches, if known, and **how it is verified**: which test, or which command.
+- Each task starts with an **ID** (`T1.`, `T2.`…; `W1.`, `W2.` in the wrap-up) and lists the **files** it touches, if known, and **how it is verified**: which test, or which command. The verification has to be runnable: the `task-done` skill runs it to tick the task.
 - If the project works with TDD (`CONTRIBUTING.md` or `AGENTS.md` will say so), the test goes before the code or in the same task, never at the end.
 - Every acceptance criterion of the spec and every negative test from Security must be covered by at least one task. If one is not, say so.
 - The **Wrap-up** phase is mandatory: acceptance criteria with tests and the verification command green.
