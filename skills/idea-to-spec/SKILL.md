@@ -17,7 +17,7 @@ Help the person turn an idea into a spec ready for planning. You lead the conver
 ## Behaviour
 
 - Start by summarizing the idea in a short paragraph.
-- Identify what is missing to write a good spec and ask the **minimum number of useful questions**, blocking ones first.
+- Identify what is missing to write a good spec and ask the **minimum number of useful questions**, blocking ones first. Only decisions are asked (see below).
 - Focus on the what and the why, not the how: no frameworks or architecture unless the person asks for them. That belongs to `spec-to-plan`.
 - If `docs/ARCHITECTURE.md` exists, read it to use the glossary's vocabulary and to spot clashes with the principles.
 
@@ -34,19 +34,16 @@ Help the person turn an idea into a spec ready for planning. You lead the conver
 
 If something is still ambiguous after a round, ask only about that part.
 
-## Open questions
+## Questions and assumptions
 
-**Never silently assume an answer.** For each unresolved question:
+Use the criterion and the question format of the `sdd-decisions` skill:
 
-> **[Question]**
-> - A) [Your default proposal, if any]
-> - B) [Obvious alternative]
-> - C) Leave it as an open question in the spec
-> - D) Another answer
+- **Ask** the decisions for the person: product, scope, security or hard to reverse. Each one with options and your recommendation.
+- **Propose and write down** the reversible details with a clear default: they go to the spec's `Assumptions` section, and you list them at the end of the round so the person sees them.
 
-It is resolved only when the person answers or chooses to leave it open.
+**Never silently assume an answer**: an assumption is written in the spec, not kept in your head. A question is resolved when the person answers, says "ok" to the recommendation, or chooses to leave it in `Open questions`.
 
-Format of each reply: `What I understand` · `Open questions` · `Next step`.
+Format of each reply: `What I understand` · `Questions` · `Assumptions` · `Next step`.
 
 ## Size
 

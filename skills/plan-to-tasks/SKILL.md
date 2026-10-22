@@ -28,6 +28,7 @@ Turn a plan into an executable task list that the `implement` agent can follow a
 - Every acceptance criterion of the spec and every negative test from Security must be covered by at least one task. If one is not, say so.
 - The **Wrap-up** phase is mandatory: acceptance criteria with tests and the verification command green.
 - Do not add work that is not in the plan. If something is missing from the plan, raise it as a question.
+- Do not ask again what the spec or the plan already decide, including their `Assumptions`. Ask only if a gap in the plan is a decision for the person (criterion of the `sdd-decisions` skill); otherwise, take the obvious option and say so when you show the draft.
 
 ## Result
 

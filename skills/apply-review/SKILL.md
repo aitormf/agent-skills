@@ -1,13 +1,13 @@
 ---
 name: apply-review
-description: Walks through the findings of a spec or plan review with the person and applies only the changes they explicitly approve, one by one. Then looks for other draft specs affected by the decisions. Use it when there is a review-spec.md or review-plan.md and they want to apply or discard its findings.
+description: Walks through the findings of a spec or plan review with the person — asks the decisions one by one, applies the fixes in a block the person can see and trim — and applies nothing they have not seen. Then looks for other draft specs affected by the decisions. Use it when there is a review-spec.md or review-plan.md and they want to apply or discard its findings.
 ---
 
 # Apply a review
 
-Help the person decide on each finding and apply only what they approve.
+Help the person decide on the findings and apply only what they have seen and not rejected.
 
-**Core rule:** never assume, infer or apply a change without an explicit decision. If a finding is ambiguous, ask for clarification before offering options. Each finding is decided separately; never group them.
+**Core rule:** never apply a change the person has not seen. Ask only what is theirs to decide (the decisions); show the rest (the fixes) and apply it unless they exclude it. If a finding is ambiguous, ask for clarification before offering options.
 
 ## Artifacts and status
 
@@ -18,18 +18,27 @@ Help the person decide on each finding and apply only what they approve.
 ## Step 1: present the findings
 
 1. Identify the work item and the review (`review-spec.md` or `review-plan.md`). Ask if it is not clear.
-2. List all findings, numbered, blocking ones first. For each one show:
+2. Split the findings by their type in the review. If a finding has no type (an older review), classify it with the criterion of the `sdd-decisions` skill; if in doubt, it is a decision.
+3. **Decisions**, one at a time, blocking ones first. For each one show:
    - **Finding [N]:** what the review points out.
-   - **Suggested fix**, if any.
-   - **Options:**
-     - A) Apply the fix as is.
-     - B) Apply a modified fix (the person describes it).
-     - C) Discard, with the reason.
-     - D) Defer.
+   - **Options**, from the review, with the recommended one marked, plus:
+     - discard, with the reason;
+     - defer.
 
-Wait for the person to answer **all** of them before going on.
+   Wait for the answer before showing the next one. "ok" accepts the recommendation.
+4. **Fixes**, all together in one list, numbered as in the review, one line each: the finding and the change that will be made. Then say:
+   > I will apply all these fixes. Tell me which ones to exclude or change ("all but 4", "6: <other text>"), or "ok".
 
-## Step 2: confirm
+   A fix the person excludes is discarded or deferred; ask which only if they do not say.
+
+If there are no decisions, go straight to the fixes; if there are no fixes, skip that step.
+
+## Step 2: confirm, only if needed
+
+Every answer above is explicit, so there is no extra confirmation. Show the summary and ask for confirmation only if:
+
+- you interpreted an answer (a modified option, a free-text reply), or
+- a blocking finding ends up discarded or deferred.
 
 ```
 Decision summary
@@ -37,11 +46,9 @@ Decision summary
 [N] <title> → apply / modified / discarded / deferred
 ```
 
-Ask: "Do you confirm these decisions before I apply them?" Do not go on without confirmation.
-
 ## Step 3: apply
 
-1. Apply only the confirmed changes (A and B), and only to the reviewed artifacts. Touch nothing else.
+1. Apply the accepted decisions and fixes, and only to the reviewed artifacts. Touch nothing else.
 2. In the review file, below each finding, note the decision taken:
    - for discarded ones, the reason;
    - for deferred ones, what is still pending.
@@ -51,7 +58,7 @@ Ask: "Do you confirm these decisions before I apply them?" Do not go on without 
 
 ## Step 4: other affected specs
 
-Check whether any decision from step 2 affects other specs in progress:
+Check whether any decision from step 1 affects other specs in progress:
 
 1. Look in `docs/specs/*/spec.md` for those with `status: draft`.
 2. For each one, reason whether any decision introduces a conflict, changes a dependency or invalidates an assumption.

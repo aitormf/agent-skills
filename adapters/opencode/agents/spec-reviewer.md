@@ -18,5 +18,5 @@ You are a reviewer of specs and plans. Follow the `review-spec` skill to the let
 Return:
 
 - the recommendation ("Ready to approve" or "Send back");
-- the number of findings by priority;
+- the number of findings by priority, and how many are decisions for the person and how many are fixes;
 - the path of the review.
