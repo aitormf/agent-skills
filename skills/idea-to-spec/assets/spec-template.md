@@ -48,7 +48,7 @@ issue:             # optional: tracker link or ID (e.g. TRIBBU-123)
 <!-- What can go wrong or complicate the implementation. Technical or business uncertainties. Optional. -->
 
 ## Assumptions
-<!-- What we take for granted without having validated it. Making them explicit lets us question them. Optional. -->
+<!-- What we take for granted without having validated it, and the reversible details proposed with a default instead of asked. Making them explicit lets the person or a review change them. Optional. -->
 
 ## Open questions
 <!-- What we do not know yet. Better to list them than to invent the answer. Optional. -->

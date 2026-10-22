@@ -29,4 +29,7 @@ If a principle does not apply, say so. If the plan breaks it, justify it and pro
 
 ## Risks
 
+## Assumptions
+<!-- Reversible technical details with a clear default, proposed instead of asked. Any of them can be changed by the person or a review. -->
+
 ## Open decisions

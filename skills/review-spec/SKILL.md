@@ -40,10 +40,28 @@ Look for:
 - **Over-engineering and scope:** complexity the spec does not ask for, or a plan that does more than the spec says.
 - Undeclared **assumptions**.
 
+Do not report what the artifact already lists as an open question or an assumption, unless it is wrong or it is really a decision for the person that should not have been assumed (see below).
+
+## Precision
+
+- **A few real findings beat many doubtful ones.** Report only what you would defend in front of the author with the artifact open.
+- **Justify before you classify:** first why it is a problem and in which scenario; the priority last.
+- **At most 3 minor findings**, the most useful ones. Drop wording and formatting preferences that do not change what gets built.
+- If in doubt, say so and state what would confirm it. Never present a guess as a fact.
+
+## Decision or fix
+
+Classify each finding with the criterion of the `sdd-decisions` skill:
+
+- **Decision for the person:** there are reasonable alternatives and choosing depends on product, scope, security or something hard to reverse. Give the options (2 or 3) and your recommendation, with the reason.
+- **Fix:** it has one reasonable answer. Give the concrete change (the text to add or replace), not a description of it.
+
+If in doubt, it is a decision. Priority and type are independent: a blocking finding can be a fix, and a minor one can be a decision.
+
 ## Result
 
 1. Write `review-spec.md` or `review-plan.md` in the work item's directory, from `assets/review-template.md`.
-   - Findings numbered and by priority: blocking, important and minor. Each one with the affected section, what is wrong and the suggested fix.
+   - Findings numbered and by priority: blocking, important and minor. Each one with the affected section, what is wrong, its type (decision or fix) and, depending on the type, the options with a recommendation or the concrete fix.
    - If a previous review already existed, replace it; the history stays in git.
 2. Recommendation:
    - **"Ready to approve"** if there are no blocking findings;

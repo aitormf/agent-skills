@@ -47,7 +47,7 @@ Las skills de SDD leen dos cosas del proyecto. Funcionan sin ellas, pero pierden
 
 Cómo instalarlas en Claude Code, Codex, OpenCode o pi: [README del repositorio](../../README.md#instalar).
 
-Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`, `plan-to-tasks` y `sdd-next`, y conviene tener también los agentes `implement` y `spec-reviewer`. El plugin de Claude Code lo instala todo de una vez. En Claude Code, las skills del plugin llevan namespace: `/harness:idea-to-spec`, etc. Pedirlas en lenguaje natural ("quiero una spec para…") funciona igual.
+Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`, `plan-to-tasks`, `sdd-next` y `sdd-decisions` (interna: el criterio de qué se pregunta), y conviene tener también los agentes `implement` y `spec-reviewer`. El plugin de Claude Code lo instala todo de una vez. En Claude Code, las skills del plugin llevan namespace: `/harness:idea-to-spec`, etc. Pedirlas en lenguaje natural ("quiero una spec para…") funciona igual.
 
 ---
 
@@ -83,11 +83,11 @@ En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué sp
 
 | Paso | Cómo pedirlo | Qué produce | Qué decides tú |
 |---|---|---|---|
-| **1. Spec** | *"Quiero una spec para <idea>"* | `docs/specs/<trabajo>/spec.md` en `draft` | Las respuestas a cada pregunta. El agente ofrece opciones, pero nunca asume |
-| **2. Revisar la spec** | *"Revisa la spec de <trabajo>"* (mejor con el subagente `spec-reviewer`) | `review-spec.md`: hallazgos por prioridad y una recomendación | Nada todavía |
-| **3. Aplicar la revisión** | *"Aplica la revisión de <trabajo>"* | La spec corregida y las decisiones anotadas en la revisión | Cada hallazgo: aplicar, modificar, descartar o aplazar. Luego, si afecta a otras specs en borrador |
+| **1. Spec** | *"Quiero una spec para <idea>"* | `docs/specs/<trabajo>/spec.md` en `draft` | Las decisiones de producto, alcance, seguridad o difíciles de revertir. Cada pregunta trae una opción recomendada; "ok" las acepta todas. Lo demás se anota en `Supuestos` (ver [§3.1](#31-qué-se-pregunta-y-qué-se-propone)) |
+| **2. Revisar la spec** | *"Revisa la spec de <trabajo>"* (mejor con el subagente `spec-reviewer`) | `review-spec.md`: hallazgos por prioridad, cada uno como **decisión** (con opciones y recomendación) o **arreglo** (con el cambio concreto), y una recomendación | Nada todavía |
+| **3. Aplicar la revisión** | *"Aplica la revisión de <trabajo>"* | La spec corregida y las decisiones anotadas en la revisión | Las decisiones, una a una. Los arreglos llegan en bloque: se aplican todos salvo los que excluyas ("todos menos el 4"). Luego, si afecta a otras specs en borrador |
 | **4. Aprobar** | Tú, a mano: `status: approved` en el frontmatter | — | Que la spec está lista. **Es la puerta principal** |
-| **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en `draft`, con la tabla de principios | Las preguntas abiertas del plan. Los principios que se incumplen se justifican o llevan un ADR |
+| **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en `draft`, con la tabla de principios | Solo las decisiones técnicas que son tuyas; lo que la spec ya decide no se vuelve a preguntar. Los principios que se incumplen se justifican o llevan un ADR |
 | **6. Revisar y aprobar el plan** | Como los pasos 2–4 (se genera `review-plan.md`) | — | Aprobar el plan |
 | **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | `tasks.md`: tareas pequeñas con los ficheros que tocan y cómo se verifican | Que el desglose es razonable |
 | **8. Implementar** | *"Implementa <trabajo>"* (agente `implement`, sesión limpia) | Código y tests, `[x]` en cada tarea verificada y el comando de verificación en verde | Revisar el diff. Si el agente para por un hueco, resolverlo, normalmente corrigiendo la spec |
@@ -99,6 +99,20 @@ Consejos:
 - **Las casillas las marca un script.** `implement` usa la skill `task-done`, que ejecuta la verificación de la tarea y solo pone `[x]` si sale en verde. Por eso cada tarea de `tasks.md` lleva un ID (`T1.`, `W1.`) y una verificación ejecutable.
 - **Revisa el diff de `tests/`.** Un agente puede debilitar un test para que pase. `implement` tiene prohibido hacerlo, pero compruébalo.
 - **La primera funcionalidad de un proyecto, con más cuidado.** Fija los patrones que el agente imitará después: revísala línea a línea.
+
+### 3.1 Qué se pregunta y qué se propone
+
+Las skills no te preguntan todo: solo lo que es tuyo de decidir. El criterio está en un único sitio, la skill [`sdd-decisions`](../../skills/sdd-decisions/SKILL.md), y lo usan `idea-to-spec`, `spec-to-plan`, `plan-to-tasks`, `review-spec` y `apply-review`.
+
+| Tipo | Qué es | Qué hace el agente |
+|---|---|---|
+| **Decisión** | Hay alternativas razonables y elegir depende de producto, alcance, seguridad o algo difícil de revertir | Te pregunta, con opciones y una recomendada |
+| **Supuesto** (spec y plan) | Detalle reversible con una opción por defecto clara | Lo propone y lo escribe en la sección `Supuestos` (`Assumptions` en las plantillas), a la vista |
+| **Arreglo** (reviews) | Hallazgo con una sola respuesta razonable | Trae el cambio concreto; `apply-review` los aplica en bloque, salvo los que excluyas |
+
+No es asumir en silencio: es asumir por escrito. Tú o una review podéis cambiar cualquier supuesto, y nada se aplica sin que lo veas. En la duda, es una decisión.
+
+Cada ronda de preguntas termina con la lista de supuestos. Si estás de acuerdo con todo, basta con "ok"; si no, contesta solo lo que cambias ("2b; supuesto 3: 30 s").
 
 ---
 
@@ -189,12 +203,14 @@ Qué va en cada sección y ejemplos: [secciones-de-la-spec.md](secciones-de-la-s
 
 1. *"Quiero una spec para avisar de retrasos de más de 10 minutos"*. `idea-to-spec` pregunta por rondas. Por ejemplo:
 
-   > **¿Avisamos de todas las líneas o solo de las que sigue el usuario?**
-   > A) Solo las que sigue · B) Todas · C) Dejarla abierta · D) Otra
+   > **1. ¿Avisamos de todas las líneas o solo de las que sigue el usuario?** (producto)
+   > **A) Solo las que sigue** ← recomendada · B) Todas · C) Dejarla abierta
+   >
+   > Supuestos: 1. El umbral de 10 minutos es fijo, no configurable por el usuario.
 
-   Tú eliges A. El resultado es `docs/specs/20261016-feat-alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
+   Contestas "ok". El resultado es `docs/specs/20261016-feat-alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
 2. *"Revisa la spec"*. `review-spec.md` recomienda "Devolver" por un bloqueante: no dice qué pasa si el retraso baja y vuelve a subir, así que puede haber avisos duplicados. Importante: falta la sección Seguridad, y el aviso incluye datos del usuario.
-3. *"Aplica la revisión"*. Para el bloqueante eliges la opción B: un aviso por tren y trayecto, con una ventana de 15 minutos. Para el importante, A. La spec queda corregida.
+3. *"Aplica la revisión"*. El bloqueante es una decisión y eliges la opción B: un aviso por tren y trayecto, con una ventana de 15 minutos. La sección Seguridad que faltaba es un arreglo: llega en la lista de arreglos junto a dos menores, y contestas "ok". La spec queda corregida.
 4. Cambias tú `status: approved`.
 5. *"Planifica"*. `plan.md` encaja la detección en la capa `application` y el envío en `infra`. En la tabla de principios, "El dominio no tiene E/S" se cumple porque la regla de detección es una función pura. Si el plan hubiera propuesto llamar a la API desde el dominio, saldría ahí como incumplimiento.
 6. Lo apruebas y pides *"Parte el plan en tareas"*. `tasks.md` tiene 6 tareas, cada una con su test. La última es `./scripts/check.sh` en verde.

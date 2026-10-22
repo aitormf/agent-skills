@@ -120,12 +120,13 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 |---|---|
 | [`idea-to-spec`](skills/idea-to-spec/SKILL.md) | De idea a `spec.md` mediante entrevista por rondas |
 | [`review-spec`](skills/review-spec/SKILL.md) · agente [`spec-reviewer`](agents/spec-reviewer.md) | Revisa la spec o el plan. Recomienda, nunca aprueba |
-| [`apply-review`](skills/apply-review/SKILL.md) | Aplica los hallazgos que la persona aprueba, uno a uno |
+| [`apply-review`](skills/apply-review/SKILL.md) | Pregunta las decisiones una a una y aplica los arreglos en bloque, salvo los que la persona excluya |
 | [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
 | [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a `tasks.md`, con la verificación de cada tarea |
 | agente [`implement`](agents/implement.md) | Implementa las tareas, marca `[x]` y termina con el comando de verificación en verde |
 | [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa. La usa `implement` |
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
+| [`sdd-decisions`](skills/sdd-decisions/SKILL.md) | Interna: qué es una decisión de la persona (se pregunta) y qué un supuesto o arreglo con respuesta por defecto (se propone por escrito) |
 
 ```
 idea-to-spec → [review-spec → apply-review] → persona: status: approved

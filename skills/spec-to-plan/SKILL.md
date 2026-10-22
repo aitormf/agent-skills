@@ -23,13 +23,16 @@ Turn a spec into a technical plan that can be split into tasks. The minimum the 
 
 ## Behaviour
 
-- First, list the open questions and assumptions. If any of them blocks, ask it before drafting, with concrete options.
+- First, list the questions and assumptions, with the criterion and the question format of the `sdd-decisions` skill:
+  - **ask** only the technical decisions for the person (security, hard to reverse, or a scope consequence), each one with options and your recommendation; the blocking ones before drafting;
+  - **propose and write down** the reversible details with a clear default in the plan's `Assumptions` section;
+  - **do not ask again** what the spec already decides, nor what `ARCHITECTURE.md`, an ADR or an existing pattern in the code already settles.
 - Keep product intent (belongs to the spec) apart from technical decisions (belong to the plan). If the plan forces a change to the spec, say so; do not change it.
 - Fit the solution into the existing layers and code map. If you propose something new (layer, dependency, pattern), justify it.
 - For each acceptance criterion and each negative test in the Security section, state which test will cover it.
 - **Principles check:** go one by one through the non-negotiable principles in `ARCHITECTURE.md` ("Non-negotiable principles", or "Principios innegociables" in Spanish-language projects) and fill in their table in the plan. If the plan breaks one, do not hide it: justify it and propose an ADR. If `ARCHITECTURE.md` does not exist, say so in the plan and suggest `generate-project-context`.
 
-Format of each reply: `What I understand` · `Open questions` · `Draft plan` · `Next step`.
+Format of each reply: `What I understand` · `Questions` · `Assumptions` · `Draft plan` · `Next step`.
 
 ## Result
 

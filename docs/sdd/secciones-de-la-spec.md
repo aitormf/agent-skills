@@ -240,6 +240,8 @@ Son afirmaciones que tratamos como ciertas para avanzar, pero que podrían resul
 > - Asumimos que los usuarios entienden el concepto de "álbum" sin necesidad de onboarding.
 > - Asumimos que el almacenamiento actual soporta la carga adicional de miniaturas.
 
+También van aquí los detalles reversibles que el agente propone con una opción por defecto en lugar de preguntarlos (p. ej. "el nombre por defecto de un álbum nuevo es la fecha de creación"). Las decisiones de producto, alcance, seguridad o difíciles de revertir no son supuestos: se preguntan. El criterio está en [`sdd-decisions`](../../skills/sdd-decisions/SKILL.md).
+
 ---
 
 ### Preguntas abiertas
