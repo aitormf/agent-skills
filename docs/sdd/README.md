@@ -72,7 +72,7 @@ Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`
    │           │
    │     plan-to-tasks ─────► tasks.md
    │           │
-   │     implement (agente) ► código + [x] en tasks.md + verificación en verde
+   │     implement (agente) ► código + [x] en tasks.md (con task-done) + verificación en verde
    │           │
    └──── review-prepush (contra la spec) → PR → review-pr
 ```
@@ -96,6 +96,7 @@ En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué sp
 Consejos:
 
 - **Sesión nueva para implementar.** El agente `implement` arranca con contexto limpio y solo lee los artefactos. Si funciona así, los artefactos son buenos; si no, sabes qué falta en ellos.
+- **Las casillas las marca un script.** `implement` usa la skill `task-done`, que ejecuta la verificación de la tarea y solo pone `[x]` si sale en verde. Por eso cada tarea de `tasks.md` lleva un ID (`T1.`, `W1.`) y una verificación ejecutable.
 - **Revisa el diff de `tests/`.** Un agente puede debilitar un test para que pase. `implement` tiene prohibido hacerlo, pero compruébalo.
 - **La primera funcionalidad de un proyecto, con más cuidado.** Fija los patrones que el agente imitará después: revísala línea a línea.
 
@@ -155,7 +156,7 @@ Así cada herramienta hace lo suyo: el tracker gestiona el trabajo y la spec def
 
 | Cambio | Artefactos | Revisiones |
 |---|---|---|
-| Bug de una línea | Ninguno, o solo `tasks.md` | — |
+| Bug de una línea | Ninguno, o solo `tasks.md`. Si la causa no es evidente, `debug-root-cause` | — |
 | Bug complejo | `spec.md` + `tasks.md` | Opcional |
 | Funcionalidad pequeña | `spec.md` + `plan.md` + `tasks.md` | Opcional |
 | Funcionalidad de producción | Todos | Spec y plan |

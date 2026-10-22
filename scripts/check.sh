@@ -25,6 +25,19 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF
 
+echo "▶ task-done"
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+td=skills/task-done/scripts/task_done.py
+printf -- '- [ ] T1. a — verification: `python3 --version`\n- [ ] T2. b — verification: false\n- [ ] T3. c — verification: `python3 --version`\n' > "$tmp/tasks.md"
+python3 "$td" "$tmp/tasks.md" T1 -- python3 --version 2>"$tmp/err" >/dev/null
+grep -q warning "$tmp/err" && { echo "task-done avisó con el comando declarado" >&2; exit 1; }
+python3 "$td" "$tmp/tasks.md" T2 -- false >/dev/null && { echo "task-done marcó una tarea fallida" >&2; exit 1; }
+python3 "$td" "$tmp/tasks.md" T3 -- true 2>"$tmp/err" >/dev/null
+grep -q warning "$tmp/err" || { echo "task-done no avisó de un comando no declarado" >&2; exit 1; }
+python3 "$td" "$tmp/tasks.md" T9 -- true >/dev/null 2>&1 && { echo "task-done aceptó una tarea inexistente" >&2; exit 1; }
+grep -q -- '- \[x\] T1\.' "$tmp/tasks.md" && grep -q -- '- \[ \] T2\.' "$tmp/tasks.md" && grep -q -- '- \[x\] T3\.' "$tmp/tasks.md" \
+  || { echo "task-done no dejó tasks.md como se esperaba" >&2; exit 1; }
+
 echo "▶ manifiestos"
 python3 - <<'EOF'
 import json, sys
