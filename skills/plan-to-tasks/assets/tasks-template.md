@@ -15,5 +15,5 @@ The implement agent marks [x] with the task-done skill, only when the verificati
 
 ## Wrap-up
 
-- [ ] W1. Every acceptance criterion of the spec has a passing test — verification: the tests that cover them
+- [ ] W1. Every acceptance criterion of the spec has a passing test — verification: <command that runs those tests>
 - [ ] W2. The verification command from AGENTS.md is green — verification: <verification command>

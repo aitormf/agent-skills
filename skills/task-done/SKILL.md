@@ -10,7 +10,7 @@ A task in `tasks.md` is marked `[x]` by a script, not by hand: the script runs t
 ## How
 
 1. Take the task ID (`T3`, `W2`…) and its verification from the task line: `- [ ] T3. <task> — files: … — verification: <test or command>`.
-2. Turn the verification into a command. If it names a test, use the single-test command from the `Commands` section of `AGENTS.md` (`Comandos` in Spanish-language projects). For the wrap-up task, use the full verification command.
+2. Turn the verification into a command. If it names a test, use the single-test command from the `Commands` section of `AGENTS.md` (`Comandos` in Spanish-language projects). Wrap-up tasks declare their own command (`W2`: the full verification command).
 3. Run, from the project root, with this skill's directory as `<skill-dir>`:
 
    ```bash
