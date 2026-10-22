@@ -146,7 +146,7 @@ Convenciones de SDD:
 |---|---|
 | [`debug-root-cause`](skills/debug-root-cause/SKILL.md) | Ante un bug o un test que falla: reproducir, encontrar la causa raíz y arreglarla con un test de regresión que falla sin el arreglo |
 
-`debug-root-cause`, `apply-code-review` y `task-done` se inspiran en [superpowers](https://github.com/obra/superpowers) (MIT): `systematic-debugging`, `receiving-code-review` y los scripts `task-start`/`task-done`. Están reescritas para este flujo, no copiadas.
+`debug-root-cause` y `task-done` se inspiran en [superpowers](https://github.com/obra/superpowers) (MIT): `systematic-debugging` y los scripts `task-start`/`task-done`. Están reescritas para este flujo, no copiadas.
 
 ### Code review
 
@@ -157,7 +157,6 @@ Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agen
 | [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
 | [`review-pr`](skills/review-pr/SKILL.md) | Review de una PR según su riesgo: tres personas en paralelo, verificador y revisión de la descripción. Nunca aprueba. Incluye la GitHub Action |
 | [`code-review-and-quality`](skills/code-review-and-quality/SKILL.md) | Review de cinco ejes en la sesión actual (Addy) |
-| [`apply-code-review`](skills/apply-code-review/SKILL.md) | Actúa sobre los hallazgos de una review: comprueba cada uno contra el código, rebate con evidencia y corrige uno a uno |
 | [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |
 | agentes [`code-reviewer`](agents/code-reviewer.md), [`security-auditor`](agents/security-auditor.md), [`test-engineer`](agents/test-engineer.md), [`finding-verifier`](agents/finding-verifier.md) | Las personas que lanzan `review-prepush` y `review-pr` |
 

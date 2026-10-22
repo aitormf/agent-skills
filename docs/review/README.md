@@ -6,7 +6,6 @@ Revisión de código independiente del stack, construida sobre [**agent-skills**
 review-prepush          antes de hacer push   → ¿está esta rama lista? (rápido; bloquea solo con Critical)
 review-pr <n|rama>      en una PR o rama      → review completa según el riesgo (solo comenta, nunca aprueba)
 code-review-and-quality durante el trabajo    → review de cinco ejes en la sesión actual (la de Addy)
-apply-code-review       después de una review → comprobar cada hallazgo, rebatir o corregir uno a uno
 ```
 
 En Claude Code se invocan como `/review-prepush` y `/review-pr` (`/harness:review-prepush`… si se instala el plugin). En el resto de herramientas, pidiéndolo: *"revisa si esta rama está lista para push"*.
@@ -132,8 +131,6 @@ Parte de que **cada hallazgo es un falso positivo** e intenta refutarlo leyendo 
 ## Verification               comandos encontrados y ejecutados con su resultado; Semgrep; hallazgos descartados
 REVIEW_RESULT: …              última línea, para el hook y la Action
 ```
-
-Para actuar sobre el informe (o sobre los comentarios de una PR), pide *"aplica la review"*: la skill `apply-code-review` comprueba cada hallazgo contra el código, propone qué aceptar y qué rebatir, y espera tu confirmación antes de tocar nada.
 
 Veredictos:
 
