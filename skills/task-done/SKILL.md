@@ -18,8 +18,9 @@ A task in `tasks.md` is marked `[x]` by a script, not by hand: the script runs t
    ```
 
    The command runs without a shell. For pipes or `&&`, pass `bash -c "<command>"`.
-4. Read the output and the exit status:
-   - `✔ T3 marked [x]`: done. Report it with the line `→ exit 0` as evidence.
+4. Read the output and the exit status. The script prints the tail of the output and `--- command: <command> → exit <n>`; no log file is kept.
+   - `task_done: warning: … declares verification …` (stderr): the command does not contain the verification declared in the task. It is not a failure, but run the declared one, or say in your report why you did not.
+   - `✔ T3 marked [x]`: done. Report it with the `--- command: … → exit 0` line as evidence.
    - `✘ T3 NOT marked`: the task is not done. Fix the code, not the test, and run it again.
    - Exit 2: the call was wrong (no such task, duplicated ID, bad arguments). Fix the call; do not edit the checkbox by hand.
 
