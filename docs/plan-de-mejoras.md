@@ -96,6 +96,8 @@ Medido en un trabajo real (un runner con su comando `run`): spec, plan y tareas 
 Hay que decidirlas antes de implementar las piezas afectadas.
 
 ### 3.1 ¿Todo cambio lleva test?
+**Resuelto** (2026-10-24, fase 2 del [plan de la v2](plan-v2.md)): el criterio está en `agents/implement.md` y su porqué en [D-0011](decisions/0011-criterio-de-test.md).
+
 - #4 responde a "es un cambio pequeño, no hace falta test" con "los cambios pequeños también rompen".
 - Ponytail solo exige test para lógica no trivial.
 - Si se hace la idea 6, el criterio pasa a bloquear de verdad.

@@ -39,6 +39,31 @@ python3 "$td" "$tmp/tasks.md" T9 -- true >/dev/null 2>&1 && { echo "task-done ac
 grep -q -- '- \[x\] T1\.' "$tmp/tasks.md" && grep -q -- '- \[ \] T2\.' "$tmp/tasks.md" && grep -q -- '- \[x\] T3\.' "$tmp/tasks.md" \
   || { echo "task-done no dejó tasks.md como se esperaba" >&2; exit 1; }
 
+echo "▶ task-done: red commit protection"
+r="$tmp/repo"; mkdir -p "$r/tests" "$r/src"; git -C "$r" init -q
+g() { git -C "$r" -c user.name=t -c user.email=t@t "$@"; }
+done_() { rc=0; python3 "$td" "$r/tasks.md" "$1" -- true >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+marked() { grep -q -- "- \[x\] $1\." "$r/tasks.md"; }
+fail() { echo "task-done: $1" >&2; cat "$tmp/out" >&2; exit 1; }
+printf -- '- [ ] T1. a — tests: E1, E2 — verification: true\n- [ ] T2. b — tests: E3 — verification: true\n- [ ] T3. c — tests: E4 — verification: true\n- [ ] T4. d — tests: E5 — verification: true\n' > "$r/tasks.md"
+g add -A; g commit -qm "docs: tasks"
+done_ T1 || true; [ $rc = 3 ] && ! marked T1 || fail "marked a task with examples and no red commit"
+printf 'def test_E1_a(): assert f() == 1\ndef test_E2_b(): assert f() == 2\n' > "$r/tests/test_a.py"
+g add -A; g commit -qm "test(T1): E1 E2 red"
+echo 'def f(): return 1' > "$r/src/a.py"; g add -A; g commit -qm "feat(T1): a"
+done_ T1 && marked T1 || fail "rejected a protected red commit"
+printf 'def test_E3_c(): assert f() == 3\n' >> "$r/tests/test_a.py"; g add -A; g commit -qm "test(T2): E3 red"
+done_ T1 || fail "a red commit of another task broke T1's protection"
+sed -i 's/== 3/== 1/' "$r/tests/test_a.py"
+done_ T2 || true; [ $rc = 3 ] && ! marked T2 || fail "accepted an uncommitted change to a red test"
+g commit -qam "feat(T2): c"
+done_ T2 || true; [ $rc = 3 ] || fail "accepted a commit that changes a red test"
+printf 'def test_E9_d(): pass\n' > "$r/tests/test_d.py"; g add -A; g commit -qm "test(T3): E9 red"
+done_ T3 || true; [ $rc = 3 ] && grep -q "E4 has no test" "$tmp/out" || fail "accepted a red commit without the task's example"
+printf 'def test_E5_e(): pass\n' > "$r/tests/test_e.py"; g add -A; g commit -qm "test(T4): E5 red"
+printf 'def test_E5_e(): pass\ndef test_e_edge(): pass\n' > "$r/tests/test_e.py"; g commit -qam "feat(T4): e"
+done_ T4 && marked T4 || fail "rejected new tests added after the red commit"
+
 echo "▶ record-decision"
 cd_=skills/record-decision/scripts/check_decisions.py
 dd="$tmp/decisions"; mkdir -p "$dd"; cp skills/record-decision/assets/en/README.md "$dd/"

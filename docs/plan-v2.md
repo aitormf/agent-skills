@@ -1,6 +1,6 @@
 # Plan de la v2
 
-Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0 y 1 hechas, salvo el glosario en `AGENTS.md`, que queda para la fase 3 con el snippet de niveles). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
+Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0, 1 y 2 hechas. Quedan para la fase 3 el glosario y la regla de evidencia fresca de #11 en el snippet de `AGENTS.md`; para la fase 5, el orden de los tests en `plan-to-tasks` (#18), los componentes reutilizados en `spec-to-plan` (#11) y el campo `tests:` en la plantilla de `tasks.md`). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
 
 Sale de contrastar la [guía de desarrollo con IA](guia_desarrollo_ia.md) con lo que hay en el repo, y de revisar las issues abiertas y el [plan de mejoras](plan-de-mejoras.md). Parte de `origin/main` tal como está hoy: la PR #6 (`debug-root-cause`, `task-done`) y la #19 (issue #14) ya están mergeadas.
 
@@ -213,7 +213,7 @@ Contradecir una decisión no está prohibido: se hace escribiendo la que la sust
 - **Idea 6** (Stop hook que marca «implementar sin spec o plan aprobados»): descartada en esa forma, porque obligaría a hacer SDD. Si se retoma, la regla sería «código editado en la rama base» y «código sin ningún test tocado» según el criterio de #11.
 - **Idea 4** (adherencia a `tasks.md`): baja al backlog. Con tareas en el issue y un commit por tarea, se resuelve casi sola mirando los commits.
 - **Choque 3.3** (dónde se registran las decisiones): resuelto por la sección 5.
-- **Choque 3.1** (¿todo cambio lleva test?): sigue abierto y se resuelve en #11, fase 2.
+- **Choque 3.1** (¿todo cambio lleva test?): resuelto en la fase 2 con el criterio de #11 ([D-0011](decisions/0011-criterio-de-test.md)).
 - **Secciones 4 y 5** (PR #6 y orden propuesto): desfasadas; la PR #6 y #14 están mergeadas. El orden pasa a ser el de la sección 9 de este documento.
 
 Cuando este plan se apruebe, `plan-de-mejoras.md` se actualiza para remitir aquí en lo que se solapa.

@@ -20,3 +20,5 @@ Por qué el sistema es como es: decisiones de arquitectura, reglas de negocio y 
 | [D-0008](0008-issue-de-trabajo-sin-etiqueta.md) | Un issue de trabajo se reconoce por el que se pasa, sin etiqueta | architecture | accepted | skills/task-done/, skills/review-prepush/, skills/review-pr/ |
 | [D-0009](0009-idioma-del-repositorio.md) | Skills, commits, scripts y frontmatter en inglés; la documentación, en español | rule | accepted | . |
 | [D-0010](0010-migracion-de-docs-adr.md) | Los ADRs existentes se ofrecen mover a docs/decisions/ | architecture | accepted | skills/generate-project-context/, skills/record-decision/ |
+| [D-0011](0011-criterio-de-test.md) | Qué cambios exigen test | rule | accepted | agents/implement.md, agents/code-reviewer.md |
+| [D-0012](0012-proteccion-de-los-tests-en-rojo.md) | Los tests en rojo se protegen con un commit test(Tn) y task-done comprueba líneas, no ficheros | architecture | accepted | skills/task-done/, agents/implement.md |

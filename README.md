@@ -132,7 +132,7 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 | [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
 | [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a `tasks.md`, con la verificación de cada tarea |
 | agente [`implement`](agents/implement.md) | Implementa las tareas, marca `[x]` y termina con el comando de verificación en verde |
-| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa. La usa `implement` |
+| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. La usa `implement` |
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 | [`sdd-decisions`](skills/sdd-decisions/SKILL.md) | Interna: qué es una decisión de la persona (se pregunta) y qué un supuesto o arreglo con respuesta por defecto (se propone por escrito) |
 
