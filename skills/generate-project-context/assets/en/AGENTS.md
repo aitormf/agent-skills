@@ -31,10 +31,12 @@ Before implementing a non-trivial change, check your plan against the
 
 ## Workflow
 - Branch, PR and review process: see CONTRIBUTING.md.
-- Non-trivial changes: plan first (in `docs/plans/` if the task is long).
+- How much process each change gets: "How much process" below.
 - TDD: write the test, confirm it is RED, implement, make it GREEN.
 - Don't delete or weaken tests to make them pass. If a test looks wrong, stop and ask.
 - Small commits, Conventional Commits. Branches `feat/…`, `fix/…`.
+
+<!-- Here go "How much process" and "Glossary", from AGENTS-levels.md. -->
 
 ## Decisions
 Before planning a change, read the index `docs/decisions/README.md` and open the decisions whose `affects` covers the paths you will touch.

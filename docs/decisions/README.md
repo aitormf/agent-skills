@@ -22,3 +22,8 @@ Por qué el sistema es como es: decisiones de arquitectura, reglas de negocio y 
 | [D-0010](0010-migracion-de-docs-adr.md) | Los ADRs existentes se ofrecen mover a docs/decisions/ | architecture | accepted | skills/generate-project-context/, skills/record-decision/ |
 | [D-0011](0011-criterio-de-test.md) | Qué cambios exigen test | rule | accepted | agents/implement.md, agents/code-reviewer.md |
 | [D-0012](0012-proteccion-de-los-tests-en-rojo.md) | Los tests en rojo se protegen con un commit test(Tn) y task-done comprueba líneas, no ficheros | architecture | accepted | skills/task-done/, agents/implement.md |
+| [D-0013](0013-issue-de-la-rama-por-su-nombre.md) | task-done encuentra el issue de la rama por el número con que empieza su nombre | architecture | accepted | skills/task-done/, skills/idea-to-issue/, agents/implement.md |
+| [D-0014](0014-commits-de-un-issue-desde-la-rama-base.md) | Para una tarea de un issue, el commit en rojo se busca en la rama desde la rama base | architecture | accepted | skills/task-done/ |
+| [D-0015](0015-sin-gh-el-issue-va-a-tasks-md.md) | Sin gh o sin red, idea-to-issue escribe el cuerpo del issue en docs/specs/<trabajo>/tasks.md | architecture | accepted | skills/idea-to-issue/, skills/task-done/ |
+| [D-0016](0016-glosario-en-agents-md.md) | El glosario ligero vive en AGENTS.md; ARCHITECTURE.md se queda con el modelo de dominio | architecture | accepted | skills/generate-project-context/, skills/idea-to-spec/, skills/review-spec/ |
+| [D-0017](0017-niveles-como-fragmento-de-agents-md.md) | Los niveles de proceso son un fragmento aparte que generate-project-context copia en AGENTS.md | architecture | accepted | skills/generate-project-context/ |

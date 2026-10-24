@@ -1,6 +1,6 @@
 ---
 name: idea-to-spec
-description: Turns a vague or half-defined idea into a spec (problem, users, user stories, requirements, edge cases and acceptance criteria) through a round-based interview. Use it when asked to write a spec, define a feature, clarify requirements or go from an idea to something implementable.
+description: Turns an idea into a spec.md (problem, users, user stories, requirements, edge cases and acceptance criteria) through a round-based interview — the SDD level, for big features or delicate rules with real design to decide. Use it when someone asks for a spec, or to write or clarify the requirements of a feature in a spec. For a normal feature or idea with no spec asked for, idea-to-issue is the default entry point.
 ---
 
 # From idea to spec
@@ -19,7 +19,7 @@ Help the person turn an idea into a spec ready for planning. You lead the conver
 - Start by summarizing the idea in a short paragraph.
 - Identify what is missing to write a good spec and ask the **minimum number of useful questions**, blocking ones first. Only decisions are asked (see below).
 - Focus on the what and the why, not the how: no frameworks or architecture unless the person asks for them. That belongs to `spec-to-plan`.
-- If `docs/ARCHITECTURE.md` exists, read it to use the glossary's vocabulary and to spot clashes with the principles.
+- Use the vocabulary of the glossary (in `AGENTS.md`; in older projects, in `docs/ARCHITECTURE.md`). If `docs/ARCHITECTURE.md` exists, read it to spot clashes with the principles.
 
 ## Questions by round
 

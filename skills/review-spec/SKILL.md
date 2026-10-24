@@ -23,7 +23,7 @@ Identify the work item (ask if it is not clear) and what is to be reviewed:
 
 Also read, if they exist:
 
-- `docs/ARCHITECTURE.md`, especially the non-negotiable principles ("Non-negotiable principles", or "Principios innegociables" in Spanish-language projects) and the glossary;
+- `docs/ARCHITECTURE.md`, especially the non-negotiable principles ("Non-negotiable principles", or "Principios innegociables" in Spanish-language projects), and the glossary (in `AGENTS.md`; in older projects, in `docs/ARCHITECTURE.md`);
 - the index `docs/decisions/README.md` and the accepted decisions whose `affects` covers the areas touched (or the related ADRs in `docs/adr/`, in projects that still use it).
 
 Look for:

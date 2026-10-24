@@ -104,14 +104,11 @@ Los agentes deben revisar su plan contra esta lista antes de implementar (lo ind
 4. `application/` persiste mediante el puerto y publica eventos si los hay.
 5. `api/` serializa la respuesta.
 
-## 8. Modelo de dominio y glosario
+## 8. Modelo de dominio
 
-<!-- Términos del negocio con significado preciso. Evita que personas y agentes usen sinónimos para la misma cosa (o la misma palabra para dos cosas). -->
+<!-- El glosario (una línea por término) vive en la sección "Glosario" de AGENTS.md, que se carga en cada sesión. Aquí, solo lo que no cabe en una línea: las entidades principales, sus invariantes y cómo se relacionan. Borra la sección si basta con el glosario. -->
 
-| Término | Significado | En el código |
-|---|---|---|
-| <Reserva> | <definición precisa> | `domain/booking.py::Booking` |
-| <Trayecto> | <definición precisa> | `domain/trip.py::Trip` |
+- Una <Reserva> pertenece a un <Trayecto>; un trayecto nunca tiene más reservas que plazas.
 
 ## 9. Integraciones externas
 

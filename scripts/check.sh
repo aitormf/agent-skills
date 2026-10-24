@@ -64,6 +64,44 @@ printf 'def test_E5_e(): pass\n' > "$r/tests/test_e.py"; g add -A; g commit -qm 
 printf 'def test_E5_e(): pass\ndef test_e_edge(): pass\n' > "$r/tests/test_e.py"; g commit -qam "feat(T4): e"
 done_ T4 && marked T4 || fail "rejected new tests added after the red commit"
 
+echo "▶ task-done: issue checklist (gh stubbed, no network)"
+mkdir -p "$tmp/bin" "$tmp/nogh"
+cat > "$tmp/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+# gh stub: `issue view 42 --json body` and `issue edit 42 --body-file -` on the file $GH_BODY.
+[ "$1 $3" = "issue 42" ] || { echo "issue $3 not found" >&2; exit 1; }
+case "$2" in
+  view) python3 -c 'import json, sys; print(json.dumps({"body": open(sys.argv[1], newline="").read()}))' "$GH_BODY" ;;
+  edit) [ -z "${GH_EDIT_FAIL:-}" ] || exit 1; cat > "$GH_BODY" ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$tmp/bin/gh"
+ln -s "$(command -v git)" "$tmp/nogh/git"
+export GH_BODY="$tmp/body.md"
+tda="$PWD/$td"; i="$tmp/issue"; mkdir -p "$i/tests"; git -C "$i" init -q -b main
+gi() { git -C "$i" -c user.name=t -c user.email=t@t "$@"; }
+tdi() { rc=0; (cd "$i" && PATH="$tmp/bin:$PATH" python3 "$tda" --issue "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+imarked() { grep -q -- "- \[x\] $1\." "$GH_BODY"; }
+printf -- '## Tareas\r\n- [ ] T1. a — tests: E1 — verificación: true — level: A\r\n- [ ] T2. b — verificación: false\r\n- [ ] T3. c — verificación: true\r\n- [ ] W1. d — verificación: `true`\r\n' > "$GH_BODY"
+printf 'def test_E1_old(): pass\n' > "$i/tests/test_old.py"; gi add -A; gi commit -qm "test(T1): E1 red, another work item"
+gi checkout -qb 42-cancel
+tdi T1 -- true || true; [ $rc = 3 ] && ! imarked T1 || fail "counted a red commit from the base branch for an issue task"
+printf 'def test_E1_a(): pass\n' > "$i/tests/test_a.py"; gi add -A; gi commit -qm "test(T1): E1 red"
+echo 'x = 1' > "$i/a.py"; gi add -A; gi commit -qm "feat(T1): a"
+tdi T1 -- true && imarked T1 || fail "did not tick T1 in the issue of the branch"
+grep -q warning "$tmp/out" && fail "read a later field as part of the declared verification"
+[ "$(grep -c $'\r$' "$GH_BODY")" = 5 ] || fail "changed the line endings of the issue body"
+tdi 42 T2 -- false && fail "ticked a failing task in the issue"; imarked T2 && fail "ticked a failing task in the issue"
+GH_EDIT_FAIL=1 tdi 42 T3 -- true || true; [ $rc = 4 ] && ! imarked T3 || fail "did not report an issue it could not edit"
+tdi '#42' W1 -- true && imarked W1 || fail "did not tick W1 with an explicit issue"
+grep -q warning "$tmp/out" && fail "warned with the declared 'verificación:' command"
+tdi 7 W1 -- true || true; [ $rc = 2 ] || fail "accepted an issue gh cannot read"
+gi checkout -qb feat/no-number
+tdi W1 -- true || true; [ $rc = 2 ] || fail "guessed an issue for a branch without a number"
+rc=0; (cd "$i" && PATH="$tmp/nogh" "$(command -v python3)" "$tda" --issue 42 W1 -- true) >"$tmp/out" 2>&1 || rc=$?
+[ $rc = 2 ] && grep -q "gh is not installed" "$tmp/out" || fail "did not explain that gh is missing"
+
 echo "▶ record-decision"
 cd_=skills/record-decision/scripts/check_decisions.py
 dd="$tmp/decisions"; mkdir -p "$dd"; cp skills/record-decision/assets/en/README.md "$dd/"

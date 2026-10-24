@@ -185,7 +185,7 @@ Sin plan, las puertas de `plan-to-tasks` e `implement` se aplican a la spec.
 Una buena spec deja poco margen de interpretación y se puede verificar.
 
 - Describe **comportamiento observable**, no implementación. Las decisiones técnicas van en el plan, salvo que sean restricciones reales.
-- **Lenguaje simple** y los términos del glosario de `ARCHITECTURE.md`.
+- **Lenguaje simple** y los términos del glosario de `AGENTS.md`.
 - **Cada criterio de aceptación se puede probar** ("Dado…, cuando…, entonces…"). Si no se puede demostrar, reformúlalo.
 - **"Out of scope" explícito.** Los agentes no infieren por omisión: lo que no excluyes, puede aparecer.
 - **Preguntas abiertas listadas**, en lugar de respuestas inventadas.

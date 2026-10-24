@@ -1,6 +1,6 @@
 # Plan de la v2
 
-Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0, 1 y 2 hechas. Quedan para la fase 3 el glosario y la regla de evidencia fresca de #11 en el snippet de `AGENTS.md`; para la fase 5, el orden de los tests en `plan-to-tasks` (#18), los componentes reutilizados en `spec-to-plan` (#11) y el campo `tests:` en la plantilla de `tasks.md`). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
+Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0, 1, 2 y 3 hechas. La fase 3 añadió `idea-to-issue`, `task-done --issue` y el fragmento de niveles con glosario y regla de evidencia fresca ([D-0013 a D-0017](decisions/README.md), en `proposed`). Quedan pendientes de la fase 3: pasar la suite de activación con los casos nuevos de `idea-to-issue` (necesita `claude` y red) y probar el flujo B en un trabajo real; este repo no tiene `AGENTS.md`, así que no lleva el fragmento. Para la fase 4, que la review lea el issue de la rama; para la fase 5, el orden de los tests en `plan-to-tasks` (#18), los componentes reutilizados en `spec-to-plan` (#11) y el campo `tests:` en la plantilla de `tasks.md`). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
 
 Sale de contrastar la [guía de desarrollo con IA](guia_desarrollo_ia.md) con lo que hay en el repo, y de revisar las issues abiertas y el [plan de mejoras](plan-de-mejoras.md). Parte de `origin/main` tal como está hoy: la PR #6 (`debug-root-cause`, `task-done`) y la #19 (issue #14) ya están mergeadas.
 

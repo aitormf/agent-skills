@@ -76,7 +76,7 @@ Tools check this; here is just a summary:
 - **Secrets:** gitleaks blocks the commit if it finds one. Remove the secret; don't silence the check.
 
 Things tools don't check and that reviewers look at:
-- Clear names, consistent with the glossary in `docs/ARCHITECTURE.md`.
+- Clear names, consistent with the glossary in `AGENTS.md`.
 - No dead code, no "just in case" abstractions and no unnecessary dependencies.
 - Useful error messages; no swallowed generic exceptions.
 

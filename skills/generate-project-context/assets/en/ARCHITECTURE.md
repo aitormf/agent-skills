@@ -104,14 +104,11 @@ Agents must check their plan against this list before implementing (AGENTS.md sa
 4. `application/` persists through the port and publishes events if any.
 5. `api/` serializes the response.
 
-## 8. Domain model and glossary
+## 8. Domain model
 
-<!-- Business terms with a precise meaning. Stops humans and agents from using synonyms for the same thing (or the same word for two things). -->
+<!-- The glossary (one line per term) lives in the "Glossary" section of AGENTS.md, loaded in every session. Here, only what does not fit in a line: the main entities, their invariants and how they relate. Delete the section if the glossary is enough. -->
 
-| Term | Meaning | In the code |
-|---|---|---|
-| <Booking> | <precise definition> | `domain/booking.py::Booking` |
-| <Trip> | <precise definition> | `domain/trip.py::Trip` |
+- <Booking> belongs to one <Trip>; a trip never has more bookings than seats.
 
 ## 9. External integrations
 

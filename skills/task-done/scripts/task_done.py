@@ -1,40 +1,50 @@
 #!/usr/bin/env python3
-"""Run a task's verification and tick it in tasks.md only if it passes.
+"""Run a task's verification and tick it in tasks.md or in a GitHub issue only if it passes.
 
 Usage:
   task_done.py TASKS_FILE TASK_ID -- COMMAND [ARGS...]
+  task_done.py --issue [NUMBER] TASK_ID -- COMMAND [ARGS...]
 
   TASK_ID is the label at the start of the task line (T3, W2...).
   COMMAND runs without a shell; for pipes or &&, pass `bash -c "..."`.
+  --issue reads and edits the task checklist in the body of the issue with gh.
+  Without NUMBER, the issue is the number the current branch name starts with
+  (`42-cancel-trip`, `feat/42-cancel-trip`), as `gh issue develop` names it.
 
 Warns on stderr if COMMAND does not contain the verification declared in the
 task. Prints the tail of the output, then the command and its exit status; no
-log file is kept. Exit status: the command's. A failing command leaves
-tasks.md untouched.
+log file is kept. Exit status: the command's. A failing command leaves the
+checklist untouched. Exit 2: wrong call, or the issue cannot be read (no gh,
+no network). Exit 4: the verification passed but the issue could not be edited.
 
 Test protection: if the task declares its examples (`tests: E1, E2`), before
 running COMMAND it checks in git that
-  - there is a red commit `test(T3): ...` since tasks.md was added,
+  - there is a red commit `test(T3): ...` since tasks.md was added (for an
+    issue: on the current branch, since the base branch),
   - the red commits add a line naming each example (E1, E2...),
   - no later commit (except red commits of other tasks) nor the uncommitted
     changes remove or change a line of the files the red commits touched.
-If any of these fails, COMMAND is not run, tasks.md is untouched and the exit
-status is 3.
+If any of these fails, COMMAND is not run, the checklist is untouched and the
+exit status is 3.
 """
 
+import json
 import re
 import shlex
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 TAIL = 40
 PROTECTION_FAILED = 3
+ISSUE_NOT_EDITED = 4
 
 
 def usage(msg: str) -> None:
     print(f"task_done: {msg}", file=sys.stderr)
     print("usage: task_done.py TASKS_FILE TASK_ID -- COMMAND [ARGS...]", file=sys.stderr)
+    print("       task_done.py --issue [NUMBER] TASK_ID -- COMMAND [ARGS...]", file=sys.stderr)
     sys.exit(2)
 
 
@@ -49,13 +59,14 @@ def task_block(lines: list[str], index: int) -> str:
 
 
 def declared_verification(block: str) -> str:
-    """Text after 'verification:' in the task block, without backticks if quoted."""
-    match = re.search(r"verification:\s*(.+)", block)
+    """Text after 'verification:' (or 'verificación:') in the task block, without backticks if quoted."""
+    match = re.search(r"(?:verification|verificación):\s*(.+)", block)
     if not match:
         return ""
     text = match.group(1).strip()
     quoted = re.search(r"`([^`]+)`", text)
-    return " ".join((quoted.group(1) if quoted else text).split())
+    # Unquoted, it ends at the next '—' field (`— level: A`).
+    return " ".join((quoted.group(1) if quoted else text.split("—")[0]).split())
 
 
 def declared_examples(block: str) -> list[str]:
@@ -87,18 +98,95 @@ def hunk_lines(diff: str, sign: str) -> dict[str, list[str]]:
     return found
 
 
-def check_protection(tasks: Path, task_id: str, examples: list[str]) -> list[str]:
-    """Problems with the red commit of task_id; an empty list if its tests are protected."""
-    try:
-        root = Path(git(tasks.parent, "rev-parse", "--show-toplevel").strip())
-        rel = tasks.resolve().relative_to(root.resolve()).as_posix()
+class TasksFile:
+    """A tasks.md file; its work item starts with the commit that added it."""
+
+    def __init__(self, path: Path) -> None:
+        self.path, self.label = path, str(path)
+
+    def read(self) -> str:
+        return self.path.read_text(encoding="utf-8")
+
+    def tick(self, update: Callable[[str], str]) -> None:
+        self.path.write_text(update(self.read()), encoding="utf-8")
+
+    def commits(self) -> tuple[Path, list[tuple[str, str]]]:
+        root = Path(git(self.path.parent, "rev-parse", "--show-toplevel").strip())
+        rel = self.path.resolve().relative_to(root.resolve()).as_posix()
         # Only commits since tasks.md was added belong to this work item: T<n> IDs repeat across work items.
         added = git(root, "log", "--diff-filter=A", "--format=%H", "--", rel).split()
-        log = git(root, "log", "--reverse", "--format=%H %s", "HEAD").splitlines()
-        commits = [(sha, subject) for sha, _, subject in (line.partition(" ") for line in log)]
+        commits = log(root, "HEAD")
         shas = [sha for sha, _ in commits]
         if added and added[-1] in shas:
             commits = commits[shas.index(added[-1]) :]
+        return root, commits
+
+
+class Issue:
+    """The task checklist in the body of a GitHub issue, read and edited with gh."""
+
+    def __init__(self, number: str) -> None:
+        self.number, self.label = number, f"issue #{number}"
+
+    def gh(self, *args: str, stdin: str | None = None) -> str:
+        try:
+            result = subprocess.run(["gh", "issue", *args], input=stdin, capture_output=True, text=True, check=False)
+        except FileNotFoundError:
+            raise RuntimeError("gh is not installed") from None
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or f"gh exited with {result.returncode}")
+        return result.stdout
+
+    def read(self) -> str:
+        return str(json.loads(self.gh("view", self.number, "--json", "body"))["body"])
+
+    def tick(self, update: Callable[[str], str]) -> None:
+        # Read it again: the person may have edited the issue while the verification ran.
+        self.gh("edit", self.number, "--body-file", "-", stdin=update(self.read()))
+
+    def commits(self) -> tuple[Path, list[tuple[str, str]]]:
+        # The work item is the branch: T<n> IDs repeat across issues, so only commits since the base branch count.
+        root = Path(git(Path.cwd(), "rev-parse", "--show-toplevel").strip())
+        return root, log(root, f"{base_branch(root)}..HEAD")
+
+
+def branch_issue() -> str:
+    """Issue number the current branch name starts with (42-x, feat/42-x, issue-42), or exit 2."""
+    try:
+        branch = git(Path.cwd(), "rev-parse", "--abbrev-ref", "HEAD").strip()
+    except (OSError, RuntimeError) as error:
+        usage(f"no issue number given and cannot read the current branch: {error}")
+    match = re.search(r"(?:^|/)(?:issue-|gh-)?(\d+)(?:-|$)", branch)
+    if not match:
+        usage(f"no issue number given and branch '{branch}' does not start with one: pass --issue NUMBER")
+    return match.group(1)
+
+
+def base_branch(root: Path) -> str:
+    """The remote default branch if known, else main or master."""
+    try:
+        candidates = [git(root, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD").strip()]
+    except RuntimeError:
+        candidates = []
+    for ref in [*candidates, "origin/main", "origin/master", "main", "master"]:
+        try:
+            git(root, "rev-parse", "--verify", "-q", f"{ref}^{{commit}}")
+            return ref
+        except RuntimeError:
+            continue
+    raise RuntimeError("no base branch found (origin/HEAD, main or master)")
+
+
+def log(root: Path, revisions: str) -> list[tuple[str, str]]:
+    """(sha, subject) of the commits in revisions, oldest first."""
+    lines = git(root, "log", "--reverse", "--format=%H %s", revisions).splitlines()
+    return [(sha, subject) for sha, _, subject in (line.partition(" ") for line in lines)]
+
+
+def check_protection(source: "TasksFile | Issue", task_id: str, examples: list[str]) -> list[str]:
+    """Problems with the red commit of task_id; an empty list if its tests are protected."""
+    try:
+        root, commits = source.commits()
         return protection_problems(root, commits, task_id, examples)
     except (OSError, RuntimeError, ValueError) as error:
         return [f"cannot read the git history: {error}"]
@@ -141,27 +229,51 @@ def protection_problems(root: Path, commits: list[tuple[str, str]], task_id: str
     return problems
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) < 4 or argv[2] != "--":
-        usage("wrong arguments")
-    tasks, task_id, command = Path(argv[0]), argv[1], argv[3:]
-    if not re.fullmatch(r"[A-Z]+\d+", task_id):
-        usage(f"TASK_ID must look like T3 or W2, got '{task_id}'")
-    if not tasks.is_file():
-        usage(f"{tasks} does not exist")
+def task_pattern(task_id: str) -> re.Pattern[str]:
+    return re.compile(rf"^(\s*- )\[([ xX])\]( {re.escape(task_id)}\.)")
 
-    lines = tasks.read_text(encoding="utf-8").splitlines(keepends=True)
-    pattern = re.compile(rf"^(\s*- )\[([ xX])\]( {re.escape(task_id)}\.)")
+
+def find_task(lines: list[str], task_id: str, label: str) -> int:
+    """Index of the only '- [ ] <task_id>.' line, or exit 2."""
+    pattern = task_pattern(task_id)
     matches = [i for i, line in enumerate(lines) if pattern.match(line)]
     if len(matches) != 1:
-        usage(f"expected one '- [ ] {task_id}.' line in {tasks}, found {len(matches)}")
-    index = matches[0]
+        usage(f"expected one '- [ ] {task_id}.' line in {label}, found {len(matches)}")
+    return matches[0]
+
+
+def main(argv: list[str]) -> int:
+    rest = list(argv)
+    source: TasksFile | Issue
+    if rest[:1] == ["--issue"]:
+        rest.pop(0)
+        number = rest.pop(0).lstrip("#") if rest and re.fullmatch(r"#?\d+", rest[0]) else branch_issue()
+        source = Issue(number)
+    else:
+        if not rest:
+            usage("wrong arguments")
+        source = TasksFile(Path(rest.pop(0)))
+        if not source.path.is_file():
+            usage(f"{source.path} does not exist")
+    if len(rest) < 3 or rest[1] != "--":
+        usage("wrong arguments")
+    task_id, command = rest[0], rest[2:]
+    if not re.fullmatch(r"[A-Z]+\d+", task_id):
+        usage(f"TASK_ID must look like T3 or W2, got '{task_id}'")
+
+    try:
+        text = source.read()
+    except (OSError, RuntimeError, ValueError, KeyError) as error:
+        usage(f"cannot read {source.label}: {error}. Without gh or network, use a tasks.md (see SKILL.md)")
+    lines = text.splitlines(keepends=True)
+    index = find_task(lines, task_id, source.label)
+    pattern = task_pattern(task_id)
     already_done = pattern.match(lines[index]).group(2) != " "
 
     block = task_block(lines, index)
     examples = declared_examples(block)
     if examples:
-        problems = check_protection(tasks, task_id, examples)
+        problems = check_protection(source, task_id, examples)
         for problem in problems:
             print(f"task_done: {problem}")
         if problems:
@@ -197,9 +309,19 @@ def main(argv: list[str]) -> int:
     if already_done:
         print(f"✔ {task_id} was already marked [x]; verification still green.")
         return 0
-    lines[index] = pattern.sub(r"\1[x]\3", lines[index], count=1)
-    tasks.write_text("".join(lines), encoding="utf-8")
-    print(f"✔ {task_id} marked [x] in {tasks}.")
+
+    def tick(current: str) -> str:
+        fresh = current.splitlines(keepends=True)
+        i = find_task(fresh, task_id, source.label)
+        fresh[i] = pattern.sub(r"\1[x]\3", fresh[i], count=1)
+        return "".join(fresh)
+
+    try:
+        source.tick(tick)
+    except (OSError, RuntimeError, ValueError, KeyError) as error:
+        print(f"✘ {task_id} NOT marked: the verification passed, but {source.label} could not be edited: {error}")
+        return ISSUE_NOT_EDITED
+    print(f"✔ {task_id} marked [x] in {source.label}.")
     return 0
 
 

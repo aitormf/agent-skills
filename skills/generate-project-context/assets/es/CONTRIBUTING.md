@@ -76,7 +76,7 @@ Lo comprueba la herramienta; aquí solo se resume:
 - **Secretos:** gitleaks bloquea el commit si detecta uno. Quita el secreto; no lo silencies.
 
 Criterios que la herramienta no comprueba y que se miran en revisión:
-- Nombres claros y coherentes con el glosario de `docs/ARCHITECTURE.md`.
+- Nombres claros y coherentes con el glosario de `AGENTS.md`.
 - Sin código muerto, sin abstracciones "por si acaso" y sin dependencias innecesarias.
 - Mensajes de error útiles; nada de excepciones genéricas tragadas.
 

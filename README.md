@@ -112,6 +112,23 @@ Copia las skills a `.agents/skills/`, enlaza `.claude/skills/` y registra las ve
 | [`generate-project-context`](skills/generate-project-context/SKILL.md) | Entrevista para crear AGENTS.md, ARCHITECTURE.md (con principios innegociables), CONTRIBUTING.md, el registro de decisiones (`docs/decisions/`) y SECURITY.md. Sustituye a la constitución de Spec Kit; en proyectos con `docs/adr/`, ofrece moverlos |
 | [`setup-guardrails-python`](skills/setup-guardrails-python/SKILL.md) | Instala los guardrails deterministas de un repo Python: check.sh, pre-commit, CI, seguridad, y permisos y hooks de Claude Code |
 
+### Flujo por defecto: de la idea al issue
+
+Cuánto proceso lleva cada cambio lo dice la tabla de niveles que `generate-project-context` añade al `AGENTS.md` de cada proyecto ([`AGENTS-levels.md`](skills/generate-project-context/assets/es/AGENTS-levels.md)). Para una feature normal (nivel B), el camino es este:
+
+| Skill / agente | Qué hace |
+|---|---|
+| [`idea-to-issue`](skills/idea-to-issue/SKILL.md) | De idea a issue de GitHub: nota (problema, plazo máximo, fuera de alcance), mapa de ejemplos (reglas, ejemplos, preguntas) y tareas en rebanadas verticales que nombran sus tests. Las decisiones van a `docs/decisions/` en `proposed`. Una sola parada: la persona revisa el mapa y las decisiones en el issue, no en el chat. Sin `gh` ni red, escribe lo mismo en `tasks.md` |
+| agente [`implement`](agents/implement.md) | Implementa las tareas del issue: commit de tests en rojo, un test cada vez, `task-done` |
+| [`task-done`](skills/task-done/SKILL.md) | Marca la tarea en el checklist del issue (con `gh`) solo si su verificación pasa y sus tests en rojo siguen intactos |
+
+```
+idea-to-issue → ★ persona: mapa de ejemplos y decisiones → tareas en el issue
+  → gh issue develop <n> → implement → review-prepush → PR → review-pr
+```
+
+Si hay diseño de verdad que decidir, el nivel siguiente es el SDD (más abajo).
+
 ### Decisiones
 
 | Skill | Qué hace |
@@ -132,7 +149,7 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 | [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
 | [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a `tasks.md`, con la verificación de cada tarea |
 | agente [`implement`](agents/implement.md) | Implementa las tareas, marca `[x]` y termina con el comando de verificación en verde |
-| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. La usa `implement` |
+| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` (o en el checklist de un issue) solo si pasa; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. La usa `implement` |
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 | [`sdd-decisions`](skills/sdd-decisions/SKILL.md) | Interna: qué es una decisión de la persona (se pregunta) y qué un supuesto o arreglo con respuesta por defecto (se propone por escrito) |
 
@@ -174,7 +191,7 @@ Si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el códi
 ## Desarrollo
 
 ```bash
-scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos, task-done y check_decisions (rápido, sin red)
+scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos, task-done (con gh simulado) y check_decisions (rápido, sin red)
 scripts/test-guardrails-python.sh   # smoke test de setup-guardrails-python (requiere uv, jq y red)
 tests/evals/triggering/run.py       # suite de activación: ¿cada petición real invoca la skill esperada? (requiere claude y red)
 ```

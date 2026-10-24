@@ -12,6 +12,7 @@
     "category": "Productivity",
     "capabilities": ["Interactive", "Read", "Write"],
     "defaultPrompt": [
+      "Tengo una idea: prepárala en un issue con su mapa de ejemplos y sus tareas",
       "Quiero una spec para una funcionalidad nueva",
       "¿En qué punto están las specs de este proyecto?"
     ]

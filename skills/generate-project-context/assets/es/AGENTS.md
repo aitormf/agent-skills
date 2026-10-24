@@ -31,10 +31,12 @@ Antes de implementar un cambio no trivial, revisa tu plan contra la sección
 
 ## Flujo de trabajo
 - Proceso de ramas, PRs y revisión: ver CONTRIBUTING.md.
-- Cambios no triviales: plan primero (en `docs/plans/` si la tarea es larga).
+- Cuánto proceso lleva cada cambio: "Cuánto proceso", más abajo.
 - TDD: escribe el test, compruébalo en ROJO, implementa y pásalo a VERDE.
 - No borres ni debilites tests para que pasen. Si un test parece incorrecto, para y pregunta.
 - Commits pequeños, Conventional Commits. Ramas `feat/…`, `fix/…`.
+
+<!-- Aquí van "Cuánto proceso" y "Glosario", de AGENTS-levels.md. -->
 
 ## Decisiones
 Antes de planificar un cambio, lee el índice `docs/decisions/README.md` y abre las decisiones cuyo `affects` cubre las rutas que vas a tocar.
