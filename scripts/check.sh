@@ -26,6 +26,19 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF
 
+echo "▶ test criterion: same text in implement and review-report"
+python3 - <<'EOF'
+import sys
+from pathlib import Path
+key = "**When a change needs a test.**"
+copies = {f: [l for l in Path(f).read_text(encoding="utf-8").splitlines() if l.startswith(key)]
+          for f in ("agents/implement.md", "skills/review-report/SKILL.md")}
+texts = {tuple(c) for c in copies.values()}
+if any(len(c) != 1 for c in copies.values()) or len(texts) != 1:
+    print(f"the paragraph '{key}' must appear once, identical, in {', '.join(copies)}", file=sys.stderr)
+    sys.exit(1)
+EOF
+
 echo "▶ task-done"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 td=skills/task-done/scripts/task_done.py
@@ -64,6 +77,18 @@ printf 'def test_E5_e(): pass\n' > "$r/tests/test_e.py"; g add -A; g commit -qm 
 printf 'def test_E5_e(): pass\ndef test_e_edge(): pass\n' > "$r/tests/test_e.py"; g commit -qam "feat(T4): e"
 done_ T4 && marked T4 || fail "rejected new tests added after the red commit"
 
+echo "▶ task-done --audit (read-only, for the review)"
+audit() { rc=0; python3 "$td" --audit "$@" >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+cp "$r/tasks.md" "$tmp/before.md"
+audit "$r/tasks.md" || true; [ $rc = 3 ] || fail "--audit did not fail on broken red tests"
+grep -q "^T4 \[x\]: ok" "$tmp/out" || fail "--audit did not accept a protected task"
+grep -q "^T2 \[ \]: PROBLEM: commit .* removes or changes" "$tmp/out" || fail "--audit missed a red test changed later"
+grep -q "^T3 \[ \]: PROBLEM: E4 has no test" "$tmp/out" || fail "--audit missed an example without a test"
+cmp -s "$r/tasks.md" "$tmp/before.md" || fail "--audit edited tasks.md"
+printf 'def test_E5_e(): assert False\n' > "$r/tests/test_e.py"
+audit "$r/tasks.md" || true; grep -q "^T4 \[x\]: ok" "$tmp/out" || fail "--audit counted uncommitted changes"
+git -C "$r" checkout -q -- tests/test_e.py
+
 echo "▶ task-done: issue checklist (gh stubbed, no network)"
 mkdir -p "$tmp/bin" "$tmp/nogh"
 cat > "$tmp/bin/gh" <<'EOF'
@@ -101,6 +126,14 @@ gi checkout -qb feat/no-number
 tdi W1 -- true || true; [ $rc = 2 ] || fail "guessed an issue for a branch without a number"
 rc=0; (cd "$i" && PATH="$tmp/nogh" "$(command -v python3)" "$tda" --issue 42 W1 -- true) >"$tmp/out" 2>&1 || rc=$?
 [ $rc = 2 ] && grep -q "gh is not installed" "$tmp/out" || fail "did not explain that gh is missing"
+gi checkout -q 42-cancel
+ia() { rc=0; (cd "$i" && PATH="$tmp/bin:$PATH" python3 "$tda" --audit --issue "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+cp "$GH_BODY" "$tmp/before.md"
+ia || fail "--audit --issue rejected the issue of the branch"
+grep -q "^T1 \[x\]: ok" "$tmp/out" && cmp -s "$GH_BODY" "$tmp/before.md" || fail "--audit --issue did not check T1 read-only"
+printf '  E2: late → no refund\r\n- [ ] T4. e — tests: E3 — verificación: true\r\n' >> "$GH_BODY"
+ia 42 || true; [ $rc = 3 ] && grep -q "^E2: PROBLEM" "$tmp/out" || fail "--audit missed a map example in no task"
+grep -q "^T4 \[ \]: pending" "$tmp/out" || fail "--audit did not report a task without a red commit as pending"
 
 echo "▶ record-decision"
 cd_=skills/record-decision/scripts/check_decisions.py

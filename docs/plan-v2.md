@@ -1,6 +1,6 @@
 # Plan de la v2
 
-Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0, 1, 2 y 3 hechas. La fase 3 añadió `idea-to-issue`, `task-done --issue` y el fragmento de niveles con glosario y regla de evidencia fresca ([D-0013 a D-0017](decisions/README.md), en `proposed`). Quedan pendientes de la fase 3: pasar la suite de activación con los casos nuevos de `idea-to-issue` (necesita `claude` y red) y probar el flujo B en un trabajo real; este repo no tiene `AGENTS.md`, así que no lleva el fragmento. Para la fase 4, que la review lea el issue de la rama; para la fase 5, el orden de los tests en `plan-to-tasks` (#18), los componentes reutilizados en `spec-to-plan` (#11) y el campo `tests:` en la plantilla de `tasks.md`). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
+Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0 a 4 hechas. La fase 4 añadió a la review la comprobación de ejemplos con test y tests intactos tras el rojo (`task_done.py --audit`, de solo lectura), los choques con decisiones aceptadas, el criterio de test de D-0011 y los llamadores fuera del diff de #10, con un bug plantado en `tests/review-sandbox` (B6); la review lee el issue de la rama. Las comprobaciones de tests tienen un solo dueño: `test-engineer` en `review-pr` y `code-reviewer` cuando va solo, así que la fase 4 también tocó `test-engineer` y `review-pr`, en contra de lo que decía la sección 6.3 ([D-0018 a D-0020](decisions/README.md), en `proposed`). Quedan pendientes: pasar la suite de activación con los casos de la fase 3 y probar el flujo B y la review nueva en un trabajo real (incluido el sandbox con B6); de #10 quedan fuera la carga supuesta del sistema y el campo «If we skip it». Para la fase 5, el orden de los tests en `plan-to-tasks` (#18), los componentes reutilizados en `spec-to-plan` (#11) y el campo `tests:` en la plantilla de `tasks.md`). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
 
 Sale de contrastar la [guía de desarrollo con IA](guia_desarrollo_ia.md) con lo que hay en el repo, y de revisar las issues abiertas y el [plan de mejoras](plan-de-mejoras.md). Parte de `origin/main` tal como está hoy: la PR #6 (`debug-root-cause`, `task-done`) y la #19 (issue #14) ya están mergeadas.
 
@@ -191,7 +191,7 @@ Contradecir una decisión no está prohibido: se hace escribiendo la que la sust
 
 ### 6.3 Sin cambios
 
-`debug-root-cause` (solo enlazar con `record-decision` para los descartes), `review-pr`, `review-context`, `review-report`, `finding-verifier`, `security-auditor`, `test-engineer`, el Stop hook y la confirmación al forzar el push.
+`debug-root-cause` (solo enlazar con `record-decision` para los descartes), `review-pr`, `review-context`, `review-report`, `finding-verifier`, `security-auditor`, `test-engineer`, el Stop hook y la confirmación al forzar el push. (En la fase 4 cambiaron `review-pr`, `review-report` y `test-engineer`, para que las comprobaciones de tests tengan un solo dueño: [D-0018](decisions/0018-comprobaciones-de-tests-con-un-solo-dueno-en-la-review.md).)
 
 ## 7. Valoración de las issues abiertas
 

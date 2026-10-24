@@ -18,6 +18,8 @@ If the task lists its examples (`- [ ] T3. <task> — tests: E1, E2 — verifica
 - the red commit adds a line naming each example (`test_E1_…`, `it("E1 …")`), so every example has its test;
 - no later commit (except the red commits of other tasks) and no uncommitted change removes or changes a line of the files the red commit touched. Adding new tests to those files is allowed.
 
+`review-prepush` runs the same check over the whole checklist, read-only: `task_done.py --audit docs/specs/<work-item>/tasks.md` or `task_done.py --audit --issue [<n>]`. It runs no verification and ticks nothing; it checks every task that is ticked or has a red commit (committed history only) and that every example of the map (`E1: …` lines) is in some task's `tests:`, and reports unticked tasks without a red commit as pending. Exit 0 if nothing is wrong, 3 if something is, 2 if it cannot read the checklist.
+
 ## How
 
 1. Take the task ID (`T3`, `W2`…) and its verification from the task line: `- [ ] T3. <task> — files: … — verification: <test or command>` (`verificación:` in Spanish-language projects).

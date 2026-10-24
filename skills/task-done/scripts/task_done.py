@@ -4,6 +4,8 @@
 Usage:
   task_done.py TASKS_FILE TASK_ID -- COMMAND [ARGS...]
   task_done.py --issue [NUMBER] TASK_ID -- COMMAND [ARGS...]
+  task_done.py --audit TASKS_FILE
+  task_done.py --audit --issue [NUMBER]
 
   TASK_ID is the label at the start of the task line (T3, W2...).
   COMMAND runs without a shell; for pipes or &&, pass `bash -c "..."`.
@@ -26,6 +28,13 @@ running COMMAND it checks in git that
     changes remove or change a line of the files the red commits touched.
 If any of these fails, COMMAND is not run, the checklist is untouched and the
 exit status is 3.
+
+--audit (read-only, for the review): runs no command and edits nothing. It
+checks the test protection of every task with examples that is ticked or has
+a red commit (committed history only), and that every example of the example
+map (`E1: ...` lines) is in some task's `tests:`. Unticked tasks without a red
+commit are reported as pending. Exit status: 0 if nothing is wrong, 3 if
+something is, 2 if the call is wrong or the checklist cannot be read.
 """
 
 import json
@@ -37,6 +46,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 TAIL = 40
+RED_SUBJECT = re.compile(r"^test\(([A-Z]+\d+)\):")
+TASK_LINE = re.compile(r"^\s*- \[([ xX])\] ([A-Z]+\d+)\.")
+MAP_EXAMPLE = re.compile(r"^\s*(?:[-*]\s+)?(E\d+)\s*:")
 PROTECTION_FAILED = 3
 ISSUE_NOT_EDITED = 4
 
@@ -45,6 +57,7 @@ def usage(msg: str) -> None:
     print(f"task_done: {msg}", file=sys.stderr)
     print("usage: task_done.py TASKS_FILE TASK_ID -- COMMAND [ARGS...]", file=sys.stderr)
     print("       task_done.py --issue [NUMBER] TASK_ID -- COMMAND [ARGS...]", file=sys.stderr)
+    print("       task_done.py --audit TASKS_FILE | --audit --issue [NUMBER]", file=sys.stderr)
     sys.exit(2)
 
 
@@ -192,10 +205,11 @@ def check_protection(source: "TasksFile | Issue", task_id: str, examples: list[s
         return [f"cannot read the git history: {error}"]
 
 
-def protection_problems(root: Path, commits: list[tuple[str, str]], task_id: str, examples: list[str]) -> list[str]:
-    """commits: (sha, subject), oldest first."""
-    red_subject = re.compile(r"^test\(([A-Z]+\d+)\):")
-    red = [i for i, (_, subject) in enumerate(commits) if (m := red_subject.match(subject)) and m.group(1) == task_id]
+def protection_problems(
+    root: Path, commits: list[tuple[str, str]], task_id: str, examples: list[str], worktree: bool = True
+) -> list[str]:
+    """commits: (sha, subject), oldest first. worktree: also check the uncommitted changes."""
+    red = [i for i, (_, subject) in enumerate(commits) if (m := RED_SUBJECT.match(subject)) and m.group(1) == task_id]
     if not red:
         return [f"no red commit 'test({task_id}): ...' found: commit the failing tests before the implementation"]
 
@@ -215,13 +229,15 @@ def protection_problems(root: Path, commits: list[tuple[str, str]], task_id: str
     if not paths:
         return problems
     for sha, subject in commits[red[0] + 1 :]:
-        m = red_subject.match(subject)
+        m = RED_SUBJECT.match(subject)
         if m and m.group(1) != task_id:
             continue  # red commit of another task: it may add tests to the same files
         for path, removed in hunk_lines(git(root, "show", "--format=", "-U0", sha, "--", *paths), "-").items():
             problems.append(
                 f"commit {sha[:8]} '{subject}' removes or changes {len(removed)} line(s) of {path}, a test file of the red commit"
             )
+    if not worktree:
+        return problems
     for path, removed in hunk_lines(git(root, "diff", "-U0", "HEAD", "--", *paths), "-").items():
         problems.append(
             f"uncommitted changes remove or change {len(removed)} line(s) of {path}, a test file of the red commit"
@@ -242,8 +258,61 @@ def find_task(lines: list[str], task_id: str, label: str) -> int:
     return matches[0]
 
 
+def audit(source: "TasksFile | Issue") -> int:
+    """Read-only check of every task of the checklist, for the review. Runs no command, edits nothing."""
+    try:
+        lines = source.read().splitlines()
+    except (OSError, RuntimeError, ValueError, KeyError) as error:
+        usage(f"cannot read {source.label}: {error}")
+    tasks = [(i, m) for i, line in enumerate(lines) if (m := TASK_LINE.match(line))]
+    if not tasks:
+        usage(f"no '- [ ] T1.' checklist in {source.label}")
+    try:
+        root, commits = source.commits()
+    except (OSError, RuntimeError, ValueError) as error:
+        print(f"task_done: cannot read the git history: {error}")
+        return PROTECTION_FAILED
+    with_red = {m.group(1) for _, subject in commits if (m := RED_SUBJECT.match(subject))}
+
+    problems, assigned, done = 0, set(), 0
+    for i, m in tasks:
+        task_id, ticked = m.group(2), m.group(1) != " "
+        done += ticked
+        examples = declared_examples(task_block(lines, i))
+        assigned.update(examples)
+        mark = "[x]" if ticked else "[ ]"
+        if not examples:
+            print(f"{task_id} {mark}: no examples declared")
+            continue
+        if not ticked and task_id not in with_red:
+            print(f"{task_id} {mark}: pending, no red commit yet ({', '.join(examples)})")
+            continue
+        try:
+            found = protection_problems(root, commits, task_id, examples, worktree=False)
+        except (OSError, RuntimeError, ValueError) as error:
+            found = [f"cannot read the git history: {error}"]
+        for problem in found:
+            print(f"{task_id} {mark}: PROBLEM: {problem}")
+        if not found:
+            print(f"{task_id} {mark}: ok, the red commit tests {', '.join(examples)}, untouched since")
+        problems += len(found)
+
+    task_lines = {i for i, _ in tasks}
+    mapped = [m.group(1) for i, line in enumerate(lines) if i not in task_lines and (m := MAP_EXAMPLE.match(line))]
+    for example in dict.fromkeys(mapped):
+        if example not in assigned:
+            print(f"{example}: PROBLEM: in the example map but in no task's tests:")
+            problems += 1
+
+    print(f"--- audit of {source.label}: {len(tasks)} tasks, {done} ticked; {problems} problem(s)")
+    return PROTECTION_FAILED if problems else 0
+
+
 def main(argv: list[str]) -> int:
     rest = list(argv)
+    audit_only = rest[:1] == ["--audit"]
+    if audit_only:
+        rest.pop(0)
     source: TasksFile | Issue
     if rest[:1] == ["--issue"]:
         rest.pop(0)
@@ -255,6 +324,10 @@ def main(argv: list[str]) -> int:
         source = TasksFile(Path(rest.pop(0)))
         if not source.path.is_file():
             usage(f"{source.path} does not exist")
+    if audit_only:
+        if rest:
+            usage("--audit takes no task or command")
+        return audit(source)
     if len(rest) < 3 or rest[1] != "--":
         usage("wrong arguments")
     task_id, command = rest[0], rest[2:]

@@ -33,6 +33,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      issues: read                                       # gh issue view: the task list of the branch's issue
     steps:
       - uses: actions/checkout@v6
         with:

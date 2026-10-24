@@ -180,7 +180,7 @@ Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agen
 
 | Skill / agente | Qué hace |
 |---|---|
-| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
+| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Comprueba además que cada ejemplo del issue o de `tasks.md` tiene su test y que los tests en rojo no cambiaron (`task-done --audit`), los choques con decisiones aceptadas y los llamadores fuera del diff. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
 | [`review-pr`](skills/review-pr/SKILL.md) | Review de una PR según su riesgo: tres personas en paralelo, verificador y revisión de la descripción. Nunca aprueba. Incluye la GitHub Action |
 | [`code-review-and-quality`](skills/code-review-and-quality/SKILL.md) | Review de cinco ejes en la sesión actual (Addy) |
 | [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |

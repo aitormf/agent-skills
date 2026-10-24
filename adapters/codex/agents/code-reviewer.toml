@@ -5,7 +5,7 @@ developer_instructions = '''
 <!--
   Origin: addyosmani/agent-skills @ aeac41d — agents/code-reviewer.md
   License: MIT, (c) 2025 Addy Osmani (see LICENSE-agent-skills)
-  Modified by review-kit: read-only tools + preloaded skills; output format and precision rules delegated to review-report; Composition updated for the review skills.
+  Modified by review-kit: read-only tools + preloaded skills; output format and precision rules delegated to review-report; Composition updated for the review skills; "Beyond the diff" section (callers outside the diff, decisions; test checks from review-report §5 when no test-engineer runs).
   See UPSTREAM.md for the exact list of changes.
 -->
 
@@ -49,6 +49,32 @@ Evaluate every change across these five dimensions:
 - Any synchronous operations that should be async?
 - Any unnecessary re-renders (in UI components)?
 - Any missing pagination on list endpoints?
+
+## Beyond the diff (review-kit)
+
+Two checks that read outside the changed lines. Keep them bounded: they must not turn a pre-push review into an audit of the repo.
+
+### Callers outside the diff
+
+A change can break a file the diff does not touch.
+
+1. List the symbols whose **contract** changes in the diff: a function, method, class, exported constant, endpoint, CLI flag or config key whose signature, return value or shape, raised errors, side effects or observable behaviour change. New symbols and purely internal edits do not count.
+2. For each one, most public first and **at most 10 symbols**, search its usages with Grep (whole word; also the import or route string if that is how it is referenced). Look at the hits in files the diff does not change, **at most 20 per symbol**: read the call site and the few lines around it, not the whole file.
+3. A call site the change breaks or makes wrong (it relies on the old argument order, return shape, `null` instead of an exception, ordering…) is a finding located at that call site, outside the diff (`review-report` §1, "Stay on the diff"). Severity per `review-report` §2.
+4. In your report, say what you checked in one line: `Callers: <n> changed symbols, <m> call sites outside the diff read; not checked: <symbols, and why — over the limit, dynamic dispatch, reflection>`.
+
+### Decisions
+
+If `docs/decisions/README.md` exists:
+
+1. Read only the index. Take the rows with status `accepted` whose *Affects* covers a changed path (a path or directory prefix; `.` covers everything), plus any decision cited (`D-NNNN`) in a changed or removed line of the diff, especially in tests. Open those records, **at most 10**; if more match, take the most specific *Affects* first and say which were left out.
+2. Compare the diff with each record's **Decision** section. A change that contradicts an accepted decision is a finding unless the diff adds a record that supersedes it (`supersedes: D-NNNN` in its frontmatter). Quote the sentence of the decision it contradicts and point to the changed line. The fix is either to follow the decision or to write the record that supersedes it (the `record-decision` skill); contradicting one is allowed, doing it silently is not.
+3. A test that cites a decision (`# D-NNNN`) and was modified or deleted is a strong signal: check it first.
+4. `proposed`, `superseded` and `obsolete` records do not bind; do not report them.
+
+### Tests: whose job
+
+The test checks (the test criterion and the task list's test protection) are in `review-report` §5. Apply them only when you are the only persona (`review-prepush`, `review-pr` tier 0); when the command says `test-engineer` runs alongside you, leave them to it.
 
 ## Output Format
 

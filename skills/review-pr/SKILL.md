@@ -2,7 +2,7 @@
 name: review-pr
 description: Risk-scaled review of a pull request or branch — repo checks from AGENTS.md, parallel fan-out to code-reviewer / security-auditor / test-engineer, adversarial finding-verifier, then one advisory report, checked against the SDD spec if the change has one. Comments only; never approves. Use to review a pull request or a branch before merge.
 argument-hint: "<pr-number | branch>"
-allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*)
+allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*), Bash(gh issue view:*)
 ---
 
 <!--
@@ -25,7 +25,8 @@ Follow the `review-context` skill for config and verification, and the `review-r
 - **PR number/URL:** `gh pr view <n> --json number,title,body,author,baseRefName,headRefName,headRefOid,isDraft,files,additions,deletions,url` and `gh pr diff <n>`. Compare `git rev-parse HEAD` with `headRefOid`: if they match, the working tree is the PR head (normal in CI). If not, the code is not checked out — reviewers must read files with `git show <headRefOid>:<path>` when that commit is available locally, and verification commands are **not** run (say so).
 - **Branch:** base per `review-context` §1; diff `git diff <base>...<branch>`; description = commit messages (`git log <base>..<branch>`). Compare `git rev-parse HEAD` with `git rev-parse <branch>`: if they differ, the branch is not checked out — reviewers must read files with `git show <branch>:<path>` (never the working tree), and verification commands are **not** run (say so).
 
-- **Spec:** check whether the change belongs to a work item in `docs/specs/` (`review-context` §4). If it does, read it now; it is the task the PR description is checked against.
+- **Spec:** check whether the change belongs to a work item in `docs/specs/` (`review-context` §4). If it does, read it now; it is the task the PR description is checked against, and its `tasks.md` is the **task list**.
+- **Issue:** otherwise, if the head branch name starts with an issue number (`42-cancel-trip`, `feat/42-cancel-trip`, `issue-42`), read it with `gh issue view <n> --json title,body`: its note and example map are the task, and its `- [ ] T1.` checklist is the **task list**. If `gh` cannot read it, say so under Verification.
 
 ## Step 2 — Risk tier (main session)
 
@@ -41,17 +42,17 @@ When in doubt between two tiers, choose the higher one. Upstream's skip rule sti
 
 ## Step 3 — Verification (main session)
 
-Only if the working tree is the change's head: run the AGENTS.md verification commands per `review-context` §2 (if none, say so and continue). Semgrep per `review-context` §2.6. If it is a PR, also note `gh pr checks <n>` status if available (read-only).
+Only if the working tree is the change's head: run the AGENTS.md verification commands per `review-context` §2 (if none, say so and continue), and, if there is a task list whose tasks declare examples, the read-only test-protection audit exactly as `review-prepush` Step 2 describes (`task_done.py --audit <tasks.md>` or `--audit --issue <n>`, always with the issue number: in CI the head is detached). Semgrep per `review-context` §2.6. If it is a PR, also note `gh pr checks <n>` status if available (read-only).
 
 ## Step 4 — Fan-out (parallel subagents)
 
 Tier 0: spawn only `code-reviewer`. Tiers 1–2: spawn the three personas **in a single assistant turn so they run in parallel** (use the names as the Agent tool lists them — `harness:<name>` as a plugin):
 
-1. **`code-reviewer`** — five-axis review of the diff.
+1. **`code-reviewer`** — five-axis review of the diff, plus its "Beyond the diff" checks (callers outside the diff, decisions). Tell it that `test-engineer` runs alongside, so the test checks of `review-report` §5 are not its job (in tier 0 it is alone and applies them).
 2. **`security-auditor`** — trust-boundary / OWASP pass on the diff and the code paths it makes reachable (tier noted).
-3. **`test-engineer`** — "Auditing the tests of a diff": would these tests catch a regression? what concrete case is missing?
+3. **`test-engineer`** — "Auditing the tests of a diff": would these tests catch a regression? what concrete case is missing? It owns the test checks of `review-report` §5 (test criterion, `task_done.py --audit` output).
 
-Each gets, verbatim: how to read the change (diff command or `gh pr diff <n>`, and whether files must be read via `git show <sha>:<path>`), the PR title and description, the spec paths and the `review-context` §4 instruction (if there is a spec), the tier, the verification results, the `Code review` section of AGENTS.md if any, the effective limits (`Max Optional`, `Max Nits`), and the instruction to report in `review-report` §3 format with one concrete "what's done well" item and to not modify files. Personas do not call each other.
+Each gets, verbatim: how to read the change (diff command or `gh pr diff <n>`, and whether files must be read via `git show <sha>:<path>`), the PR title and description, the spec paths and the `review-context` §4 instruction (if there is a spec) or the issue number with its title and body, the tier, the verification results (with the `task_done.py --audit` output, if it ran), the `Code review` section of AGENTS.md if any, the effective limits (`Max Optional`, `Max Nits`), and the instruction to report in `review-report` §3 format with one concrete "what's done well" item and to not modify files. Personas do not call each other.
 
 **Without subagents** (a tool that cannot spawn them, e.g. pi): run each persona's role yourself, one after another, using the same brief and keeping its output separate; then verify the findings yourself with the `finding-verifier` procedure. Say so under Verification ("personas run in the main session, not in a fresh context").
 

@@ -32,6 +32,7 @@ cp -R "$HERE/layers/feature/." .
 git add -A && git commit -q -m "Añadir paginación a /orders y endpoint /invoices para descargar facturas
 
 - GET /orders?page=N&size=M (páginas 1-indexadas, tamaño máx. 50)
+- listOrders devuelve los pedidos más recientes primero
 - GET /invoices?file=<nombre> devuelve el PDF de la factura"
 
 echo "Sandbox listo en $REPO (rama $(git branch --show-current))"

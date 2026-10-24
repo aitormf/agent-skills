@@ -56,8 +56,21 @@ fi
 # commands (declared in AGENTS.md) are arbitrary; the prompt forbids state-changing
 # commands, and the deny list below plus the repo's .claude/settings.json deny rules
 # are enforced by Claude Code regardless of the prompt.
+# gh: only reads of issues and PRs stay usable (the review reads the branch's issue with
+# `gh issue view`). Every other top-level command and every issue/pr subcommand that
+# writes or changes the checkout is denied. User-defined gh aliases and extensions are
+# not covered by this list.
 allowed="${REVIEW_KIT_ALLOWED_TOOLS:-Read,Grep,Glob,Agent,Bash}"
-denied="Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(git reset:*),Bash(git checkout:*),Bash(git switch:*),Bash(git rebase:*),Bash(git merge:*),Bash(git stash:*),Bash(git clean:*),Bash(rm:*),Bash(gh:*)"
+denied="Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(git reset:*),Bash(git checkout:*),Bash(git switch:*),Bash(git rebase:*),Bash(git merge:*),Bash(git stash:*),Bash(git clean:*),Bash(rm:*)"
+for c in alias api attestation auth browse cache co codespace completion config extension gist gpg-key label org project release repo ruleset run secret ssh-key variable workflow; do
+  denied+=",Bash(gh $c:*)"
+done
+for c in create edit comment close reopen delete transfer pin unpin lock unlock develop; do
+  denied+=",Bash(gh issue $c:*)"
+done
+for c in create edit comment close reopen merge review ready checkout lock unlock update-branch; do
+  denied+=",Bash(gh pr $c:*)"
+done
 
 out_dir="$(git rev-parse --git-dir)/review-kit"
 mkdir -p "$out_dir"

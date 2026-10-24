@@ -9,8 +9,9 @@ const ORDERS = Array.from({ length: 25 }, (_, i) => ({
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
 
+// Newest first, so page 1 shows the latest orders.
 function listOrders() {
-  return ORDERS;
+  return [...ORDERS].reverse();
 }
 
 function parsePositiveInt(value, fallback) {
