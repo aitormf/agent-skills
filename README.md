@@ -10,7 +10,7 @@ docs/arnes/ Guías del arnés: el porqué de cada pieza. El código y las planti
 docs/sdd/   Guía de uso de SDD
 docs/review/ Guía de code review y material de Addy (UPSTREAM.md)
 scripts/    check.sh, generador de agentes y tests
-tests/      Sandbox con bugs plantados para probar la review
+tests/      Sandbox con bugs plantados para probar la review y suite de activación de skills
 ```
 
 ## Instalar
@@ -168,7 +168,10 @@ Si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el códi
 ```bash
 scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos y task-done (rápido, sin red)
 scripts/test-guardrails-python.sh   # smoke test de setup-guardrails-python (requiere uv, jq y red)
+tests/evals/triggering/run.py       # suite de activación: ¿cada petición real invoca la skill esperada? (requiere claude y red)
 ```
+
+- **Al crear, renombrar o cambiar la `description` de una skill**, añade o ajusta sus frases en `tests/evals/triggering/cases.tsv` (una por línea: `<skill>⇥<petición>`, mejor en español) y pasa la suite. Cada caso se ejecuta con `claude -p --plugin-dir .` en un directorio vacío y sin herramientas que escriban; cuenta la primera skill invocada. Opciones: `--only <skill>`, `--runs N` para ver la variación, `--model`, y `--save` para guardar el resultado con fecha en `results/`.
 
 - **Al cambiar `agents/*.md`**, ejecuta `scripts/build-agents.py` y haz commit de `adapters/`. `check.sh` falla si se te olvida.
 - **Al publicar cambios**, sube `version` en `.claude-plugin/plugin.json` y en `.codex-plugin/plugin.json`, que deben coincidir. Claude Code y Codex solo actualizan cuando cambia la versión.

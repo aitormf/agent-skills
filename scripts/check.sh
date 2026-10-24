@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check.sh: verificación del repositorio. Rápida y sin red.
-# El smoke test de guardrails (necesita red) va aparte: scripts/test-guardrails-python.sh
+# Van aparte, porque necesitan red: el smoke test de guardrails (scripts/test-guardrails-python.sh)
+# y la suite de activación de skills (tests/evals/triggering/run.py).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -37,6 +38,9 @@ grep -q warning "$tmp/err" || { echo "task-done no avisó de un comando no decla
 python3 "$td" "$tmp/tasks.md" T9 -- true >/dev/null 2>&1 && { echo "task-done aceptó una tarea inexistente" >&2; exit 1; }
 grep -q -- '- \[x\] T1\.' "$tmp/tasks.md" && grep -q -- '- \[ \] T2\.' "$tmp/tasks.md" && grep -q -- '- \[x\] T3\.' "$tmp/tasks.md" \
   || { echo "task-done no dejó tasks.md como se esperaba" >&2; exit 1; }
+
+echo "▶ parser de la suite de activación"
+python3 tests/evals/triggering/run.py --self-test
 
 echo "▶ manifiestos"
 python3 - <<'EOF'
