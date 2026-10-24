@@ -2,7 +2,7 @@
 id: D-0009
 title: Skills, commits, scripts y frontmatter en inglés; la documentación, en español
 type: rule
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [.]
 supersedes: null

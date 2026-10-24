@@ -2,7 +2,7 @@
 id: D-0010
 title: Los ADRs existentes se ofrecen mover a docs/decisions/
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/generate-project-context/, skills/record-decision/]
 supersedes: null

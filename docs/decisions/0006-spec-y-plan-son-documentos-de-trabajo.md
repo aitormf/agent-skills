@@ -2,7 +2,7 @@
 id: D-0006
 title: spec.md y plan.md son documentos de trabajo; perduran las decisiones y los tests
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/idea-to-spec/, skills/spec-to-plan/, skills/plan-to-tasks/, docs/sdd/]
 supersedes: null

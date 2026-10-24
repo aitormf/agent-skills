@@ -2,7 +2,7 @@
 id: D-0001
 title: El proceso se ajusta al riesgo; el SDD completo es el último nivel
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/, docs/sdd/]
 supersedes: null

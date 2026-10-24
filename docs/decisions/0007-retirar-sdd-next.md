@@ -2,7 +2,7 @@
 id: D-0007
 title: Se retira sdd-next
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/sdd-next/]
 supersedes: null

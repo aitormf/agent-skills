@@ -2,7 +2,7 @@
 id: D-0002
 title: Las decisiones viven en docs/decisions/, un fichero por decisión con índice
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/record-decision/, skills/generate-project-context/, docs/decisions/]
 supersedes: null

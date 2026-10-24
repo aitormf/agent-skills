@@ -2,7 +2,7 @@
 id: D-0008
 title: Un issue de trabajo se reconoce por el que se pasa, sin etiqueta
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/task-done/, skills/review-prepush/, skills/review-pr/]
 supersedes: null

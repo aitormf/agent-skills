@@ -2,7 +2,7 @@
 id: D-0003
 title: El agente redacta las decisiones y la persona las acepta
 type: rule
-status: proposed
+status: accepted
 date: 2026-10-24
 affects: [skills/record-decision/, skills/sdd-decisions/]
 supersedes: null
