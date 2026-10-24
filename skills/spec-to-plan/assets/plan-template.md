@@ -20,7 +20,7 @@ status: draft      # draft | approved | obsolete. Only a person marks it approve
 
 ## Principles check
 <!-- One per row, from the non-negotiable principles section of docs/ARCHITECTURE.md.
-If a principle does not apply, say so. If the plan breaks it, justify it and propose an ADR. -->
+If a principle does not apply, say so. If the plan breaks it, justify it and propose a decision that supersedes it (record-decision). -->
 | Principle | Met? | Note |
 |---|---|---|
 

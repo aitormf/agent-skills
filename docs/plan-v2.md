@@ -1,6 +1,6 @@
 # Plan de la v2
 
-Fecha: 2026-10-23. Estado: **borrador**. Documento de trabajo para decidir qué hacer; no describe nada implementado.
+Fecha: 2026-10-23. Estado: **en curso** (2026-10-24: fases 0 y 1 hechas, salvo el glosario en `AGENTS.md`, que queda para la fase 3 con el snippet de niveles). Las decisiones de la sección 11 y de la 12 están en [`docs/decisions/`](decisions/README.md).
 
 Sale de contrastar la [guía de desarrollo con IA](guia_desarrollo_ia.md) con lo que hay en el repo, y de revisar las issues abiertas y el [plan de mejoras](plan-de-mejoras.md). Parte de `origin/main` tal como está hoy: la PR #6 (`debug-root-cause`, `task-done`) y la #19 (issue #14) ya están mergeadas.
 
@@ -49,8 +49,8 @@ Las señales para subir o bajar de nivel de la guía («el plan es más largo qu
 ```
 1. Issue con la nota de la idea
 2. Example Mapping con el agente → reglas, ejemplos, preguntas
-3. Preguntas que son decisiones → el agente redacta docs/decisions/ en `propuesto`
-   ★ persona: revisa el mapa y las decisiones → `aceptado`
+3. Preguntas que son decisiones → el agente redacta docs/decisions/ en `proposed`
+   ★ persona: revisa el mapa y las decisiones → `accepted`
 4. Tareas en el issue (rebanadas verticales)
 5. Por tarea: commit de tests en rojo → implementación de un test cada vez → task-done → commit
 6. review-prepush (ejemplos cubiertos, tests intactos, decisiones respetadas) → PR
@@ -120,13 +120,13 @@ Sustituye a `docs/adr/`. Un fichero por decisión: `docs/decisions/NNNN-titulo.m
 ```markdown
 ---
 id: D-NNNN
-titulo: <decisión en pocas palabras>
-tipo: arquitectura | regla | descarte
-estado: propuesto | aceptado | sustituido | obsoleto
-fecha: AAAA-MM-DD
-afecta: [src/billing/, api/refunds]   # módulos o rutas; lo usa el agente para filtrar
-sustituye: null
-sustituido_por: null
+title: <decisión en pocas palabras>
+type: architecture | rule | discarded
+status: proposed | accepted | superseded | obsolete
+date: YYYY-MM-DD
+affects: [src/billing/, api/refunds]   # módulos o rutas; lo usa el agente para filtrar
+supersedes: null
+superseded_by: null
 issue: "#42"
 ---
 
@@ -136,20 +136,22 @@ issue: "#42"
 ## Cómo se hace cumplir   <!-- test, regla de lint, test de arquitectura; o "no se automatiza" -->
 ```
 
-- **arquitectura:** lo que cubren hoy los ADRs.
-- **regla:** de negocio («reembolso total con más de 1h»).
-- **descarte:** «probamos X y no sirvió». Es el tipo que más trabajo ahorra a largo plazo.
+Las claves y los valores del frontmatter van en inglés; los encabezados y el texto, en el idioma del proyecto (como el `status` de las specs).
+
+- **architecture:** lo que cubren hoy los ADRs.
+- **rule:** regla de negocio («reembolso total con más de 1h»).
+- **discarded:** «probamos X y no sirvió». Es el tipo que más trabajo ahorra a largo plazo.
 
 Las secciones de consecuencias y de contexto de IA de la plantilla actual pasan a ser opcionales.
 
 ### 5.2 Índice
 
-`docs/decisions/README.md`, con una línea por decisión: id, título, tipo, estado y `afecta`. El agente lee solo el índice y abre las decisiones que tocan lo que va a cambiar, así que el contexto no crece con el número de decisiones. Un fichero único se descartó por eso.
+`docs/decisions/README.md`, con una línea por decisión: id, título, tipo, estado y `affects`. El agente lee solo el índice y abre las decisiones que tocan lo que va a cambiar, así que el contexto no crece con el número de decisiones. Un fichero único se descartó por eso.
 
 ### 5.3 Ciclo de vida
 
-1. Tras planificar con la persona (mapa de ejemplos, plan mode o plan del SDD), el agente redacta las decisiones en `propuesto` y añade sus líneas al índice.
-2. La persona las revisa y las pasa a `aceptado`. En el nivel B es la misma parada que el mapa.
+1. Tras planificar con la persona (mapa de ejemplos, plan mode o plan del SDD), el agente redacta las decisiones en `proposed` y añade sus líneas al índice.
+2. La persona las revisa y las pasa a `accepted`. En el nivel B es la misma parada que el mapa.
 3. Una decisión aceptada no se edita. Si cambia, se escribe una nueva que la sustituye y se enlazan las dos.
 4. Solo se registra lo que tuvo alternativas reales (criterio de `sdd-decisions`). La mayoría de las tareas triviales y de los bugs no dejan ninguna.
 
@@ -157,7 +159,7 @@ Las secciones de consecuencias y de contexto de IA de la plantilla actual pasan 
 
 | Momento | Quién | Qué hace |
 |---|---|---|
-| Al planificar | El agente, en Research, plan mode o Example Mapping | Lee el índice, filtra por `afecta` y avisa si el plan choca con una decisión aceptada |
+| Al planificar | El agente, en Research, plan mode o Example Mapping | Lee el índice, filtra por `affects` y avisa si el plan choca con una decisión aceptada |
 | Al ejecutar | Los tests | El test que protege una regla cita su id. Si se rompe, el agente encuentra el porqué en vez de «arreglar» el test |
 | Al revisar | `review-prepush` / `review-pr` | Compara el diff con las decisiones que afectan a los ficheros tocados |
 
@@ -169,7 +171,7 @@ Contradecir una decisión no está prohibido: se hace escribiendo la que la sust
 
 | Pieza | Qué hace | Esfuerzo |
 |---|---|---|
-| Skill `idea-to-issue` | Issue con la nota → Example Mapping → decisiones en `propuesto` → tareas en el issue. Es la entrada por defecto | M |
+| Skill `idea-to-issue` | Issue con la nota → Example Mapping → decisiones en `proposed` → tareas en el issue. Es la entrada por defecto | M |
 | Skill `record-decision` | Redacta decisiones desde la conversación, actualiza el índice y gestiona la sustitución. La usan `idea-to-issue`, `debug-root-cause` (descartes) y el nivel SDD | S |
 | Snippet de niveles para `AGENTS.md` | La tabla de la sección 3 y las señales de subir o bajar, en ~20 líneas. Lo instala `generate-project-context` | S |
 
@@ -177,7 +179,7 @@ Contradecir una decisión no está prohibido: se hace escribiendo la que la sust
 
 | Pieza | Cambio | Esfuerzo |
 |---|---|---|
-| `generate-project-context` | `docs/decisions/` en lugar de `docs/adr/`, plantilla corta con `tipo` y `afecta`, glosario en `AGENTS.md` (DDD ligero). En brownfield, ofrece mover los ADRs existentes a `docs/decisions/` como tipo `arquitectura` (con `git mv`); si la persona no quiere, conviven y el índice los enlaza | S |
+| `generate-project-context` | `docs/decisions/` en lugar de `docs/adr/`, plantilla corta con `type` y `affects`, glosario en `AGENTS.md` (DDD ligero). En brownfield, ofrece mover los ADRs existentes a `docs/decisions/` como tipo `architecture` (con `git mv`); si la persona no quiere, conviven y el índice los enlaza | S |
 | `agents/implement.md` | Un test cada vez (#18), orden de preferencia y criterio de test (#11), commit en rojo separado, no tocar tests ya en rojo, leer el índice de decisiones | S–M |
 | `task-done` | Marcar tareas en el checklist de un issue (`gh`), además de `tasks.md`. El issue es el que se le pasa o el enlazado en la rama; sin etiqueta. Comprobar que los tests del commit en rojo no cambiaron | M |
 | `review-prepush`, `code-reviewer` | Ejemplos con test, tests intactos tras el rojo, choques con decisiones. Llamadores fuera del diff (#10) | S–M |
@@ -237,7 +239,7 @@ Cada fase deja el repo usable. Las fases 1 y 2 aportan valor aunque no se haga e
 | Riesgo | Mitigación |
 |---|---|
 | Las decisiones se dejan de escribir porque no hay puerta que lo exija | El agente las redacta y la persona solo revisa; la parada del nivel B incluye revisarlas |
-| El índice crece y llena el contexto | Una línea por decisión y filtro por `afecta`. Si pasa de unas 100 líneas, partir por `tipo` |
+| El índice crece y llena el contexto | Una línea por decisión y filtro por `affects`. Si pasa de unas 100 líneas, partir por `type` |
 | La persona aprueba las decisiones sin leerlas, igual que las specs | Son cortas por diseño (plantilla de 4 secciones) y en lenguaje de negocio |
 | El flujo con issues necesita red y `gh` | `tasks.md` sigue siendo válido para `task-done`; el issue es la opción por defecto, no la única |
 | El agente traduce mal un ejemplo a test | Leer el diff final; nivel A para lo delicado |

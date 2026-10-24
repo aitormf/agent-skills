@@ -37,8 +37,9 @@ Antes de implementar un cambio no trivial, revisa tu plan contra la sección
 - Commits pequeños, Conventional Commits. Ramas `feat/…`, `fix/…`.
 
 ## Decisiones
-Antes de cambiar persistencia, límites entre módulos, auth o la API pública, consulta `docs/adr/`.
-Si tu cambio contradice un ADR aceptado, PARA y señala el conflicto.
+Antes de planificar un cambio, lee el índice `docs/decisions/README.md` y abre las decisiones cuyo `affects` cubre las rutas que vas a tocar.
+Si tu cambio contradice una decisión aceptada, PARA y señala el conflicto: se cambia con una decisión nueva que la sustituya, nunca en silencio.
+Un test que cita una decisión (`# D-0021`) la protege: no lo "arregles" sin leer esa decisión.
 
 ## Seguridad
 - Antes de tocar entradas externas, auth, SQL, ficheros, subprocess, red, criptografía,

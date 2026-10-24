@@ -1,6 +1,6 @@
 ---
 name: review-spec
-description: Reviews a spec or a plan before implementation, looking for ambiguities, gaps, contradictions, over-engineering and clashes with the principles in ARCHITECTURE.md and the ADRs. Writes a recommendation, never approves. Use it when asked to review or audit a spec, a plan or a task list.
+description: Reviews a spec or a plan before implementation, looking for ambiguities, gaps, contradictions, over-engineering and clashes with the principles in ARCHITECTURE.md and the recorded decisions. Writes a recommendation, never approves. Use it when asked to review or audit a spec, a plan or a task list.
 ---
 
 # Review a spec or plan
@@ -24,7 +24,7 @@ Identify the work item (ask if it is not clear) and what is to be reviewed:
 Also read, if they exist:
 
 - `docs/ARCHITECTURE.md`, especially the non-negotiable principles ("Non-negotiable principles", or "Principios innegociables" in Spanish-language projects) and the glossary;
-- the related ADRs in `docs/adr/`.
+- the index `docs/decisions/README.md` and the accepted decisions whose `affects` covers the areas touched (or the related ADRs in `docs/adr/`, in projects that still use it).
 
 Look for:
 
@@ -36,7 +36,7 @@ Look for:
   - the Security section, if it is missing and the feature touches data, auth or external input;
   - in a plan, acceptance criteria with no test proving them.
 - **Contradictions:** between sections, between spec and plan, or with other current specs in `docs/specs/`.
-- **Principles and ADRs:** every clash with a non-negotiable principle or with an accepted ADR is **blocking**, unless the plan justifies it and proposes an ADR.
+- **Principles and decisions:** every clash with a non-negotiable principle or with an accepted decision is **blocking**, unless the plan justifies it and proposes a new decision that supersedes it.
 - **Over-engineering and scope:** complexity the spec does not ask for, or a plan that does more than the spec says.
 - Undeclared **assumptions**.
 

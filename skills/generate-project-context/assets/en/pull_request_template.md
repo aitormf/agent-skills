@@ -8,7 +8,7 @@ Delete the sections that don't apply; don't leave boxes ticked that you haven't 
 
 <!-- 2-5 sentences. The "why" matters more than the "what": the diff already shows the what. -->
 
-Related to: #<issue> · Spec: `docs/specs/<feature>.md` · ADR: `docs/adr/<NNNN>-<title>.md`
+Related to: #<issue> · Spec: `docs/specs/<feature>.md` · Decision: `docs/decisions/<NNNN>-<title>.md`
 
 ## Type of change
 
@@ -28,14 +28,14 @@ Related to: #<issue> · Spec: `docs/specs/<feature>.md` · ADR: `docs/adr/<NNNN>
 
 ## Principles check
 
-- [ ] Doesn't break any non-negotiable principle in `docs/ARCHITECTURE.md` (or it is justified here / in an ADR)
+- [ ] Doesn't break any non-negotiable principle in `docs/ARCHITECTURE.md` (or it is justified here / in a decision)
 - [ ] No test is removed or weakened (or it is explained why)
 - [ ] No new dependencies (or justified below: what they add, maintenance, license)
 - [ ] No secrets, personal data or credentials
 
 ## Documentation
 
-- [ ] Updated in this same PR if applicable: `README.md` · `docs/ARCHITECTURE.md` · ADR · `AGENTS.md` · `.env.example`
+- [ ] Updated in this same PR if applicable: `README.md` · `docs/ARCHITECTURE.md` · `docs/decisions/` · `AGENTS.md` · `.env.example`
 - [ ] Not applicable
 
 ## AI use

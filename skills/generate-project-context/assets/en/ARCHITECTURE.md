@@ -69,20 +69,20 @@ infra ──►  application  ──►  domain
 
 <!--
 Replaces Spec Kit's constitution.md if you don't use Spec Kit.
-Few (5-10), stable and verifiable. Each one with its why (ADR) and how it is checked.
-Breaking one requires a new ADR that changes it, not a silent exception.
+Few (5-10), stable and verifiable. Each one with its why (a decision in docs/decisions/) and how it is checked.
+Breaking one requires a new decision that supersedes it, not a silent exception.
 Agents must check their plan against this list before implementing (AGENTS.md says so).
 -->
 
 | ID | Principle | Why | How it is checked |
 |---|---|---|---|
-| P1 | The domain has no I/O and no framework dependencies | Testable and portable ([ADR-0002](adr/0002-hexagonal-architecture.md)) | import-linter |
-| P2 | Test first: no production code is merged without a test that covers it | Tests are the agents' oracle ([ADR-0003](adr/0003-tdd.md)) | PR review + coverage threshold in CI |
+| P1 | The domain has no I/O and no framework dependencies | Testable and portable ([D-0002](decisions/0002-hexagonal-architecture.md)) | import-linter |
+| P2 | Test first: no production code is merged without a test that covers it | Tests are the agents' oracle ([D-0003](decisions/0003-tdd.md)) | PR review + coverage threshold in CI |
 | P3 | Strict typing across `src/` | Executable documentation that the agent can check | `mypy --strict` in CI |
 | P4 | Configuration is only read in `config.py`, and is validated at startup | Avoid scattered `os.environ` and late failures | ruff rule / grep in CI |
-| P5 | No new dependency without justifying it in the PR (or in an ADR if it is structural) | Attack surface and maintenance | Review of `pyproject.toml`/`uv.lock` in the PR |
+| P5 | No new dependency without justifying it in the PR (or in a decision if it is structural) | Attack surface and maintenance | Review of `pyproject.toml`/`uv.lock` in the PR |
 | P6 | No secrets in the repository | Security | gitleaks in pre-commit and CI |
-| P7 | <your principle> | <why / ADR> | <tool or review> |
+| P7 | <your principle> | <why / decision> | <tool or review> |
 
 ## 6. Invariants
 
@@ -131,10 +131,10 @@ Agents must check their plan against this list before implementing (AGENTS.md sa
 
 ## 11. Decisions
 
-Decisions with their context and rejected alternatives live in [`docs/adr/`](adr/README.md). This document describes **the current state**; the ADRs explain **why** it is this way.
+Decisions with their context and rejected alternatives live in [`docs/decisions/`](decisions/README.md): architecture, business rules and discarded approaches. This document describes **the current state**; the decisions explain **why** it is this way.
 
 ## 12. Maintaining this document
 
 - Update it **in the same PR** that changes the structure, a layer, a principle or an integration.
-- Changing a principle in section 5 requires an ADR.
+- Changing a principle in section 5 requires a decision record.
 - Periodic review (e.g. quarterly) to remove what is obsolete; you can ask an agent to compare this document with the code and propose corrections.

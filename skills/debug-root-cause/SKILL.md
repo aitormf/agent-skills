@@ -57,3 +57,4 @@ Follow the phases in order. Do not move on until the current one is done.
 - **Fix**, and why it addresses the cause and not the symptom.
 - **Regression test**, and proof that it fails without the fix.
 - **Verification**: command and result.
+- **Discarded approaches**, if any is one someone would plausibly try again ("a retry hides it", "upgrading X does not fix it"): propose recording it as `discarded` with `record-decision`. Most bugs leave no record.

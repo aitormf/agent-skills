@@ -39,6 +39,27 @@ python3 "$td" "$tmp/tasks.md" T9 -- true >/dev/null 2>&1 && { echo "task-done ac
 grep -q -- '- \[x\] T1\.' "$tmp/tasks.md" && grep -q -- '- \[ \] T2\.' "$tmp/tasks.md" && grep -q -- '- \[x\] T3\.' "$tmp/tasks.md" \
   || { echo "task-done no dejó tasks.md como se esperaba" >&2; exit 1; }
 
+echo "▶ record-decision"
+cd_=skills/record-decision/scripts/check_decisions.py
+dd="$tmp/decisions"; mkdir -p "$dd"; cp skills/record-decision/assets/en/README.md "$dd/"
+for lang in en es; do  # the templates, without their opening comment, must pass the check
+  sed '1,/^-->$/d' "skills/record-decision/assets/$lang/decision.md" | sed 's/D-NNNN/D-0001/; s/YYYY-MM-DD/2026-01-01/' > "$dd/0001-a.md"
+  grep -q '^| \[D-0001\]' "$dd/README.md" || echo '| [D-0001](0001-a.md) | a | architecture | proposed | src/ |' >> "$dd/README.md"
+  python3 "$cd_" "$dd" || { echo "the $lang decision template does not pass check_decisions" >&2; exit 1; }
+done
+[ "$(python3 "$cd_" "$dd" --next)" = D-0002 ] || { echo "check_decisions --next is wrong" >&2; exit 1; }
+sed 's/D-0001/D-0002/; s/^supersedes: null/supersedes: D-0001/' "$dd/0001-a.md" > "$dd/0002-b.md"
+echo '| [D-0002](0002-b.md) | b | architecture | proposed | src/ |' >> "$dd/README.md"
+python3 "$cd_" "$dd" 2>/dev/null && { echo "check_decisions accepted a one-sided supersedes" >&2; exit 1; }
+sed -i 's/^status: proposed/status: superseded/; s/^superseded_by: null/superseded_by: D-0002/' "$dd/0001-a.md"
+sed -i 's/| a | architecture | proposed/| a | architecture | superseded/' "$dd/README.md"
+python3 "$cd_" "$dd" || { echo "check_decisions rejected a valid supersession" >&2; exit 1; }
+rm "$dd/0002-b.md"
+python3 "$cd_" "$dd" 2>/dev/null && { echo "check_decisions accepted an index row without a file" >&2; exit 1; }
+
+echo "▶ docs/decisions of this repo"
+python3 "$cd_" docs/decisions
+
 echo "▶ parser de la suite de activación"
 python3 tests/evals/triggering/run.py --self-test
 

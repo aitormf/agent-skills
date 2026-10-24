@@ -14,7 +14,7 @@ Gracias por contribuir. Este documento explica cómo preparar el entorno, cómo 
 **Lecturas previas:**
 - [`README.md`](README.md): qué es el proyecto.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): estructura, capas y **principios innegociables**.
-- [`docs/adr/`](docs/adr/README.md): decisiones tomadas y por qué.
+- [`docs/decisions/`](docs/decisions/README.md): decisiones tomadas y por qué.
 - [`AGENTS.md`](AGENTS.md): instrucciones para agentes de IA (útil también para personas: resume comandos y límites).
 
 ## 1. Preparar el entorno
@@ -51,13 +51,13 @@ No uses `pip install` ni edites `uv.lock` a mano.
 
 - **Cambios pequeños** (bug evidente, typo, refactor local): adelante, directamente con una PR.
 - **Cambios medianos o grandes** (funcionalidad nueva, varios módulos, API pública): abre o asígnate un issue primero y escribe una especificación breve en `docs/specs/<feature>.md` (objetivo, requisitos, fuera de alcance y cómo se verifica de punta a punta).
-- **Cambios de arquitectura** (nueva capa, cambio de persistencia, nueva dependencia estructural, romper un principio): necesitan un **ADR** en `docs/adr/` aprobado antes de implementar. Usa `docs/adr/0000-plantilla.md`.
+- **Cambios de arquitectura** (nueva capa, cambio de persistencia, nueva dependencia estructural, romper un principio): necesitan una **decisión** en `docs/decisions/`, aceptada antes de implementar (la redacta la skill `record-decision`).
 
 Antes de implementar, revisa tu plan contra los principios innegociables de `docs/ARCHITECTURE.md`.
 
 ## 4. Flujo de trabajo con git
 
-- Rama desde `main`, con el formato `<tipo>/<descripcion-corta>`: `feat/export-csv`, `fix/timezone-reservas`, `docs/adr-cache`.
+- Rama desde `main`, con el formato `<tipo>/<descripcion-corta>`: `feat/export-csv`, `fix/timezone-reservas`, `docs/decision-cache`.
 - Nadie hace push directo a `main`; todo entra por PR.
 - Commits con [Conventional Commits](https://www.conventionalcommits.org/es/): `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
 - Commits pequeños y con sentido propio. Antes de abrir la PR puedes reordenar o fusionar los tuyos.
@@ -101,11 +101,11 @@ Puedes usar asistentes y agentes de IA (Claude Code, Codex, Copilot, Cursor…).
 **Antes de abrirla:**
 - [ ] `./scripts/check.sh` en verde en local.
 - [ ] Tests nuevos o actualizados para el cambio.
-- [ ] Documentación actualizada en la misma PR si aplica: `README.md`, `docs/ARCHITECTURE.md`, ADR, `AGENTS.md`, `.env.example`.
+- [ ] Documentación actualizada en la misma PR si aplica: `README.md`, `docs/ARCHITECTURE.md`, `docs/decisions/`, `AGENTS.md`, `.env.example`.
 - [ ] Sin cambios no relacionados (formateos masivos, renombrados de paso).
 
 **Descripción** (lo pide `.github/pull_request_template.md`):
-- Qué cambia y por qué; enlace al issue, spec o ADR.
+- Qué cambia y por qué; enlace al issue, spec o decisión.
 - Cómo se ha verificado (tests, prueba manual, capturas).
 - Riesgos, migraciones o pasos de despliegue.
 - Uso de IA relevante.
@@ -120,8 +120,8 @@ Puedes usar asistentes y agentes de IA (Claude Code, Codex, Copilot, Cursor…).
 
 | Qué cambia | Qué actualizar |
 |---|---|
-| Estructura, capas, integraciones, principios | `docs/ARCHITECTURE.md` (los principios requieren ADR) |
-| Una decisión técnica relevante | ADR nuevo en `docs/adr/` (los ADR no se editan: se sustituyen por otro) |
+| Estructura, capas, integraciones, principios | `docs/ARCHITECTURE.md` (los principios requieren una decisión) |
+| Una decisión de arquitectura, una regla de negocio o un enfoque descartado | Decisión nueva en `docs/decisions/` (las aceptadas no se editan: se sustituyen por otra) |
 | Comandos, herramientas o trampas conocidas | `AGENTS.md` |
 | Instalación o uso | `README.md` |
 | Variables de entorno | `.env.example` y `config.py` |

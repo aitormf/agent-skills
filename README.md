@@ -109,8 +109,16 @@ Copia las skills a `.agents/skills/`, enlaza `.claude/skills/` y registra las ve
 
 | Skill | Qué hace |
 |---|---|
-| [`generate-project-context`](skills/generate-project-context/SKILL.md) | Entrevista para crear AGENTS.md, ARCHITECTURE.md (con principios innegociables), CONTRIBUTING.md, ADRs y SECURITY.md. Sustituye a la constitución de Spec Kit |
+| [`generate-project-context`](skills/generate-project-context/SKILL.md) | Entrevista para crear AGENTS.md, ARCHITECTURE.md (con principios innegociables), CONTRIBUTING.md, el registro de decisiones (`docs/decisions/`) y SECURITY.md. Sustituye a la constitución de Spec Kit; en proyectos con `docs/adr/`, ofrece moverlos |
 | [`setup-guardrails-python`](skills/setup-guardrails-python/SKILL.md) | Instala los guardrails deterministas de un repo Python: check.sh, pre-commit, CI, seguridad, y permisos y hooks de Claude Code |
+
+### Decisiones
+
+| Skill | Qué hace |
+|---|---|
+| [`record-decision`](skills/record-decision/SKILL.md) | Registra en `docs/decisions/` las decisiones que deben sobrevivir al trabajo en curso: arquitectura, reglas de negocio y enfoques descartados. Las redacta en `proposed`; solo una persona las pasa a `accepted`. Mantiene el índice, gestiona la sustitución y migra `docs/adr/`. `check_decisions.py` valida el directorio |
+
+Los agentes leen solo el índice y abren las decisiones cuyo `affects` cubre lo que van a tocar. Una decisión aceptada no se edita: se escribe otra que la sustituye.
 
 ### Spec-Driven Development
 
@@ -166,7 +174,7 @@ Si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el códi
 ## Desarrollo
 
 ```bash
-scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos y task-done (rápido, sin red)
+scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos, task-done y check_decisions (rápido, sin red)
 scripts/test-guardrails-python.sh   # smoke test de setup-guardrails-python (requiere uv, jq y red)
 tests/evals/triggering/run.py       # suite de activación: ¿cada petición real invoca la skill esperada? (requiere claude y red)
 ```

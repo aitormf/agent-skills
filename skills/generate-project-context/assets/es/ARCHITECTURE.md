@@ -69,20 +69,20 @@ infra ──►  application  ──►  domain
 
 <!--
 Sustituye a la constitution.md de Spec Kit si no lo usáis.
-Pocos (5-10), estables y verificables. Cada uno con su porqué (ADR) y cómo se comprueba.
-Romper uno exige un ADR nuevo que lo cambie, no una excepción silenciosa.
+Pocos (5-10), estables y verificables. Cada uno con su porqué (una decisión en docs/decisions/) y cómo se comprueba.
+Romper uno exige una decisión nueva que lo sustituya, no una excepción silenciosa.
 Los agentes deben revisar su plan contra esta lista antes de implementar (lo indica AGENTS.md).
 -->
 
 | ID | Principio | Por qué | Cómo se verifica |
 |---|---|---|---|
-| P1 | El dominio no tiene E/S ni dependencias de frameworks | Testeable y portable ([ADR-0002](adr/0002-arquitectura-hexagonal.md)) | import-linter |
-| P2 | Test primero: no se mergea código de producción sin un test que lo cubra | Los tests son el oráculo de los agentes ([ADR-0003](adr/0003-tdd.md)) | Revisión de PR + umbral de coverage en CI |
+| P1 | El dominio no tiene E/S ni dependencias de frameworks | Testeable y portable ([D-0002](decisions/0002-arquitectura-hexagonal.md)) | import-linter |
+| P2 | Test primero: no se mergea código de producción sin un test que lo cubra | Los tests son el oráculo de los agentes ([D-0003](decisions/0003-tdd.md)) | Revisión de PR + umbral de coverage en CI |
 | P3 | Tipado estricto en todo `src/` | Documentación ejecutable que el agente puede comprobar | `mypy --strict` en CI |
 | P4 | La configuración solo se lee en `config.py`, y se valida al arrancar | Evitar `os.environ` disperso y fallos tardíos | Regla de ruff / grep en CI |
-| P5 | Ninguna dependencia nueva sin justificarla en la PR (o en un ADR si es estructural) | Superficie de ataque y mantenimiento | Revisión de `pyproject.toml`/`uv.lock` en la PR |
+| P5 | Ninguna dependencia nueva sin justificarla en la PR (o en una decisión si es estructural) | Superficie de ataque y mantenimiento | Revisión de `pyproject.toml`/`uv.lock` en la PR |
 | P6 | Sin secretos en el repositorio | Seguridad | gitleaks en pre-commit y CI |
-| P7 | <tu principio> | <porqué / ADR> | <herramienta o revisión> |
+| P7 | <tu principio> | <porqué / decisión> | <herramienta o revisión> |
 
 ## 6. Invariantes
 
@@ -131,10 +131,10 @@ Los agentes deben revisar su plan contra esta lista antes de implementar (lo ind
 
 ## 11. Decisiones
 
-Las decisiones con su contexto y las alternativas descartadas están en [`docs/adr/`](adr/README.md). Este documento describe **el estado actual**; los ADR explican **por qué** es así.
+Las decisiones con su contexto y las alternativas descartadas están en [`docs/decisions/`](decisions/README.md): arquitectura, reglas de negocio y enfoques descartados. Este documento describe **el estado actual**; las decisiones explican **por qué** es así.
 
 ## 12. Mantenimiento de este documento
 
 - Se actualiza **en la misma PR** que cambie la estructura, una capa, un principio o una integración.
-- Cambiar un principio de la sección 5 exige un ADR.
+- Cambiar un principio de la sección 5 exige registrar una decisión.
 - Revisión periódica (p. ej. trimestral) para eliminar lo obsoleto; se puede pedir a un agente que compare este documento con el código y proponga correcciones.

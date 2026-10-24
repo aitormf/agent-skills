@@ -11,7 +11,7 @@ Install the controls that always run, with or without an agent. Copy files from 
 - `assets/snippets/`: **merged** into files the repo already has (`pyproject.toml`, `.gitignore`, `AGENTS.md`).
 - `references/components.md`: what each component protects against and when it is worth it. Read it if the user asks why or is unsure whether to include something.
 
-Out of scope: the content of `AGENTS.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, ADRs, specs and review. In `AGENTS.md` you only touch the sections from `assets/snippets/AGENTS-guardrails.md`.
+Out of scope: the content of `AGENTS.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/decisions/`, specs and review. In `AGENTS.md` you only touch the sections from `assets/snippets/AGENTS-guardrails.md`.
 
 ## Rules
 

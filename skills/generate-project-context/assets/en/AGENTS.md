@@ -37,8 +37,9 @@ Before implementing a non-trivial change, check your plan against the
 - Small commits, Conventional Commits. Branches `feat/…`, `fix/…`.
 
 ## Decisions
-Before changing persistence, module boundaries, auth or the public API, check `docs/adr/`.
-If your change contradicts an accepted ADR, STOP and point out the conflict.
+Before planning a change, read the index `docs/decisions/README.md` and open the decisions whose `affects` covers the paths you will touch.
+If your change contradicts an accepted decision, STOP and point out the conflict: it is changed by a new decision that supersedes it, never silently.
+A test that cites a decision (`# D-0021`) protects it: do not "fix" it without reading that decision.
 
 ## Security
 - Before touching external input, auth, SQL, files, subprocess, network, cryptography,

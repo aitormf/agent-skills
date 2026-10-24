@@ -174,7 +174,7 @@ Así cada herramienta hace lo suyo: el tracker gestiona el trabajo y la spec def
 | Bug complejo | `spec.md` + `tasks.md` | Opcional |
 | Funcionalidad pequeña | `spec.md` + `plan.md` + `tasks.md` | Opcional |
 | Funcionalidad de producción | Todos | Spec y plan |
-| Refactor arquitectural | Todos, más un ADR si cambia un principio | Spec y plan |
+| Refactor arquitectural | Todos, más una decisión en `docs/decisions/` si cambia un principio | Spec y plan |
 
 Sin plan, las puertas de `plan-to-tasks` e `implement` se aplican a la spec.
 
@@ -236,5 +236,5 @@ El kit `aitormf/sdd` usaba `.sdd/`, un `backlog.md` con 13 estados, un agente or
 
    Los estados posteriores a `tareas-listas` (implementando, validando, corrigiendo, hecho) son gestión del trabajo: van al tracker, si quieres conservarlos.
 3. Renombra `review.md` a `review-spec.md` o `review-plan.md`, según lo que revisara.
-4. Pasa `constitution.md` por `generate-project-context`, que reparte su contenido entre `ARCHITECTURE.md`, `CONTRIBUTING.md`, los ADRs y `AGENTS.md`. Después bórrala.
+4. Pasa `constitution.md` por `generate-project-context`, que reparte su contenido entre `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/decisions/` y `AGENTS.md`. Después bórrala.
 5. Borra `backlog.md`, la carpeta `.sdd/` y los adaptadores que generó `install-sdd.sh` (los enlaces en `.claude/`, `.codex/`, `.opencode/`…). Luego instala las skills nuevas (§2).

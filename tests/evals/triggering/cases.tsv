@@ -26,3 +26,6 @@ setup-guardrails-python	monta los guardrails de este repo Python: ruff, mypy, pr
 setup-guardrails-python	endurece la seguridad de este proyecto Python: gitleaks, dependabot y hooks
 none	¿qué hora es en Tokio?
 none	explica qué hace un decorador en Python
+record-decision	apunta esta decisión: los reembolsos son totales si se cancela con más de 1h de antelación
+record-decision	deja registrado que probamos Redis para la caché de sesiones y lo descartamos por la latencia
+record-decision	migra los ADRs de docs/adr a docs/decisions

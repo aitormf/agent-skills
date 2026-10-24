@@ -32,7 +32,7 @@ security or something hard to reverse (see the sdd-decisions skill); "fix" if it
 ### Minor
 <!-- At most 3. -->
 
-## Principles and ADRs
-<!-- Clashes with the non-negotiable principles of docs/ARCHITECTURE.md or with accepted ADRs. -->
+## Principles and decisions
+<!-- Clashes with the non-negotiable principles of docs/ARCHITECTURE.md or with accepted decisions in docs/decisions/. -->
 
 ## Risks

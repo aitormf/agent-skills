@@ -1,8 +1,8 @@
 {
   "model": null,
   "runs": 1,
-  "passed": 25,
-  "total": 25,
+  "passed": 28,
+  "total": 28,
   "results": [
     {
       "expected": [
@@ -202,6 +202,30 @@
       ],
       "prompt": "explica qué hace un decorador en Python",
       "got": null,
+      "ok": true
+    },
+    {
+      "expected": [
+        "record-decision"
+      ],
+      "prompt": "apunta esta decisión: los reembolsos son totales si se cancela con más de 1h de antelación",
+      "got": "harness:record-decision",
+      "ok": true
+    },
+    {
+      "expected": [
+        "record-decision"
+      ],
+      "prompt": "deja registrado que probamos Redis para la caché de sesiones y lo descartamos por la latencia",
+      "got": "harness:record-decision",
+      "ok": true
+    },
+    {
+      "expected": [
+        "record-decision"
+      ],
+      "prompt": "migra los ADRs de docs/adr a docs/decisions",
+      "got": "harness:record-decision",
       "ok": true
     }
   ]
