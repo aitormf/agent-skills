@@ -1,8 +1,15 @@
+---
+status: open      # open | done. task-done sets done when it ticks the last task.
+issue: null       # the GitHub issue this change started from (a number), or null. The PR closes it: Closes #<n>.
+---
 # Tasks: <feature name>
 
-<!-- Small tasks, in dependency order. [P] = can be done in parallel with the previous one.
-Each task starts with its ID (T<n>., W<n>. in wrap-up) and states which files it touches and how it is verified.
+<!-- Same format as the tasks.md of idea-to-change. Small tasks, in dependency order. [P] = can be done in
+parallel with the previous one. Each task starts with its ID (T<n>., W<n>. in wrap-up) and states which files
+it touches and how it is verified; `tests: E1, E2` when it covers examples of the map.
 The implement agent marks [x] with the task-done skill, only when the verification passes. -->
+
+The what and the why are in `spec.md`; the how, in `plan.md`.
 
 ## Phase 1: <name>
 

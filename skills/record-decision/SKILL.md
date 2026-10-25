@@ -22,7 +22,7 @@ Three types:
 - **rule:** a business rule and its edge ("full refund when cancelling more than 1 h ahead; exactly 1 h counts as late").
 - **discarded:** "we tried X and it did not work, because Y". The type that saves the most work later.
 
-Not recorded: assumptions with a clear default (they stay in the issue, spec or plan), naming and layout details, anything the code or a test already makes obvious, and decisions that only matter until the current work item is closed. Most trivial tasks and bug fixes leave no record. If in doubt, propose it and let the person drop it.
+Not recorded: assumptions with a clear default (they stay in `tasks.md`, the spec or the plan), naming and layout details, anything the code or a test already makes obvious, and decisions that only matter until the current work item is closed. Most trivial tasks and bug fixes leave no record. If in doubt, propose it and let the person drop it.
 
 ## Process
 
@@ -38,7 +38,7 @@ Not recorded: assumptions with a clear default (they stay in the issue, spec or 
 5. **Check:** run `check_decisions.py docs/decisions` and fix what it reports.
 6. **Ask for acceptance.** Show the person one line per record (id, title, type, the decision in one sentence) with the paths. "ok" accepts all of them; they can drop or correct any. Only then change `status` to `accepted`, in the file and in the index, and run the check again.
 
-When called by another skill (`idea-to-issue`, the SDD skills, `debug-root-cause`), the acceptance in step 6 is the same stop as that skill's review with the person: do not ask twice.
+When called by another skill (`idea-to-change`, the SDD skills, `debug-root-cause`), the acceptance in step 6 is the same stop as that skill's review with the person: do not ask twice.
 
 ## Superseding a decision
 
@@ -50,7 +50,7 @@ A decision that simply stops applying (the module was deleted) becomes `obsolete
 
 ## Migrating from docs/adr/
 
-Offer it; do not do it without the person's ok. If they say no, the two directories coexist: add one row per ADR to the index, linking to `../adr/NNNN-*.md`, and leave them as they are.
+Offer it; do not do it without the person's ok. If they say no, the two directories coexist: add one row per ADR to the index, labelled with the ADR's number and linking to it (`| [D-0003](../adr/0003-title.md) | title | architecture | accepted | affects |`), and leave them as they are. `check_decisions.py` only checks that the ADR exists, and `--next` skips the ADR numbers.
 
 If they say yes:
 

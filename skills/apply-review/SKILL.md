@@ -11,7 +11,7 @@ Help the person decide on the findings and apply only what they have seen and no
 
 ## Artifacts and status
 
-- Each work item lives in `docs/specs/<YYYYMMDD>-<type>-<name>/`.
+- Each change lives in `docs/changes/<branch>/`, named after the last segment of the branch name (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/`), next to its `tasks.md`.
 - `spec.md` and `plan.md` carry `status: draft | approved | obsolete` in their frontmatter. Only a person sets `approved`.
 - If you change an artifact that was `approved`, set it back to `draft` and say so.
 
@@ -60,7 +60,7 @@ Decision summary
 
 Check whether any decision from step 1 affects other specs in progress:
 
-1. Look in `docs/specs/*/spec.md` for those with `status: draft`.
+1. Look in `docs/changes/*/spec.md` for those with `status: draft`.
 2. For each one, reason whether any decision introduces a conflict, changes a dependency or invalidates an assumption.
 3. For each spec that *may* be affected:
    - show which spec, which section and what would need to change;

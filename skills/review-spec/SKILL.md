@@ -11,7 +11,7 @@ To review with a clean context, delegate to the `spec-reviewer` subagent, which 
 
 ## Artifacts and status
 
-- Each work item lives in `docs/specs/<YYYYMMDD>-<type>-<name>/`.
+- Each change lives in `docs/changes/<branch>/`, named after the last segment of the branch name (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/`), next to its `tasks.md`.
 - `spec.md` and `plan.md` carry `status: draft | approved | obsolete` in their frontmatter. **Only a person sets `approved`. You never change `status`.**
 
 ## What to review
@@ -35,7 +35,7 @@ Look for:
   - requirements with no acceptance criterion;
   - the Security section, if it is missing and the feature touches data, auth or external input;
   - in a plan, acceptance criteria with no test proving them.
-- **Contradictions:** between sections, between spec and plan, or with other current specs in `docs/specs/`.
+- **Contradictions:** between sections, between spec and plan, or with the specs of other open changes in `docs/changes/*/`.
 - **Principles and decisions:** every clash with a non-negotiable principle or with an accepted decision is **blocking**, unless the plan justifies it and proposes a new decision that supersedes it.
 - **Over-engineering and scope:** complexity the spec does not ask for, or a plan that does more than the spec says.
 - Undeclared **assumptions**.

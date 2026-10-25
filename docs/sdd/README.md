@@ -83,13 +83,13 @@ En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué sp
 
 | Paso | Cómo pedirlo | Qué produce | Qué decides tú |
 |---|---|---|---|
-| **1. Spec** | *"Quiero una spec para <idea>"* | `docs/specs/<trabajo>/spec.md` en `draft` | Las decisiones de producto, alcance, seguridad o difíciles de revertir. Cada pregunta trae una opción recomendada; "ok" las acepta todas. Lo demás se anota en `Supuestos` (ver [§3.1](#31-qué-se-pregunta-y-qué-se-propone)) |
+| **1. Spec** | *"Quiero una spec para <idea>"* | La rama del cambio y `docs/changes/<rama>/spec.md` en `draft` | Las decisiones de producto, alcance, seguridad o difíciles de revertir. Cada pregunta trae una opción recomendada; "ok" las acepta todas. Lo demás se anota en `Supuestos` (ver [§3.1](#31-qué-se-pregunta-y-qué-se-propone)) |
 | **2. Revisar la spec** | *"Revisa la spec de <trabajo>"* (mejor con el subagente `spec-reviewer`) | `review-spec.md`: hallazgos por prioridad, cada uno como **decisión** (con opciones y recomendación) o **arreglo** (con el cambio concreto), y una recomendación | Nada todavía |
 | **3. Aplicar la revisión** | *"Aplica la revisión de <trabajo>"* | La spec corregida y las decisiones anotadas en la revisión | Las decisiones, una a una. Los arreglos llegan en bloque: se aplican todos salvo los que excluyas ("todos menos el 4"). Luego, si afecta a otras specs en borrador |
 | **4. Aprobar** | Tú, a mano: `status: approved` en el frontmatter | — | Que la spec está lista. **Es la puerta principal** |
 | **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en `draft`, con la tabla de principios | Solo las decisiones técnicas que son tuyas; lo que la spec ya decide no se vuelve a preguntar. Los principios que se incumplen se justifican o llevan un ADR |
 | **6. Revisar y aprobar el plan** | Como los pasos 2–4 (se genera `review-plan.md`) | — | Aprobar el plan |
-| **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | `tasks.md`: tareas pequeñas con los ficheros que tocan y cómo se verifican | Que el desglose es razonable |
+| **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | `tasks.md`, con el mismo formato que en el nivel B (`status` e `issue` en el frontmatter): tareas pequeñas con los ficheros que tocan y cómo se verifican | Que el desglose es razonable |
 | **8. Implementar** | *"Implementa <trabajo>"* (agente `implement`, sesión limpia) | Código y tests, `[x]` en cada tarea verificada y el comando de verificación en verde | Revisar el diff. Si el agente para por un hueco, resolverlo, normalmente corrigiendo la spec |
 | **9. Revisar el código y PR** | *"¿Está lista para push?"* (`review-prepush`), y en la PR `review-pr` | Informe con hallazgos verificados y la cobertura de la spec: criterios con test, nada fuera de alcance, tareas `[x]` hechas | Corregir lo Critical y Required; hacer merge. Ver la [guía de code review](../review/README.md) |
 
@@ -118,22 +118,22 @@ Cada ronda de preguntas termina con la lista de supuestos. Si estás de acuerdo 
 
 ## 4. Estado y aprobación
 
-No hay backlog central ni máquina de estados. Cada trabajo es un directorio, y su estado se deduce de los ficheros:
+No hay backlog central ni máquina de estados. Cada cambio es una carpeta en `docs/changes/`, la misma para todos los niveles, y su estado se deduce de los ficheros:
 
 ```
-docs/specs/
-├── 20261016-feat-alertas-retraso/
-│   ├── spec.md            status: approved
+docs/changes/
+├── 42-alertas-retraso/      rama feat/42-alertas-retraso
+│   ├── tasks.md             status: open, issue: 42; 5/8 tareas [x]
+│   ├── spec.md              status: approved
 │   ├── review-spec.md
-│   ├── plan.md            status: approved
-│   ├── review-plan.md
-│   └── tasks.md           5/8 tareas [x]
-└── 20261020-fix-zona-horaria/
-    ├── spec.md            status: draft
-    └── tasks.md
+│   ├── plan.md              status: approved
+│   └── review-plan.md
+└── zona-horaria/            rama fix/zona-horaria (nivel B: solo tasks.md)
+    └── tasks.md             status: open
 ```
 
-- **Nombre del directorio:** `YYYYMMDD-tipo-nombre`. La fecha es la de creación (da orden y evita colisiones entre ramas). El tipo va como en Conventional Commits: `feat`, `fix`, `refactor`, `docs`…
+- **Nombre de la carpeta:** el último tramo del nombre de la rama (`feat/42-alertas-retraso` → `42-alertas-retraso`). Una rama, un cambio: `task-done` y la review encuentran la carpeta por la rama. El tipo de la rama va como en Conventional Commits (`feat`, `fix`, `refactor`, `docs`…) y, si el cambio parte de un issue, su número va delante.
+- **Subir de nivel es añadir ficheros:** un cambio que empezó en el nivel B con `idea-to-change` ya tiene `tasks.md`; el SDD añade `spec.md` y `plan.md` a la misma carpeta.
 - **`status`** en el frontmatter de `spec.md` y `plan.md`:
 
   | Valor | Significa |
@@ -145,22 +145,22 @@ docs/specs/
 - **Solo una persona pone `approved`.** Ninguna skill ni agente lo hace. Las revisiones recomiendan; no aprueban.
 - **Las puertas preguntan.** Si pides planificar una spec en borrador, o implementar sin plan aprobado, la skill para, te avisa y te pregunta si sigues. Puedes seguir, pero queda anotado y `sdd-next` lo señalará.
 - **Si cambia algo aprobado,** vuelve a `draft`. `sdd-next` avisa cuando la spec es más reciente que el plan, porque el plan puede estar desfasado.
-- **El progreso de la implementación** son las casillas de `tasks.md`. Solo se marcan las tareas verificadas.
+- **El progreso de la implementación** son las casillas de `tasks.md`. Solo se marcan las tareas verificadas, y al marcar la última `task-done` pone `status: done` en su frontmatter. La carpeta se puede borrar cuando se quiera: git la guarda.
 
 En equipo, una opción más robusta es que la spec vaya en **su propia PR**: el cambio a `status: approved` lo hace quien la aprueba, y el merge deja constancia de quién y cuándo.
 
 ### ¿Y la gestión del trabajo?
 
-Prioridad, responsable, sprint y "hecho" **no son cosa de SDD**. Viven en tu tracker (Linear, GitHub Issues…). Para enlazarlos, pon el ID en el frontmatter de la spec:
+Prioridad, responsable y sprint **no son cosa de SDD**. Viven en tu tracker (Linear, GitHub Issues…). Para enlazarlos, pon el número del issue en el frontmatter de `tasks.md` (y de la spec, si quieres), y cierra el issue desde la PR con `Closes #<n>`:
 
 ```yaml
 ---
-status: approved
-issue: TRIBBU-123
+status: open
+issue: 42
 ---
 ```
 
-Así cada herramienta hace lo suyo: el tracker gestiona el trabajo y la spec define qué se construye. Ninguna skill de SDD lee ni escribe en el tracker.
+Así cada herramienta hace lo suyo: el tracker gestiona el trabajo y la carpeta define qué se construye. Un issue puede ser el punto de partida, pero su texto es entrada no fiable (lo puede escribir cualquiera): el agente lo lee una vez como datos, avisa si el autor no es del proyecto, y la persona aprueba la spec o `tasks.md` antes del commit. Después ninguna skill ni agente vuelve a leerlo.
 
 ---
 
@@ -208,7 +208,7 @@ Qué va en cada sección y ejemplos: [secciones-de-la-spec.md](secciones-de-la-s
    >
    > Supuestos: 1. El umbral de 10 minutos es fijo, no configurable por el usuario.
 
-   Contestas "ok". El resultado es `docs/specs/20261016-feat-alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
+   Contestas "ok". El resultado es la rama `feat/alertas-retraso` con `docs/changes/alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
 2. *"Revisa la spec"*. `review-spec.md` recomienda "Devolver" por un bloqueante: no dice qué pasa si el retraso baja y vuelve a subir, así que puede haber avisos duplicados. Importante: falta la sección Seguridad, y el aviso incluye datos del usuario.
 3. *"Aplica la revisión"*. El bloqueante es una decisión y eliges la opción B: un aviso por tren y trayecto, con una ventana de 15 minutos. La sección Seguridad que faltaba es un arreglo: llega en la lista de arreglos junto a dos menores, y contestas "ok". La spec queda corregida.
 4. Cambias tú `status: approved`.
@@ -223,7 +223,7 @@ Qué va en cada sección y ejemplos: [secciones-de-la-spec.md](secciones-de-la-s
 
 El kit `aitormf/sdd` usaba `.sdd/`, un `backlog.md` con 13 estados, un agente orquestador y una constitución. Para migrar un proyecto:
 
-1. Mueve cada `.sdd/<trabajo>/` a `docs/specs/<trabajo>/`.
+1. Mueve cada `.sdd/<trabajo>/` que siga abierto a `docs/changes/<rama>/`, con el nombre de la rama donde se va a implementar (los terminados no hace falta moverlos: git los guarda).
 2. Añade el frontmatter a cada `spec.md` y `plan.md`, según el estado que tuviera en `backlog.md`:
 
    | Estado en `backlog.md` | `spec.md` | `plan.md` |

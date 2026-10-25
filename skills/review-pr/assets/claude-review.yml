@@ -14,6 +14,10 @@
 # Security: the review runs the check commands declared in the PR's own AGENTS.md with the
 # Anthropic secret in the environment. That is why fork PRs are skipped and why this uses
 # `pull_request` (never `pull_request_target`). Only collaborators with push access trigger it.
+# The review job reads only the diff and committed files: no GitHub token, no `gh` (issues, PR
+# comments and the PR body can be written by anyone else). It reviews the head branch against the
+# base branch with git, so the PR description is not checked here; the commit messages stand in for it.
+# The task comes from the branch's docs/changes/<branch>/ folder, committed like the code.
 
 name: claude-review
 
@@ -32,13 +36,22 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      pull-requests: read
-      issues: read                                       # gh issue view: the task list of the branch's issue
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}   # PR head, not the merge commit
           fetch-depth: 0                                   # base branch needed for the diff
+          persist-credentials: false                       # no token left in .git/config for the agent
+
+      # A local branch with the head's name (the change folder is docs/changes/<its last segment>/)
+      # and origin/HEAD on the PR's base (the base task-done --audit compares against).
+      - name: Name the head and the base
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git switch -q -C "$HEAD_REF"
+          git remote set-head origin "$BASE_REF"
 
       # ---- Edit me: whatever your AGENTS.md verification commands need (runtimes, deps). ----
       - name: Prepare project
@@ -61,15 +74,15 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          GH_TOKEN: ${{ github.token }}   # read-only in this job
-          PR: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           if [ -f .claude/skills/review-pr/SKILL.md ]; then cmd="/review-pr"; else cmd="/harness:review-pr"; fi
           set +e
-          claude -p "$cmd $PR" \
+          claude -p "$cmd $HEAD_REF origin/$BASE_REF" \
             --output-format text \
             --allowedTools "Read,Grep,Glob,Agent,Bash" \
-            --disallowedTools "Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(gh pr review:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh api:*)" \
+            --disallowedTools "Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(gh:*)" \
             </dev/null > report.md 2> claude-stderr.log
           echo "exit=$?" > status.txt
           exit 0

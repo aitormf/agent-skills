@@ -7,7 +7,7 @@ description: Turns an approved spec into a minimal technical plan (architecture,
 
 Turn a spec into a technical plan that can be split into tasks. The minimum the spec requires, nothing more.
 
-- Each work item lives in `docs/specs/<YYYYMMDD>-<type>-<name>/`.
+- Each change lives in `docs/changes/<branch>/`, named after the last segment of the branch name (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/`), next to its `tasks.md`.
 
 ## Before you start
 

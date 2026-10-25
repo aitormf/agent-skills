@@ -8,7 +8,7 @@ Borra las secciones que no apliquen; no dejes casillas marcadas sin haberlas com
 
 <!-- 2-5 frases. El "por qué" importa más que el "qué": el diff ya muestra el qué. -->
 
-Relacionado con: #<issue> · Spec: `docs/specs/<feature>.md` · Decisión: `docs/decisions/<NNNN>-<titulo>.md`
+Closes #<issue> · Cambio: `docs/changes/<rama>/` · Decisión: `docs/decisions/<NNNN>-<titulo>.md`
 
 ## Tipo de cambio
 

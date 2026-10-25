@@ -9,7 +9,7 @@ Este material viene de **review-kit** (aitormf), integrado en `aitormf/agent-ski
 - Los comandos `/review-prepush` y `/review-pr` son ahora skills (`skills/review-prepush/`, `skills/review-pr/`), para que funcionen en Claude Code, Codex, OpenCode y pi. Si la herramienta no puede lanzar subagentes, la skill ejecuta los roles en la sesión principal.
 - Se elimina el `/review` de upstream: es la skill `code-review-and-quality`, invocable directamente.
 - La configuración del repo se lee de `AGENTS.md` (antes `CLAUDE.md`).
-- `review-context` §4: si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el código contra ella.
+- `review-context` §4: si la rama tiene su carpeta en `docs/changes/<rama>/` (tareas y, en SDD, spec y plan), la review comprueba el código contra ella.
 - Namespace del plugin: `harness:` (antes `review-kit:`). Los agentes se generan para Codex y OpenCode con `scripts/build-agents.py`.
 - `install.sh` desaparece: se instala como el resto del repositorio (plugin o `npx skills`). El hook y la Action son assets de sus skills.
 

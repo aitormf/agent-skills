@@ -1,8 +1,15 @@
+---
+status: open      # open | done. task-done sets done when it ticks the last task.
+issue: null       # the GitHub issue this change started from (a number), or null. The PR closes it: Closes #<n>.
+---
 <!--
-TEMPLATE for the body of the issue (idea-to-issue). Write it in the project language, headings included
-(Spanish: Problema, Plazo máximo, Fuera de alcance, Mapa de ejemplos, Supuestos, Tareas). Delete this comment.
-The note is about 10 lines. Sections still empty are left with "—" until their step.
+TEMPLATE for docs/changes/<branch>/tasks.md (idea-to-change; plan-to-tasks uses the same format).
+Write it in the project language, headings included (Spanish: Problema, Plazo máximo, Fuera de alcance,
+Mapa de ejemplos, Supuestos, Tareas). Delete this comment. The note is about 10 lines.
+Sections still empty are left with "—" until their step.
 -->
+# <change title>
+
 **Problem:** <what happens today and who cares>
 
 **Appetite:** <how much it is worth investing; if it does not fit, split the idea>

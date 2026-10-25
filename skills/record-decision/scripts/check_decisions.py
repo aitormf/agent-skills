@@ -7,6 +7,8 @@ Usage:
 
 Each decision is DIR/NNNN-title.md and starts with a frontmatter block. The index is
 DIR/README.md, with one table row per decision: | [D-NNNN](NNNN-title.md) | title | type | status | affects |
+Where docs/adr/ is kept next to it, the index may also have one row per ADR, linking to
+../adr/NNNN-title.md with D-NNNN of the ADR's number; ADRs are not checked, and --next skips their numbers.
 """
 
 import re
@@ -93,14 +95,24 @@ def check(root: Path) -> list[str]:
     if not index.exists():
         return errors + ["README.md: the index is missing"]
     rows: dict[str, list[str]] = {}
+    adrs: set[str] = set()
     for line in index.read_text(encoding="utf-8").splitlines():
         match = ROW_RE.match(line)
         if not match:
             continue
         did, link, rest = match.groups()
         cells = [c.strip() for c in rest.split("|")]
-        if did in rows:
+        if did in rows or did in adrs:
             errors.append(f"README.md: {did} appears twice")
+        if link.startswith("../adr/") and did not in files:
+            # An ADR kept in docs/adr/ (not migrated): it only has to exist and carry the row's number.
+            adr = FILE_RE.match(link.removeprefix("../adr/"))
+            if not (root / link).is_file():
+                errors.append(f"README.md: {did} links to {link}, which does not exist")
+            elif not adr or f"D-{adr.group(1)}" != did:
+                errors.append(f"README.md: {did} links to {link}, an ADR with another number")
+            adrs.add(did)
+            continue
         rows[did] = cells
         if did in files and link != files[did]:
             errors.append(f"README.md: {did} links to {link}, the file is {files[did]}")
@@ -120,7 +132,9 @@ def check(root: Path) -> list[str]:
 
 
 def next_id(root: Path) -> str:
-    numbers = [int(m.group(1)) for p in root.glob("*.md") if (m := FILE_RE.match(p.name))]
+    # ADRs kept in docs/adr/ share the numbering: a new decision never reuses their numbers.
+    paths = [*root.glob("*.md"), *(root.parent / "adr").glob("*.md")]
+    numbers = [int(m.group(1)) for p in paths if (m := FILE_RE.match(p.name))]
     return f"D-{max(numbers, default=0) + 1:04d}"
 
 

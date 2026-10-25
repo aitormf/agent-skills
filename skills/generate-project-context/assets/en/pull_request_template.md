@@ -8,7 +8,7 @@ Delete the sections that don't apply; don't leave boxes ticked that you haven't 
 
 <!-- 2-5 sentences. The "why" matters more than the "what": the diff already shows the what. -->
 
-Related to: #<issue> · Spec: `docs/specs/<feature>.md` · Decision: `docs/decisions/<NNNN>-<title>.md`
+Closes #<issue> · Change: `docs/changes/<branch>/` · Decision: `docs/decisions/<NNNN>-<title>.md`
 
 ## Type of change
 

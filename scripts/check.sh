@@ -52,21 +52,23 @@ python3 "$td" "$tmp/tasks.md" T9 -- true >/dev/null 2>&1 && { echo "task-done ac
 grep -q -- '- \[x\] T1\.' "$tmp/tasks.md" && grep -q -- '- \[ \] T2\.' "$tmp/tasks.md" && grep -q -- '- \[x\] T3\.' "$tmp/tasks.md" \
   || { echo "task-done no dejó tasks.md como se esperaba" >&2; exit 1; }
 
-echo "▶ task-done: red commit protection"
-r="$tmp/repo"; mkdir -p "$r/tests" "$r/src"; git -C "$r" init -q
+echo "▶ task-done: red commit protection (commits of the branch since the base branch)"
+r="$tmp/repo"; mkdir -p "$r/tests" "$r/src"; git -C "$r" init -q -b main
 g() { git -C "$r" -c user.name=t -c user.email=t@t "$@"; }
 done_() { rc=0; python3 "$td" "$r/tasks.md" "$1" -- true >"$tmp/out" 2>&1 || rc=$?; return $rc; }
 marked() { grep -q -- "- \[x\] $1\." "$r/tasks.md"; }
 fail() { echo "task-done: $1" >&2; cat "$tmp/out" >&2; exit 1; }
-printf -- '- [ ] T1. a — tests: E1, E2 — verification: true\n- [ ] T2. b — tests: E3 — verification: true\n- [ ] T3. c — tests: E4 — verification: true\n- [ ] T4. d — tests: E5 — verification: true\n' > "$r/tasks.md"
+printf 'def test_E1_old(): assert f() == 0\n' > "$r/tests/test_old.py"; g add -A; g commit -qm "test(T1): E1 red, an older change"
+g checkout -qb feat/1-a
+printf -- '- [ ] T1. a — tests: E1, E2 — verification: true\n- [ ] T2. b — tests: E3 — verification: true\n- [ ] T3. c — tests: E4 — verification: true\n- [ ] T4. d — tests: E5 — verification: true\n- [ ] T5. e — tests: E6 — verification: true\n- [ ] T6. f — tests: E7 — verification: true\n- [x] T7. g — tests: E8 — verification: true\n' > "$r/tasks.md"
 g add -A; g commit -qm "docs: tasks"
-done_ T1 || true; [ $rc = 3 ] && ! marked T1 || fail "marked a task with examples and no red commit"
+done_ T1 || true; [ $rc = 3 ] && ! marked T1 && grep -q "since main" "$tmp/out" || fail "counted a red commit from the base branch"
 printf 'def test_E1_a(): assert f() == 1\ndef test_E2_b(): assert f() == 2\n' > "$r/tests/test_a.py"
 g add -A; g commit -qm "test(T1): E1 E2 red"
 echo 'def f(): return 1' > "$r/src/a.py"; g add -A; g commit -qm "feat(T1): a"
 done_ T1 && marked T1 || fail "rejected a protected red commit"
 printf 'def test_E3_c(): assert f() == 3\n' >> "$r/tests/test_a.py"; g add -A; g commit -qm "test(T2): E3 red"
-done_ T1 || fail "a red commit of another task broke T1's protection"
+done_ T1 || fail "a red commit of another task that only adds tests broke T1's protection"
 sed -i 's/== 3/== 1/' "$r/tests/test_a.py"
 done_ T2 || true; [ $rc = 3 ] && ! marked T2 || fail "accepted an uncommitted change to a red test"
 g commit -qam "feat(T2): c"
@@ -76,6 +78,9 @@ done_ T3 || true; [ $rc = 3 ] && grep -q "E4 has no test" "$tmp/out" || fail "ac
 printf 'def test_E5_e(): pass\n' > "$r/tests/test_e.py"; g add -A; g commit -qm "test(T4): E5 red"
 printf 'def test_E5_e(): pass\ndef test_e_edge(): pass\n' > "$r/tests/test_e.py"; g commit -qam "feat(T4): e"
 done_ T4 && marked T4 || fail "rejected new tests added after the red commit"
+printf 'def test_E6_f(): assert f() == 6\n' > "$r/tests/test_f.py"; g add -A; g commit -qm "test(T5): E6 red"
+printf 'def test_E6_f(): assert True\ndef test_E7_g(): assert f() == 7\n' > "$r/tests/test_f.py"; g commit -qam "test(T6): E7 red"
+done_ T5 || true; [ $rc = 3 ] && ! marked T5 && grep -q "test(T6)" "$tmp/out" || fail "accepted a red test changed by the red commit of another task"
 
 echo "▶ task-done --audit (read-only, for the review)"
 audit() { rc=0; python3 "$td" --audit "$@" >"$tmp/out" 2>&1 || rc=$?; return $rc; }
@@ -83,57 +88,50 @@ cp "$r/tasks.md" "$tmp/before.md"
 audit "$r/tasks.md" || true; [ $rc = 3 ] || fail "--audit did not fail on broken red tests"
 grep -q "^T4 \[x\]: ok" "$tmp/out" || fail "--audit did not accept a protected task"
 grep -q "^T2 \[ \]: PROBLEM: commit .* removes or changes" "$tmp/out" || fail "--audit missed a red test changed later"
+grep -q "^T5 \[ \]: PROBLEM: commit .* 'test(T6)" "$tmp/out" || fail "--audit missed a red test changed by another task's red commit"
 grep -q "^T3 \[ \]: PROBLEM: E4 has no test" "$tmp/out" || fail "--audit missed an example without a test"
+grep -q "^T7 \[x\]: PROBLEM: no red commit" "$tmp/out" || fail "--audit missed a ticked task without a red commit"
 cmp -s "$r/tasks.md" "$tmp/before.md" || fail "--audit edited tasks.md"
 printf 'def test_E5_e(): assert False\n' > "$r/tests/test_e.py"
 audit "$r/tasks.md" || true; grep -q "^T4 \[x\]: ok" "$tmp/out" || fail "--audit counted uncommitted changes"
 git -C "$r" checkout -q -- tests/test_e.py
+printf '  E9: an example of the map in no task\n' >> "$r/tasks.md"
+audit "$r/tasks.md" || true; grep -q "^E9: PROBLEM" "$tmp/out" || fail "--audit missed a map example in no task"
 
-echo "▶ task-done: issue checklist (gh stubbed, no network)"
-mkdir -p "$tmp/bin" "$tmp/nogh"
-cat > "$tmp/bin/gh" <<'EOF'
-#!/usr/bin/env bash
-# gh stub: `issue view 42 --json body` and `issue edit 42 --body-file -` on the file $GH_BODY.
-[ "$1 $3" = "issue 42" ] || { echo "issue $3 not found" >&2; exit 1; }
-case "$2" in
-  view) python3 -c 'import json, sys; print(json.dumps({"body": open(sys.argv[1], newline="").read()}))' "$GH_BODY" ;;
-  edit) [ -z "${GH_EDIT_FAIL:-}" ] || exit 1; cat > "$GH_BODY" ;;
-  *) exit 1 ;;
-esac
-EOF
-chmod +x "$tmp/bin/gh"
-ln -s "$(command -v git)" "$tmp/nogh/git"
-export GH_BODY="$tmp/body.md"
-tda="$PWD/$td"; i="$tmp/issue"; mkdir -p "$i/tests"; git -C "$i" init -q -b main
-gi() { git -C "$i" -c user.name=t -c user.email=t@t "$@"; }
-tdi() { rc=0; (cd "$i" && PATH="$tmp/bin:$PATH" python3 "$tda" --issue "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
-imarked() { grep -q -- "- \[x\] $1\." "$GH_BODY"; }
-printf -- '## Tareas\r\n- [ ] T1. a — tests: E1 — verificación: true — level: A\r\n- [ ] T2. b — verificación: false\r\n- [ ] T3. c — verificación: true\r\n- [ ] W1. d — verificación: `true`\r\n' > "$GH_BODY"
-printf 'def test_E1_old(): pass\n' > "$i/tests/test_old.py"; gi add -A; gi commit -qm "test(T1): E1 red, another work item"
-gi checkout -qb 42-cancel
-tdi T1 -- true || true; [ $rc = 3 ] && ! imarked T1 || fail "counted a red commit from the base branch for an issue task"
-printf 'def test_E1_a(): pass\n' > "$i/tests/test_a.py"; gi add -A; gi commit -qm "test(T1): E1 red"
-echo 'x = 1' > "$i/a.py"; gi add -A; gi commit -qm "feat(T1): a"
-tdi T1 -- true && imarked T1 || fail "did not tick T1 in the issue of the branch"
-grep -q warning "$tmp/out" && fail "read a later field as part of the declared verification"
-[ "$(grep -c $'\r$' "$GH_BODY")" = 5 ] || fail "changed the line endings of the issue body"
-tdi 42 T2 -- false && fail "ticked a failing task in the issue"; imarked T2 && fail "ticked a failing task in the issue"
-GH_EDIT_FAIL=1 tdi 42 T3 -- true || true; [ $rc = 4 ] && ! imarked T3 || fail "did not report an issue it could not edit"
-tdi '#42' W1 -- true && imarked W1 || fail "did not tick W1 with an explicit issue"
-grep -q warning "$tmp/out" && fail "warned with the declared 'verificación:' command"
-tdi 7 W1 -- true || true; [ $rc = 2 ] || fail "accepted an issue gh cannot read"
-gi checkout -qb feat/no-number
-tdi W1 -- true || true; [ $rc = 2 ] || fail "guessed an issue for a branch without a number"
-rc=0; (cd "$i" && PATH="$tmp/nogh" "$(command -v python3)" "$tda" --issue 42 W1 -- true) >"$tmp/out" 2>&1 || rc=$?
-[ $rc = 2 ] && grep -q "gh is not installed" "$tmp/out" || fail "did not explain that gh is missing"
-gi checkout -q 42-cancel
-ia() { rc=0; (cd "$i" && PATH="$tmp/bin:$PATH" python3 "$tda" --audit --issue "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
-cp "$GH_BODY" "$tmp/before.md"
-ia || fail "--audit --issue rejected the issue of the branch"
-grep -q "^T1 \[x\]: ok" "$tmp/out" && cmp -s "$GH_BODY" "$tmp/before.md" || fail "--audit --issue did not check T1 read-only"
-printf '  E2: late → no refund\r\n- [ ] T4. e — tests: E3 — verificación: true\r\n' >> "$GH_BODY"
-ia 42 || true; [ $rc = 3 ] && grep -q "^E2: PROBLEM" "$tmp/out" || fail "--audit missed a map example in no task"
-grep -q "^T4 \[ \]: pending" "$tmp/out" || fail "--audit did not report a task without a red commit as pending"
+echo "▶ task-done: the change of the branch, docs/changes/<branch>/tasks.md"
+tda="$PWD/$td"; c="$tmp/change"; mkdir -p "$c/tests" "$c/src"; git -C "$c" init -q -b main
+gc() { git -C "$c" -c user.name=t -c user.email=t@t "$@"; }
+tdc() { rc=0; (cd "$c/src" && python3 "$tda" "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+printf 'def test_E1_old(): pass\n' > "$c/tests/test_old.py"; gc add -A; gc commit -qm "test(T1): E1 red, an older change"
+gc checkout -qb feat/7-cancel; mkdir -p "$c/docs/changes/7-cancel"; ct="$c/docs/changes/7-cancel/tasks.md"
+printf -- '---\nstatus: open\nissue: 7\n---\n\n## Tasks\n\n- [ ] T1. a — tests: E1 — verification: true\n- [ ] W1. Full verification — verification: true\n' > "$ct"
+tdc T1 -- true || true; [ $rc = 3 ] || fail "with tasks.md not committed, counted a red commit from the base branch"
+printf 'def test_E1_a(): pass\n' > "$c/tests/test_a.py"; gc add tests; gc commit -qm "test(T1): E1 red"
+echo 'x = 1' > "$c/src/a.py"; gc add src; gc commit -qm "feat(T1): a"
+tdc T1 -- true && grep -q -- '- \[x\] T1\.' "$ct" || fail "did not tick T1 in the change of the branch, with tasks.md not committed"
+grep -q '^status: open$' "$ct" || fail "set status: done with tasks left"
+tdc W1 -- true && grep -q '^status: done$' "$ct" && grep -q '^issue: 7$' "$ct" || fail "did not set status: done when the last task was ticked"
+tdc --audit && grep -q "^T1 \[x\]: ok" "$tmp/out" || fail "--audit did not check the change of the branch"
+gc checkout -qb feat/8-other
+tdc W1 -- true || true; [ $rc = 2 ] && grep -q "docs/changes/8-other/tasks.md" "$tmp/out" || fail "did not exit 2 naming the path searched for a branch without a change folder"
+tdc --audit || true; [ $rc = 2 ] || fail "--audit did not exit 2 for a branch without a change folder"
+n="$tmp/nobase"; mkdir -p "$n"; git -C "$n" init -q -b trunk
+git -C "$n" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "chore: start"
+printf -- '- [ ] T1. a — tests: E1 — verification: true\n' > "$n/tasks.md"
+rc=0; python3 "$td" "$n/tasks.md" T1 -- true >"$tmp/out" 2>&1 || rc=$?
+[ $rc = 3 ] && grep -q "PROBLEM: .*no base branch" "$tmp/out" || fail "did not exit 3 with a PROBLEM line without a base branch"
+audit "$n/tasks.md" || true; [ $rc = 3 ] && grep -q "^PROBLEM: .*no base branch" "$tmp/out" || fail "--audit did not exit 3 with a PROBLEM line without a base branch"
+
+echo "▶ review: gh fully denied in the pre-push hook and in the review job (D-0021)"
+mkdir -p "$tmp/bin"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$CLAUDE_ARGS"\necho "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"\n' > "$tmp/bin/claude"; chmod +x "$tmp/bin/claude"
+hook="$PWD/skills/review-prepush/assets/pre-push"
+(cd "$r" && echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x 0000000000000000000000000000000000000000" \
+  | CLAUDE_ARGS="$tmp/args" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
+grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "the pre-push hook does not deny Bash(gh:*)" >&2; exit 1; }
+wf=skills/review-pr/assets/claude-review.yml
+grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
+! grep -Eq '^ +(issues|pull-requests): read' "$wf" || { echo "the review job of claude-review.yml can read issues or PRs" >&2; exit 1; }
 
 echo "▶ record-decision"
 cd_=skills/record-decision/scripts/check_decisions.py
@@ -152,6 +150,26 @@ sed -i 's/| a | architecture | proposed/| a | architecture | superseded/' "$dd/R
 python3 "$cd_" "$dd" || { echo "check_decisions rejected a valid supersession" >&2; exit 1; }
 rm "$dd/0002-b.md"
 python3 "$cd_" "$dd" 2>/dev/null && { echo "check_decisions accepted an index row without a file" >&2; exit 1; }
+
+ok_dir() {  # a fresh decisions dir with one valid decision, D-0001
+  rm -rf "$tmp/proj"; mkdir -p "$tmp/proj/docs/decisions" "$tmp/proj/docs/adr"; pd="$tmp/proj/docs/decisions"
+  cp skills/record-decision/assets/en/README.md "$pd/"
+  sed '1,/^-->$/d' skills/record-decision/assets/en/decision.md | sed 's/D-NNNN/D-0001/; s/YYYY-MM-DD/2026-01-01/' > "$pd/0001-a.md"
+  echo '| [D-0001](0001-a.md) | a | architecture | proposed | src/ |' >> "$pd/README.md"
+}
+rejects() { python3 "$cd_" "$pd" 2>"$tmp/out" && { echo "check_decisions accepted $1" >&2; exit 1; }; grep -q "$2" "$tmp/out" || { echo "check_decisions did not say why it rejected $1" >&2; cat "$tmp/out" >&2; exit 1; }; }
+ok_dir; cp "$pd/0001-a.md" "$pd/0003-c.md"; echo '| [D-0003](0003-c.md) | c | architecture | proposed | src/ |' >> "$pd/README.md"
+rejects "an id that does not match the file name" "id is D-0001, the file name says D-0003"
+ok_dir; cp "$pd/0001-a.md" "$pd/0001-b.md"
+rejects "a duplicated number" "number 0001 is already used"
+ok_dir; sed -i 's/^status: proposed/status: accepted/' "$pd/0001-a.md"
+rejects "an index row whose status differs from the file" "D-0001 says architecture/proposed"
+ok_dir; printf '# 5. Use uv\n' > "$tmp/proj/docs/adr/0005-use-uv.md"  # D-0010: ADRs kept in docs/adr/, linked from the index
+echo '| [D-0005](../adr/0005-use-uv.md) | Use uv | architecture | accepted | . |' >> "$pd/README.md"
+python3 "$cd_" "$pd" || { echo "check_decisions rejected an index row linking an ADR in docs/adr/" >&2; exit 1; }
+[ "$(python3 "$cd_" "$pd" --next)" = D-0006 ] || { echo "check_decisions --next reused the number of an ADR" >&2; exit 1; }
+echo '| [D-0007](../adr/0007-gone.md) | Gone | architecture | accepted | . |' >> "$pd/README.md"
+rejects "an index row linking an ADR that does not exist" "0007-gone.md, which does not exist"
 
 echo "▶ docs/decisions of this repo"
 python3 "$cd_" docs/decisions
