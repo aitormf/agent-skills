@@ -90,6 +90,20 @@ def check(root: Path) -> list[str]:
                 errors.append(f"{name}: supersedes {old}, which does not exist")
             elif decisions[old]["superseded_by"] != did:
                 errors.append(f"{name}: supersedes {old}, but {old} does not say superseded_by: {did}")
+        if did in (new, old):
+            errors.append(f"{name}: {did} supersedes itself")
+    # A supersession chain must end in a decision that is not superseded.
+    cycles: set[tuple[str, ...]] = set()
+    for did in decisions:
+        chain, current = [did], decisions[did]["superseded_by"]
+        while not null(current) and current in decisions and current not in chain:
+            chain.append(current)
+            current = decisions[current]["superseded_by"]
+        loop = chain[chain.index(current) :] if current in chain else []
+        if len(loop) > 1:  # a decision that supersedes itself is reported above
+            cycles.add(tuple(sorted(loop)))
+    for cycle in sorted(cycles):
+        errors.append(f"{files[cycle[0]]}: supersession cycle {' -> '.join(cycle)}, no decision of it is in force")
 
     index = root / "README.md"
     if not index.exists():

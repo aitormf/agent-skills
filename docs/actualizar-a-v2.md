@@ -25,7 +25,7 @@ Estos ficheros son copias; el plugin no los toca.
   cp <skill review-prepush>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
   ```
 
-  La review no usa `gh`: lee las tareas de `docs/changes/<rama>/`, con commit, y el hook bloquea `gh` entero (`Bash(gh:*)`), como en la v1.
+  La review no usa `gh`: lee las tareas de `docs/changes/<rama>/`, con commit, y el hook ejecuta la review sin credenciales de GitHub (sin `GH_TOKEN`, `GITHUB_TOKEN` ni `GH_ENTERPRISE_TOKEN`, y con un `GH_CONFIG_DIR` vacío). Sigue bloqueando `Bash(gh:*)`, como en la v1, pero eso es defensa en profundidad: `/usr/bin/gh` o `bash -c 'gh …'` se lo saltan.
 - [ ] **Workflow `claude-review.yml`** (si lo usas): vuelve a copiar `skills/review-pr/assets/claude-review.yml` a `.github/workflows/` y repite tus cambios locales (el paso «Prepare project», sobre todo). El job de review ya no necesita token de GitHub: solo `contents: read`, sin `pull-requests: read` ni `issues: read`, y con `gh` bloqueado. Revisa la rama de la PR contra su base con git y lee las tareas de `docs/changes/<rama>/`; la descripción de la PR ya no se revisa en CI.
 
 ## 3. El contexto del proyecto

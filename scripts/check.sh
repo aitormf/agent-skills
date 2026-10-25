@@ -90,6 +90,33 @@ done_ T9 || true; [ $rc = 3 ] && grep -q "removes or changes" "$tmp/out" || fail
 printf 'def test_E12_j(): pass\n' >> "$r/tests/test_old.py"; g add tests; g commit -qm "test(T10): E12 red"
 sed -i 's/== 0/== 10/' "$r/tests/test_old.py"; g commit -qm "feat(T10): j" -- tests
 done_ T10 && marked T10 || fail "rejected a change to a line the red commit did not add, in a file it touched"
+printf -- '- [ ] T11. k — tests: E13 — verification: true\n- [ ] T12. l — tests: E14 — verification: true\n- [ ] T13. m — tests: E15 — verification: true\n- [ ] T14. n — tests: E16 — verification: true\n- [ ] T15. o — tests: E17 — verification: true\n- [ ] T16. p — tests: E18 — verification: true\n' >> "$r/tasks.md"
+printf "it('old', () => {\n  expect(g()).toBe(0);\n});\n" > "$r/tests/k.test.js"; g add tests; g commit -qm "test: an older test"
+printf "it('E13 k', () => {\n  expect(k()).toBe(13);\n});\n" >> "$r/tests/k.test.js"; g add tests; g commit -qm "test(T11): E13 red"
+printf "it('E13 k', () => {\n  expect(k()).toBe(13);\n});\n" > "$r/tests/k.test.js"; g commit -qm "feat(T11): drop the old test" -- tests
+done_ T11 && marked T11 || fail "took a removed line with the same text as a red one for the red one"
+printf 'def test_E14_l(): assert f() == 14\n' > "$r/tests/test_canción.py"; g add tests; g commit -qm "test(T12): E14 red"
+printf 'def test_E14_l(): assert True\n' > "$r/tests/test_canción.py"; g commit -qm "feat(T12): l" -- tests
+done_ T12 || true; [ $rc = 3 ] && grep -q "test_canción.py" "$tmp/out" || fail "accepted a changed red test whose path is not ASCII"
+g rev-parse HEAD > "$tmp/ignore-revs"; g config blame.ignoreRevsFile "$tmp/ignore-revs"  # the change hidden from git blame
+done_ T12 || true; g config --unset blame.ignoreRevsFile; [ $rc = 3 ] || fail "a blame.ignoreRevsFile hid a change to a red test"
+printf 'X = 0\n' > "$r/tests/test_m.py"; g add tests; g commit -qm "test: m fixture"
+printf 'def test_E15_m(): assert f() == 15\n' >> "$r/tests/test_m.py"; g add tests; g commit -qm "test(T13): E15 red"
+g checkout -qb side; sed -i 's/X = 0/X = 1/' "$r/tests/test_m.py"; g commit -qm "feat(T13): m on a side branch" -- tests
+g checkout -q feat/1-a; sed -i 's/X = 0/X = 2/' "$r/tests/test_m.py"; g commit -qm "feat(T13): m" -- tests
+g merge -q side >/dev/null 2>&1 || true  # conflict on X; the resolution also weakens the red test (an evil merge)
+printf 'X = 3\ndef test_E15_m(): assert f() == 99\n' > "$r/tests/test_m.py"; g add tests; g commit -qm "merge side into feat/1-a"
+done_ T13 || true; [ $rc = 3 ] && grep -q "'merge side into feat/1-a' removes or changes" "$tmp/out" || fail "accepted a merge commit that changes a red test"
+printf 'def test_E16_n(): assert f() == 16\n' > "$r/tests/test_n.py"; g add tests; g commit -qm "test(T14): E16 red"
+g mv tests/test_n.py tests/test_n2.py; g commit -qm "refactor(T14): rename the test file"
+done_ T14 && marked T14 || fail "a rename of the whole red test file broke its protection"
+sed -i 's/== 16/== 0/' "$r/tests/test_n2.py"; g commit -qm "feat(T14): n" -- tests
+done_ T14 || true; [ $rc = 3 ] && grep -q "test_n2.py" "$tmp/out" || fail "lost the protection of a red test after its file was renamed"
+printf 'def test_XE17_o(): pass\n' > "$r/tests/test_o.py"; g add tests; g commit -qm "test(T15): E17 red"
+done_ T15 || true; [ $rc = 3 ] && grep -q "E17 has no test" "$tmp/out" || fail "took a test of XE17 for a test of E17"
+printf 'def test_E18_p(): pass\n\ndef test_E18_q(): pass\n' > "$r/tests/test_p.py"; g add tests; g commit -qm "test(T16): E18 red"
+printf 'def test_E18_p(): pass\ndef test_E18_q(): pass\n' > "$r/tests/test_p.py"; g commit -qm "style(T16): drop a blank line" -- tests
+done_ T16 && marked T16 || fail "a blank line the red commit added was protected"
 
 echo "▶ task-done --audit (read-only, for the review)"
 audit() { rc=0; python3 "$td" --audit "$@" >"$tmp/out" 2>&1 || rc=$?; return $rc; }
@@ -131,6 +158,10 @@ gc checkout -q feat/7-cancel; gc add docs; gc commit -qm "docs: 7-cancel done"; 
 gc checkout -qb fix/7-cancel  # same last segment as a change already finished in main
 tdc W1 -- true || true; [ $rc = 2 ] && grep -q "finished change" "$tmp/out" || fail "reused the folder of a finished change"
 tdc --audit || true; [ $rc = 2 ] && grep -q "finished change" "$tmp/out" || fail "--audit reused the folder of a finished change"
+gc checkout -q main; mkdir -p "$c/docs/changes/11-z"; zt="$c/docs/changes/11-z/tasks.md"
+printf -- '---\nstatus: open\n---\n\n- [ ] T1. a — verification: true\n\nstatus: done (only the frontmatter counts)\n' > "$zt"
+gc add docs; gc commit -qm "docs: 11-z, open"; gc checkout -qb feat/11-z
+tdc T1 -- true && grep -q -- '- \[x\] T1\.' "$zt" || fail "took 'status: done' outside the frontmatter for a finished change"
 n="$tmp/nobase"; mkdir -p "$n"; git -C "$n" init -q -b trunk
 git -C "$n" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "chore: start"
 printf -- '- [ ] T1. a — tests: E1 — verification: true\n' > "$n/tasks.md"
@@ -149,13 +180,23 @@ printf -- '- [x] T1. a — tests: E1 — verification: true\n' > "$w/tasks.md"; 
 gw remote set-head origin -d
 audit "$w/tasks.md" || true; grep -q "since origin/main" "$tmp/out" && grep -q "^T1 \[x\]: PROBLEM: no red commit" "$tmp/out" || fail "--audit took a stale local main over origin/main"
 
-echo "▶ review: gh fully denied in the pre-push hook and in the review job (D-0021)"
+echo "▶ review: no GitHub credentials in the pre-push hook nor in the review job; gh denied as defence in depth (D-0021, D-0027)"
 mkdir -p "$tmp/bin"
-printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$CLAUDE_ARGS"\necho "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"\n' > "$tmp/bin/claude"; chmod +x "$tmp/bin/claude"
+cat > "$tmp/bin/claude" <<'FAKE'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$CLAUDE_ARGS"
+{ echo "tokens=${GH_TOKEN-}${GITHUB_TOKEN-}${GH_ENTERPRISE_TOKEN-}${GITHUB_ENTERPRISE_TOKEN-}"; echo "$GH_CONFIG_DIR"; ls -A "$GH_CONFIG_DIR"; } > "$CLAUDE_ENV"
+echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"
+FAKE
+chmod +x "$tmp/bin/claude"
 hook="$PWD/skills/review-prepush/assets/pre-push"
 (cd "$r" && echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x 0000000000000000000000000000000000000000" \
-  | REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
+  | GH_TOKEN=t GITHUB_TOKEN=t GH_ENTERPRISE_TOKEN=t GITHUB_ENTERPRISE_TOKEN=t REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" CLAUDE_ENV="$tmp/env" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
 grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "the pre-push hook does not deny Bash(gh:*)" >&2; exit 1; }
+# The real control: claude runs with no token variables and an empty gh config directory, removed afterwards.
+gh_dir=$(sed -n 2p "$tmp/env")
+[ "$(sed -n 1p "$tmp/env")" = "tokens=" ] && [ -n "$gh_dir" ] && [ "$(wc -l < "$tmp/env")" -eq 2 ] && [ ! -e "$gh_dir" ] \
+  || { echo "the pre-push hook gives claude GitHub credentials (a token, or a gh config directory that is not empty and temporary)" >&2; cat "$tmp/env" >&2; exit 1; }
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
 ! grep -Eq '^ +(issues|pull-requests): read' "$wf" || { echo "the review job of claude-review.yml can read issues or PRs" >&2; exit 1; }
@@ -181,8 +222,6 @@ python3 "$cd_" "$dd" 2>/dev/null && { echo "check_decisions accepted a one-sided
 sed -i 's/^status: proposed/status: superseded/; s/^superseded_by: null/superseded_by: D-0002/' "$dd/0001-a.md"
 sed -i 's/| a | architecture | proposed/| a | architecture | superseded/' "$dd/README.md"
 python3 "$cd_" "$dd" || { echo "check_decisions rejected a valid supersession" >&2; exit 1; }
-rm "$dd/0002-b.md"
-python3 "$cd_" "$dd" 2>/dev/null && { echo "check_decisions accepted an index row without a file" >&2; exit 1; }
 
 ok_dir() {  # a fresh decisions dir with one valid decision, D-0001
   rm -rf "$tmp/proj"; mkdir -p "$tmp/proj/docs/decisions" "$tmp/proj/docs/adr"; pd="$tmp/proj/docs/decisions"
@@ -222,6 +261,35 @@ ok_dir; sed 's/D-0001/D-0002/; s/^supersedes: null/supersedes: D-0001/' "$pd/000
 echo '| [D-0002](0002-b.md) | b | architecture | proposed | src/ |' >> "$pd/README.md"
 sed -i 's/^superseded_by: null/superseded_by: D-0002/' "$pd/0001-a.md"
 rejects "a superseded_by with a live status" "superseded_by D-0002 but status is proposed"
+ok_dir; echo '| [D-0002](0002-b.md) | b | architecture | proposed | src/ |' >> "$pd/README.md"
+rejects "an index row without a file" "row D-0002 has no decision file"
+ok_dir; sed 's/D-0001/D-0002/' "$pd/0001-a.md" > "$pd/0002-b.md"
+echo '| [D-0002](0002-b.md) | b | architecture | proposed | src/ |' >> "$pd/README.md"
+sed -i 's/^status: proposed/status: superseded/; s/^superseded_by: null/superseded_by: D-0002/' "$pd/0001-a.md"
+sed -i 's/| a | architecture | proposed/| a | architecture | superseded/' "$pd/README.md"
+rejects "a one-sided superseded_by" "superseded_by D-0002, but D-0002 does not say supersedes: D-0001"
+ok_dir; mv "$pd/0001-a.md" "$pd/0001_A.md"
+rejects "a file name that is not NNNN-kebab-case" "0001_A.md: name must be NNNN-title-in-kebab-case.md"
+ok_dir; sed -i '1,/^---$/d' "$pd/0001-a.md"
+rejects "a decision without frontmatter" "0001-a.md: no frontmatter"
+ok_dir; sed -i '/^affects:/d' "$pd/0001-a.md"
+rejects "a decision without affects" "0001-a.md: missing affects"
+ok_dir; sed -i 's/^type: architecture/type: architectural/' "$pd/0001-a.md"
+rejects "a type outside the list" "type 'architectural' is not one of"
+ok_dir; sed -i 's/^status: proposed/status: acepted/' "$pd/0001-a.md"
+rejects "a status outside the list" "status 'acepted' is not one of"
+ok_dir; sed -i 's/^date: .*/date: 26-1-1/' "$pd/0001-a.md"
+rejects "a date that is not YYYY-MM-DD" "date '26-1-1' is not YYYY-MM-DD"
+ok_dir; sed -i 's/^| \[D-0001\].*/| [D-0001](0001-a.md) | a | architecture |/' "$pd/README.md"
+rejects "an index row with too few cells" "the row of D-0001 needs title, type, status and affects"
+ok_dir; sed -i 's/^status: proposed/status: superseded/; s/^supersedes: null/supersedes: D-0001/; s/^superseded_by: null/superseded_by: D-0001/' "$pd/0001-a.md"
+sed -i 's/| a | architecture | proposed/| a | architecture | superseded/' "$pd/README.md"
+rejects "a decision that supersedes itself" "D-0001 supersedes itself"
+ok_dir; sed -i 's/^status: proposed/status: superseded/; s/^supersedes: null/supersedes: D-0002/; s/^superseded_by: null/superseded_by: D-0002/' "$pd/0001-a.md"
+sed 's/D-0001/D-0002/; s/^supersedes: D-0002/supersedes: D-0001/; s/^superseded_by: D-0002/superseded_by: D-0001/' "$pd/0001-a.md" > "$pd/0002-b.md"
+sed -i 's/| a | architecture | proposed/| a | architecture | superseded/' "$pd/README.md"
+echo '| [D-0002](0002-b.md) | b | architecture | superseded | src/ |' >> "$pd/README.md"
+rejects "a supersession cycle" "supersession cycle D-0001 -> D-0002"
 
 echo "▶ docs/decisions of this repo"
 python3 "$cd_" docs/decisions

@@ -24,9 +24,11 @@ are not in the base branch (origin/HEAD, else origin/main, origin/master, main
 or master), that
   - there is a red commit `test(T3): ...`,
   - the red commits add a line naming each example (E1, E2...),
-  - no later commit (red commits of other tasks included) nor the uncommitted
-    changes remove or change a line the red commits added. Other lines of
-    those files may change, and new tests may be added.
+  - no later commit (red commits of other tasks and merges included) nor the
+    uncommitted changes remove or change a non-blank line the red commits added.
+    Lines are followed by identity (git blame), not by text: other lines of those
+    files may change, even with the same text, and new tests may be added.
+    Renaming the whole file keeps the protection; moving lines elsewhere does not.
 If any of these fails, or no base branch is found, COMMAND is not run, the
 checklist is untouched and the exit status is 3.
 
@@ -43,7 +45,6 @@ import re
 import shlex
 import subprocess
 import sys
-from collections import Counter
 from pathlib import Path
 
 TAIL = 40
@@ -52,6 +53,7 @@ TASK_LINE = re.compile(r"^\s*- \[([ xX])\] ([A-Z]+\d+)\.")
 MAP_EXAMPLE = re.compile(r"^\s*(?:[-*]\s+)?(E\d+)\s*:")
 PROTECTION_FAILED = 3
 STATUS_LINE = re.compile(r"^status:[^\n]*", re.MULTILINE)
+BLAME_HEADER = re.compile(r"^([0-9a-f]{40,64}) (\d+) \d+(?: \d+)?$")
 
 
 def usage(msg: str) -> None:
@@ -91,24 +93,17 @@ def declared_examples(block: str) -> list[str]:
 
 
 def git(root: Path, *args: str) -> str:
-    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, check=False)
+    # core.quotePath=false: paths with non-ASCII characters (test_canción.py) come out as they are.
+    result = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "-C", str(root), *args],
+        capture_output=True,
+        encoding="utf-8",
+        errors="surrogateescape",
+        check=False,
+    )
     if result.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)}: {result.stderr.strip()}")
     return result.stdout
-
-
-def hunk_lines(diff: str, sign: str) -> dict[str, list[str]]:
-    """Lines starting with sign ('+' added, '-' removed) per file in a git diff."""
-    found: dict[str, list[str]] = {}
-    current, in_hunk = "", False
-    for line in diff.splitlines():
-        if line.startswith("diff --git "):
-            current, in_hunk = line.split(" b/", 1)[-1], False
-        elif line.startswith("@@"):
-            in_hunk = True
-        elif in_hunk and line.startswith(sign):
-            found.setdefault(current, []).append(line[1:])
-    return found
 
 
 def branch_tasks_file() -> Path:
@@ -157,15 +152,20 @@ def refuse_finished(path: Path) -> None:
         )
 
 
-def branch_commits(path: Path) -> tuple[Path, str, list[tuple[str, str]]]:
-    """(repo root, base branch, (sha, subject) of the branch's commits not in the base branch, oldest first).
+def branch_commits(path: Path) -> tuple[Path, str, list[tuple[str, list[str], str]]]:
+    """(repo root, base branch, (sha, parents, subject) of the branch's commits not in the base branch).
 
-    One branch, one change: T<n> and E<n> IDs repeat across changes, so only these commits count.
+    Parents come before their children. One branch, one change: T<n> and E<n> IDs repeat across
+    changes, so only these commits count.
     """
     root = Path(git(path.resolve().parent, "rev-parse", "--show-toplevel").strip())
     base = base_branch(root)
-    lines = git(root, "log", "--reverse", "--format=%H %s", f"{base}..HEAD").splitlines()
-    return root, base, [(sha, subject) for sha, _, subject in (line.partition(" ") for line in lines)]
+    lines = git(root, "log", "--reverse", "--topo-order", "--format=%H%x00%P%x00%s", f"{base}..HEAD").split("\n")
+    commits = []
+    for line in filter(None, lines):
+        sha, parents, subject = line.split("\0", 2)
+        commits.append((sha, parents.split(), subject))
+    return root, base, commits
 
 
 def check_protection(path: Path, task_id: str, examples: list[str]) -> list[str]:
@@ -177,11 +177,65 @@ def check_protection(path: Path, task_id: str, examples: list[str]) -> list[str]
         return [f"PROBLEM: cannot read the git history of the branch: {error}"]
 
 
+def blamed(root: Path, rev: str | None, path: str, red: str) -> dict[int, str]:
+    """{line number in red's version of the file: text} of the lines of path at rev (None: the worktree) from red.
+
+    git blame follows each line, not its text, through later edits and renames of the whole file.
+    """
+    # --ignore-revs-file=: a blame.ignoreRevsFile of the repo must not hand a changed line back to the red commit.
+    out = git(root, "blame", "--porcelain", "--ignore-revs-file=", *([rev] if rev else []), "--", path)
+    found, sha, number = {}, "", 0
+    for line in out.split("\n"):
+        if line.startswith("\t"):
+            if sha == red:
+                found[number] = line[1:]
+        elif match := BLAME_HEADER.match(line):
+            sha, number = match.group(1), int(match.group(2))
+    return found
+
+
+def moved(root: Path, parent: str, sha: str) -> dict[str, str | None]:
+    """The paths sha changes from parent: {path in parent: path in sha, None if deleted}."""
+    fields = iter(git(root, "diff", "--name-status", "-z", "-M", parent, sha, "--").split("\0"))
+    found: dict[str, str | None] = {}
+    for status in fields:
+        if not status:
+            break
+        path = next(fields)
+        new = next(fields) if status[0] in "RC" else path  # renamed or copied: two paths
+        found[path] = None if status == "D" else new if status[0] == "R" else path
+    return found
+
+
+def numbers(lines: set[int]) -> str:
+    """'1, 3-5, 9'"""
+    ranges: list[list[int]] = []
+    for n in sorted(lines):
+        if ranges and n == ranges[-1][1] + 1:
+            ranges[-1][1] = n
+        else:
+            ranges.append([n, n])
+    return ", ".join(str(a) if a == b else f"{a}-{b}" for a, b in ranges)
+
+
+def lost_lines(who: str, key: tuple[str, str], path: str, lost: set[int]) -> str:
+    red, red_path = key
+    return (
+        f"{who} removes or changes {len(lost)} line(s) of {path} added by the red commit {red[:8]} "
+        f"(line(s) {numbers(lost)} of `git show {red[:8]}:{red_path}`)"
+    )
+
+
 def protection_problems(
-    root: Path, base: str, commits: list[tuple[str, str]], task_id: str, examples: list[str], worktree: bool = True
+    root: Path,
+    base: str,
+    commits: list[tuple[str, list[str], str]],
+    task_id: str,
+    examples: list[str],
+    worktree: bool = True,
 ) -> list[str]:
-    """commits: (sha, subject) of the branch, oldest first. worktree: also check the uncommitted changes."""
-    red = [i for i, (_, subject) in enumerate(commits) if (m := RED_SUBJECT.match(subject)) and m.group(1) == task_id]
+    """commits: (sha, parents, subject) of the branch, parents first. worktree: also check the uncommitted changes."""
+    red = [sha for sha, _, subject in commits if (m := RED_SUBJECT.match(subject)) and m.group(1) == task_id]
     if not red:
         return [
             (
@@ -191,51 +245,68 @@ def protection_problems(
         ]
 
     problems: list[str] = []
-    # Lines added by each red commit, per file.
-    red_added = {commits[i][0]: hunk_lines(git(root, "show", "--format=", "-U0", commits[i][0]), "+") for i in red}
+    # The lines each red commit added, per (red commit, file), by their number in the red commit's version.
+    added: dict[tuple[str, str], dict[int, str]] = {}
+    for sha in red:
+        for path in git(root, "show", "--format=", "--name-only", "-z", "-M", "--diff-filter=d", sha).split("\0"):
+            if path:
+                added[(sha, path)] = blamed(root, sha, path, sha)
     for example in examples:
         if not any(
             re.search(rf"(?<![A-Za-z0-9]){example}(?![0-9])", line)
-            for per_file in red_added.values()
-            for lines in per_file.values()
-            for line in lines
+            for lines in added.values()
+            for line in lines.values()
         ):
             problems.append(f"{example} has no test in the red commit (no added line names {example})")
 
-    # Only the lines the red commits added are protected, per file and counted (the same line may be added
-    # twice). No exemption, not even for the red commit of another task: adding tests or changing the
-    # file's other lines is fine, changing these is not.
-    protected: dict[str, Counter[str]] = {}
-    for sha, subject in commits[red[0] :]:
-        if protected:
-            diff = git(root, "show", "--format=", "-U0", sha, "--", *protected)
-            for path, lines in changed_protected(diff, protected):
+    # Only the non-blank lines the red commits added are protected, followed by identity (git blame), not by text:
+    # a line with the same text elsewhere in the file is not one of them. No exemption, not even for the red commit
+    # of another task: adding tests or changing the file's other lines is fine, changing these is not.
+    protected = {key: {n for n, line in lines.items() if line.strip()} for key, lines in added.items()}
+    # Per commit: for each (red commit, its path), the path of that file in the commit and the protected lines left.
+    alive: dict[str, dict[tuple[str, str], tuple[str, set[int]]]] = {}
+    for sha, parents, subject in commits:
+        here: dict[tuple[str, str], tuple[str, set[int]]] = {}
+        inherited: dict[tuple[str, str], list[tuple[str, set[int], dict[str, str | None]]]] = {}
+        for parent in parents:
+            changes = None
+            for key, (path, left) in alive.get(parent, {}).items():
+                changes = changes if changes is not None else moved(root, parent, sha)
+                inherited.setdefault(key, []).append((path, left, changes))
+        for key, sources in inherited.items():
+            if len(sources) == 1 and sources[0][0] not in sources[0][2]:
+                here[key] = sources[0][:2]  # the file is as its only parent left it
+                continue
+            # A merge (several parents) loses a line only if every parent still had it.
+            before = set.intersection(*(left for _, left, _ in sources))
+            paths = [new for path, _, changes in sources if (new := changes.get(path, path))]
+            if paths:
+                left = set(blamed(root, sha, paths[0], key[0])) & protected[key]
+                here[key] = (paths[0], left)
+                if lost := before - left:
+                    problems.append(lost_lines(f"commit {sha[:8]} '{subject}'", key, paths[0], lost))
+            elif before:
                 problems.append(
-                    f"commit {sha[:8]} '{subject}' removes or changes {lines} line(s) of {path} added by the red commit"
+                    f"commit {sha[:8]} '{subject}' deletes {sources[0][0]}, with {len(before)} line(s) added by "
+                    f"the red commit {key[0][:8]} (moving them to another file counts as deleting them)"
                 )
-        if sha in red_added:
-            for path, lines in red_added[sha].items():
-                protected.setdefault(path, Counter()).update(line for line in lines if line.strip())
-    if not worktree or not protected:
+        for key, lines in protected.items():
+            if key[0] == sha:
+                here[key] = (key[1], lines)
+        alive[sha] = here
+
+    if not worktree:
         return problems
-    for path, lines in changed_protected(git(root, "diff", "-U0", "HEAD", "--", *protected), protected):
-        problems.append(f"uncommitted changes remove or change {lines} line(s) of {path} added by the red commit")
+    for key, (path, left) in alive.get(git(root, "rev-parse", "HEAD").strip(), {}).items():
+        if not left:
+            continue
+        if not (root / path).is_file():
+            problems.append(
+                f"uncommitted changes delete {path}, with {len(left)} line(s) added by the red commit {key[0][:8]}"
+            )
+        elif lost := left - set(blamed(root, None, path, key[0])):
+            problems.append(lost_lines("uncommitted changes", key, path, lost))
     return problems
-
-
-def changed_protected(diff: str, protected: dict[str, Counter[str]]) -> list[tuple[str, int]]:
-    """(path, count) of the protected lines the diff removes; each match uses up one protected copy."""
-    found = []
-    for path, removed in hunk_lines(diff, "-").items():
-        left = protected.get(path, Counter())
-        hits = 0
-        for line in removed:
-            if left[line] > 0:
-                left[line] -= 1
-                hits += 1
-        if hits:
-            found.append((path, hits))
-    return found
 
 
 def task_pattern(task_id: str) -> re.Pattern[str]:
@@ -279,7 +350,7 @@ def audit(path: Path) -> int:
         print(f"PROBLEM: cannot read the git history of the branch: {error}")
         print(f"--- audit of {path}: not checked; 1 problem(s)")
         return PROTECTION_FAILED
-    with_red = {m.group(1) for _, subject in commits if (m := RED_SUBJECT.match(subject))}
+    with_red = {m.group(1) for _, _, subject in commits if (m := RED_SUBJECT.match(subject))}
 
     problems, assigned, done = 0, set(), 0
     for i, m in tasks:

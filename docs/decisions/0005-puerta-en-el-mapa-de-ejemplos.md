@@ -4,7 +4,7 @@ title: La puerta por defecto antes del código es el mapa de ejemplos
 type: rule
 status: accepted
 date: 2026-10-24
-affects: [skills/idea-to-issue/, agents/implement.md, skills/task-done/]
+affects: [skills/idea-to-change/, agents/implement.md, skills/task-done/]
 supersedes: null
 superseded_by: null
 issue: null
