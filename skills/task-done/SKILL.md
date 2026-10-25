@@ -13,7 +13,7 @@ If the task lists its examples (`- [ ] T3. <task> — tests: E1, E2 — verifica
 
 - there is a red commit whose subject starts with `test(T3):`, made before the implementation;
 - the red commit adds a line naming each example (`test_E1_…`, `it("E1 …")`), so every example has its test;
-- no later commit (the red commits of other tasks included) and no uncommitted change removes or changes a line of the files the red commit touched. Adding new tests to those files is allowed.
+- no later commit (the red commits of other tasks included) and no uncommitted change removes or changes a line the red commits added. Changing the other lines of those files, and adding new tests, is allowed.
 
 `review-prepush` runs the same check over the whole checklist, read-only: `task_done.py --audit [docs/changes/<branch>/tasks.md]`. It runs no verification and ticks nothing; it checks every task that is ticked or has a red commit (committed history only) and that every example of the map (`E1: …` lines) is in some task's `tests:`, and reports unticked tasks without a red commit as pending. Exit 0 if nothing is wrong, 3 if something is (`PROBLEM` lines), 2 if it cannot read the checklist.
 
@@ -31,11 +31,11 @@ If the task lists its examples (`- [ ] T3. <task> — tests: E1, E2 — verifica
    The command runs without a shell. For pipes or `&&`, pass `bash -c "<command>"`.
 4. Read the output and the exit status. The script prints the tail of the output and `--- command: <command> → exit <n>`; no log file is kept.
    - `task_done: warning: … declares verification …` (stderr): the command does not contain the verification declared in the task. It is not a failure, but run the declared one, or say in your report why you did not.
-   - `✘ T3 NOT marked: the tests of its red commit are not protected` (exit 3): the lines above it say what is missing. The verification was not run. If the red commit is missing, set the implementation aside (`git stash`), commit the tests, check that they fail, and bring it back. If you changed a red test, restore it (`git checkout <red commit> -- <file>`); if it looks wrong, stop and report it instead.
+   - `✘ T3 NOT marked: the tests of its red commit are not protected` (exit 3): the lines above it say what is missing. The verification was not run. If the red commit is missing, set the implementation aside (`git stash`), commit the tests, check that they fail, and bring it back. If you changed a red test, restore only the lines the message counts, as the red commit added them (`git show <red commit> -- <file>`), and keep the other changes to the file; if the test looks wrong, stop and report it instead.
    - `✔ T3 marked [x]`: done. Report it with the `--- command: … → exit 0` line as evidence.
    - `✘ T3 NOT marked`: the task is not done. Fix the code, not the test, and run it again.
    - `task_done: PROBLEM: cannot read the git history of the branch: no base branch found` (exit 3): there is no `origin/HEAD`, `origin/main`, `origin/master`, `main` or `master` to tell the branch's commits apart. Report it; do not tick by hand.
-   - Exit 2: the call was wrong (no such task, duplicated ID, bad arguments), or there is no `tasks.md` where it looked: the message names the path it searched (`docs/changes/<branch>/tasks.md`). Pass the right path, or check that you are on the change's branch; do not edit the checkbox by hand.
+   - Exit 2: the call was wrong (no such task, duplicated ID, bad arguments), or there is no `tasks.md` where it looked: the message names the path it searched (`docs/changes/<branch>/tasks.md`). Pass the right path, or check that you are on the change's branch; do not edit the checkbox by hand. Also exit 2 if that `tasks.md` is a finished change already in the base branch (`status: done` there): the branch reuses the folder of an earlier one with the same last segment. Report it and propose renaming the branch.
    - `✔ every task is ticked: status: done`: the change is finished; commit `tasks.md` with the last task.
 
 ## Rules

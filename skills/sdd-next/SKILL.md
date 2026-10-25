@@ -40,4 +40,4 @@ Besides the next step, warn if:
 
 **One work item:** directory, artifacts with their status, task progress (`5/8`), next step and warnings.
 
-**All** (no argument): a table sorted by date, most recent first. Columns: work item, spec, plan, tasks, next step and warning. Finished and obsolete items go at the end, one line each. This view is generated every time: do not save it to a file.
+**All** (no argument): a table sorted by status, then by the last commit to the folder (`git log -1 --format=%ct -- <folder>`), most recent first. Columns: work item, spec, plan, tasks, next step and warning. Finished and obsolete items go at the end, one line each. This view is generated every time: do not save it to a file.

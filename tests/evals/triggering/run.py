@@ -16,6 +16,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import threading
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -70,10 +71,14 @@ def run_case(prompt: str, model: str | None) -> str | None:
         proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                 stdin=subprocess.DEVNULL, text=True)
         assert proc.stdout is not None
+        # A stalled claude would block the read for good: kill it after TIMEOUT, which ends the read.
+        timer = threading.Timer(TIMEOUT, proc.kill)
+        timer.start()
         try:
             # Stop as soon as the first skill shows up: the rest of the run costs and tells nothing.
             skill = first_skill(proc.stdout)
         finally:
+            timer.cancel()
             proc.kill()
             proc.wait(timeout=TIMEOUT)
     return skill

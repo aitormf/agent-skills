@@ -15,6 +15,8 @@ task. Prints the tail of the output, then the command and its exit status; no
 log file is kept. Exit status: the command's. A failing command leaves the
 checklist untouched. Exit 2: wrong call, or no tasks.md where it was searched.
 When the last task is ticked, `status: open` in the frontmatter becomes `status: done`.
+Exit 2 also if the base branch already has this tasks.md with `status: done`: the
+folder is a finished change of an earlier branch with the same last segment.
 
 Test protection: if the task declares its examples (`tests: E1, E2`), before
 running COMMAND it checks in git, among the commits of the current branch that
@@ -23,7 +25,8 @@ or master), that
   - there is a red commit `test(T3): ...`,
   - the red commits add a line naming each example (E1, E2...),
   - no later commit (red commits of other tasks included) nor the uncommitted
-    changes remove or change a line of the files the red commits touched.
+    changes remove or change a line the red commits added. Other lines of
+    those files may change, and new tests may be added.
 If any of these fails, or no base branch is found, COMMAND is not run, the
 checklist is untouched and the exit status is 3.
 
@@ -40,6 +43,7 @@ import re
 import shlex
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 TAIL = 40
@@ -137,6 +141,22 @@ def base_branch(root: Path) -> str:
     raise RuntimeError("no base branch found (origin/HEAD, origin/main, origin/master, main or master)")
 
 
+def refuse_finished(path: Path) -> None:
+    """Exit 2 if the base branch already has this tasks.md with `status: done` (a finished, merged change)."""
+    try:
+        folder = path.resolve().parent
+        base = base_branch(folder)
+        text = git(folder, "show", f"{base}:./{path.name}")
+    except (OSError, RuntimeError):
+        return  # not in git, no base branch or not in the base branch: not a finished change
+    match = re.match(r"---\r?\n(.*?)\r?\n---\r?\n", text, re.DOTALL)
+    if match and re.search(r"^status:\s*done\b", match.group(1), re.MULTILINE):
+        usage(
+            f"{path} is a finished change already in {base} (status: done): "
+            "this branch reuses its folder; rename the branch (git branch -m <type>/<other-name>)"
+        )
+
+
 def branch_commits(path: Path) -> tuple[Path, str, list[tuple[str, str]]]:
     """(repo root, base branch, (sha, subject) of the branch's commits not in the base branch, oldest first).
 
@@ -171,33 +191,51 @@ def protection_problems(
         ]
 
     problems: list[str] = []
-    protected: set[str] = set()
-    added_lines: list[str] = []
-    for i in red:
-        sha = commits[i][0]
-        protected.update(git(root, "show", "--format=", "--name-only", sha).splitlines())
-        for lines in hunk_lines(git(root, "show", "--format=", "-U0", sha), "+").values():
-            added_lines += lines
+    # Lines added by each red commit, per file.
+    red_added = {commits[i][0]: hunk_lines(git(root, "show", "--format=", "-U0", commits[i][0]), "+") for i in red}
     for example in examples:
-        if not any(re.search(rf"(?<![A-Za-z0-9]){example}(?![0-9])", line) for line in added_lines):
+        if not any(
+            re.search(rf"(?<![A-Za-z0-9]){example}(?![0-9])", line)
+            for per_file in red_added.values()
+            for lines in per_file.values()
+            for line in lines
+        ):
             problems.append(f"{example} has no test in the red commit (no added line names {example})")
 
-    paths = sorted(protected)
-    if not paths:
+    # Only the lines the red commits added are protected, per file and counted (the same line may be added
+    # twice). No exemption, not even for the red commit of another task: adding tests or changing the
+    # file's other lines is fine, changing these is not.
+    protected: dict[str, Counter[str]] = {}
+    for sha, subject in commits[red[0] :]:
+        if protected:
+            diff = git(root, "show", "--format=", "-U0", sha, "--", *protected)
+            for path, lines in changed_protected(diff, protected):
+                problems.append(
+                    f"commit {sha[:8]} '{subject}' removes or changes {lines} line(s) of {path} added by the red commit"
+                )
+        if sha in red_added:
+            for path, lines in red_added[sha].items():
+                protected.setdefault(path, Counter()).update(line for line in lines if line.strip())
+    if not worktree or not protected:
         return problems
-    # No exemption, not even for the red commit of another task: adding tests is fine, changing these is not.
-    for sha, subject in commits[red[0] + 1 :]:
-        for path, removed in hunk_lines(git(root, "show", "--format=", "-U0", sha, "--", *paths), "-").items():
-            problems.append(
-                f"commit {sha[:8]} '{subject}' removes or changes {len(removed)} line(s) of {path}, a test file of the red commit"
-            )
-    if not worktree:
-        return problems
-    for path, removed in hunk_lines(git(root, "diff", "-U0", "HEAD", "--", *paths), "-").items():
-        problems.append(
-            f"uncommitted changes remove or change {len(removed)} line(s) of {path}, a test file of the red commit"
-        )
+    for path, lines in changed_protected(git(root, "diff", "-U0", "HEAD", "--", *protected), protected):
+        problems.append(f"uncommitted changes remove or change {lines} line(s) of {path} added by the red commit")
     return problems
+
+
+def changed_protected(diff: str, protected: dict[str, Counter[str]]) -> list[tuple[str, int]]:
+    """(path, count) of the protected lines the diff removes; each match uses up one protected copy."""
+    found = []
+    for path, removed in hunk_lines(diff, "-").items():
+        left = protected.get(path, Counter())
+        hits = 0
+        for line in removed:
+            if left[line] > 0:
+                left[line] -= 1
+                hits += 1
+        if hits:
+            found.append((path, hits))
+    return found
 
 
 def task_pattern(task_id: str) -> re.Pattern[str]:
@@ -227,6 +265,7 @@ def set_done(text: str) -> str:
 
 def audit(path: Path) -> int:
     """Read-only check of every task of the checklist, for the review. Runs no command, edits nothing."""
+    refuse_finished(path)
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, ValueError) as error:
@@ -293,6 +332,7 @@ def main(argv: list[str]) -> int:
         usage("wrong arguments")
     if not path.is_file():
         usage(f"{path} does not exist")
+    refuse_finished(path)
     task_id, command = rest[0], rest[2:]
     if not re.fullmatch(r"[A-Z]+\d+", task_id):
         usage(f"TASK_ID must look like T3 or W2, got '{task_id}'")
