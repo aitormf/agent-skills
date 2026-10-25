@@ -1,6 +1,6 @@
 ---
 name: generate-project-context
-description: Creates or updates a project's context files (AGENTS.md, docs/ARCHITECTURE.md with its non-negotiable principles, CONTRIBUTING.md, ADRs, SECURITY.md and PR template) through a guided interview. Use it when starting a project, when adopting agents in an existing project, or when asked for a "constitution", project principles, architecture rules or documentation for agents.
+description: Creates or updates a project's context files (AGENTS.md, docs/ARCHITECTURE.md with its non-negotiable principles, CONTRIBUTING.md, the decision log in docs/decisions/, SECURITY.md and PR template) through a guided interview. Use it when starting a project, when adopting agents in an existing project, or when asked for a "constitution", project principles, architecture rules or documentation for agents.
 ---
 
 # Project context
@@ -11,13 +11,13 @@ It replaces Spec Kit's `constitution.md`. All of its content has a better home:
 
 | Content | File | Read by |
 |---|---|---|
-| Stack, layers, dependency rules, **non-negotiable principles**, glossary | `docs/ARCHITECTURE.md` | People and agents; `spec-to-plan` and `review-spec` check the principles |
+| Stack, layers, dependency rules, **non-negotiable principles**, domain model | `docs/ARCHITECTURE.md` | People and agents; `spec-to-plan` and `review-spec` check the principles |
 | Quality, branches, commits, PRs, review, AI usage | `CONTRIBUTING.md` | People (and agents, via link) |
-| The why of each structural decision and the discarded alternatives | `docs/adr/NNNN-*.md` | Both, on demand |
-| Commands, boundaries, non-obvious conventions, documentation map | `AGENTS.md` (+ `CLAUDE.md` with `@AGENTS.md`) | Agents, in **every** session |
+| The why of each architecture choice, business rule and discarded approach | `docs/decisions/NNNN-*.md` + index `README.md` | Both: agents read the index and open only the records whose `affects` covers what they change |
+| Commands, boundaries, non-obvious conventions, how much process each change gets, glossary, documentation map | `AGENTS.md` (+ `CLAUDE.md` with `@AGENTS.md`) | Agents, in **every** session |
 | How to report vulnerabilities, agent policy | `SECURITY.md` | People |
 
-Templates in `assets/en/` (English) and `assets/es/` (Spanish). Use the language the project is documented in; ask if it is not clear. Each template explains in its opening comment how to fill it in.
+Templates in `assets/en/` (English) and `assets/es/` (Spanish); the decision templates belong to `record-decision` (`record-decision/assets/`). Use the language the project is documented in; ask if it is not clear. Each template explains in its opening comment how to fill it in.
 
 ## Rules
 
@@ -36,7 +36,7 @@ Before asking anything, read: manifests (`pyproject.toml`, `package.json`, `go.m
 Decide the mode and tell the person:
 
 - **Greenfield** (no code or almost none): `ARCHITECTURE.md` is **prescriptive**, how it will be.
-- **Brownfield**: `ARCHITECTURE.md` is **descriptive**, how it is today. The ideal goes into ADRs and the tools' ratchets. If context files already exist, only ask about the gaps and propose diffs.
+- **Brownfield**: `ARCHITECTURE.md` is **descriptive**, how it is today. The ideal goes into decision records and the tools' ratchets. If context files already exist, only ask about the gaps and propose diffs; if `AGENTS.md` has no levels section, propose adding the snippet (see step 3). If there is a `docs/adr/`, offer to move it to `docs/decisions/` (see "Migrating from docs/adr/" in `record-decision`); if the person says no, both coexist and the index links to the ADRs.
 - **Migration from a `constitution.md`**: distribute its content according to the table above and propose deleting it or reducing it to a link.
 
 ### 2. Interview by rounds
@@ -45,8 +45,8 @@ One category at a time. For each question, offer concrete options (A, B, "leave 
 
 | Round | What is decided | Destination |
 |---|---|---|
-| 1. Purpose | What the project is and what is out; type (app, service, library, CLI) | `ARCHITECTURE.md` §1, `README.md` |
-| 2. Stack and architecture | Language, framework, persistence, infrastructure; layers or modules and what may import what | `ARCHITECTURE.md` §2–4, one ADR per structural decision |
+| 1. Purpose | What the project is and what is out; type (app, service, library, CLI); the domain terms with a precise meaning | `ARCHITECTURE.md` §1, `README.md`, glossary in `AGENTS.md` |
+| 2. Stack and architecture | Language, framework, persistence, infrastructure; layers or modules and what may import what | `ARCHITECTURE.md` §2–4, one decision record (`architecture`) per structural choice |
 | 3. Non-negotiable principles | 5–10 stable, verifiable rules: why, and how each one is checked | `ARCHITECTURE.md` §5 |
 | 4. Quality | Test first or after, minimum coverage, typing, what is never mocked | `CONTRIBUTING.md` §5; if non-negotiable, also a principle |
 | 5. Security | Authentication, sensitive data, input validation, regulatory compliance | `ARCHITECTURE.md` §10, `SECURITY.md` |
@@ -58,12 +58,14 @@ In round 8, the **verification command** is the contract with the other skills (
 
 ### 3. Draft and write
 
-Order: `ARCHITECTURE.md` → ADRs → `CONTRIBUTING.md` → `SECURITY.md` → `AGENTS.md`. `AGENTS.md` goes last because it links to all of them.
+Order: `ARCHITECTURE.md` → decisions → `CONTRIBUTING.md` → `SECURITY.md` → `AGENTS.md`. `AGENTS.md` goes last because it links to all of them.
 
 - Start from the template in `assets/`. Delete the sections that do not apply yet; do not leave them empty.
-- ADRs: copy `ADR.md` as `docs/adr/0000-template.md` (`0000-plantilla.md` in Spanish) and `adr-README.md` as `docs/adr/README.md`. Create one ADR per structural decision from rounds 2–3. Brownfield: only 3–5 retroactive ones, for what is most questioned, with the discarded alternatives.
+- Decisions: create `docs/decisions/` following `record-decision` (index from its `assets/<lang>/README.md`, one record per structural choice from rounds 2–3, all `proposed` until the person accepts them). Brownfield: only 3–5 retroactive ones, for what is most questioned, with the discarded alternatives. There is no template file in the project: `record-decision` keeps it.
 - `AGENTS.md` must include:
   - the "Planning" line: check the plan against the principles in `docs/ARCHITECTURE.md` before implementing;
+  - the "Decisions" section: read the index of `docs/decisions/`, open the records whose `affects` covers the change, and never contradict an accepted one silently;
+  - the snippet `assets/<lang>/AGENTS-levels.md`: the levels of process (where the person stops before there is code), the signals to go up or down, the evidence rule and the glossary. Copy it as is; only fill in the glossary with the terms from round 1 (one line each, under ~15) and replace the skill names if the project does not use this plugin;
   - a link to `CONTRIBUTING.md` for the process.
 - `CLAUDE.md` contains only `@AGENTS.md`, unless it already has content. In that case, propose moving it into `AGENTS.md`.
 - `pull_request_template.md` goes in `.github/`. Offer it, do not impose it.

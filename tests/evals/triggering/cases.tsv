@@ -1,0 +1,37 @@
+# Activation cases: <expected skill><TAB><prompt>
+# Expected skill without the plugin namespace. Several accepted skills go with "|".
+# "none" means no skill of this plugin should be invoked.
+idea-to-spec	quiero escribir una spec para que los usuarios puedan cancelar un viaje
+idea-to-change	tengo una idea a medio pensar: avisar al conductor cuando un pasajero llega tarde. Ayúdame a definirla
+idea-to-change	quiero que los pasajeros puedan valorar al conductor al acabar el viaje, prepáralo para implementarlo
+idea-to-change	prepara las tareas para añadir el filtro por fecha al listado de viajes
+idea-to-change	hagamos el mapa de ejemplos de la regla de reembolsos al cancelar
+idea-to-change	prepara el issue 57 para implementarlo: mapa de ejemplos y tareas
+idea-to-change	I have an idea: let drivers pause new bookings for a day. Turn it into a change we can implement
+idea-to-spec	help me turn this idea into a spec: export the invoices as CSV
+review-spec	revisa la spec de docs/changes/cancelaciones/spec.md antes de implementarla
+review-spec	¿le ves huecos o contradicciones al plan de docs/changes/cancelaciones/plan.md?
+apply-review	vamos a repasar los hallazgos de docs/changes/cancelaciones/review-spec.md y decidir cuáles aplicamos
+spec-to-plan	la spec de cancelaciones está aprobada, haz el plan técnico
+spec-to-plan	¿cómo implementarías la spec de docs/changes/cancelaciones/spec.md? diseña la solución
+plan-to-tasks	parte el plan de cancelaciones en tareas
+plan-to-tasks	el plan está aprobado, prepáralo para implementar
+task-done	marca la T3 de docs/changes/cancelaciones/tasks.md como hecha
+task-done	la T2 ya pasa su test, márcala como hecha
+sdd-next	¿en qué punto está el trabajo de cancelaciones?
+sdd-next	¿qué cambios hay abiertos en docs/changes?
+review-prepush	¿está lista la rama para hacer push?
+review-prepush	revisa mis cambios antes de subirlos
+review-pr	revisa la PR 42
+review-pr	review this pull request before we merge it: #42
+debug-root-cause	el test test_refund_total falla y no sé por qué
+debug-root-cause	ya intenté arreglar el bug del reembolso dos veces y sigue fallando, encuentra la causa
+generate-project-context	prepara el AGENTS.md y los principios de arquitectura de este proyecto
+generate-project-context	vamos a adoptar agentes en este repo, necesito la documentación para ellos
+setup-guardrails-python	monta los guardrails de este repo Python: ruff, mypy, pre-commit y CI
+setup-guardrails-python	endurece la seguridad de este proyecto Python: gitleaks, dependabot y hooks
+none	¿qué hora es en Tokio?
+none	explica qué hace un decorador en Python
+record-decision	apunta esta decisión: los reembolsos son totales si se cancela con más de 1h de antelación
+record-decision	deja registrado que probamos Redis para la caché de sesiones y lo descartamos por la latencia
+record-decision	migra los ADRs de docs/adr a docs/decisions

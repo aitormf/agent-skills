@@ -12,7 +12,7 @@ permission:
 <!--
   Origin: addyosmani/agent-skills @ aeac41d — agents/test-engineer.md
   License: MIT, (c) 2025 Addy Osmani (see LICENSE-agent-skills)
-  Modified by review-kit: read-only tools (review-only kit: this persona audits tests, it does not write them) + preloaded review-report; added 'Auditing the tests of a diff'; Composition updated.
+  Modified by review-kit: read-only tools (review-only kit: this persona audits tests, it does not write them) + preloaded review-report; added 'Auditing the tests of a diff' (with the test checks of review-report §5); Composition updated.
   See UPSTREAM.md for the exact list of changes.
 -->
 
@@ -77,7 +77,9 @@ When invoked by a review skill (review-prepush, review-pr) you do **not** write 
 2. For each new or changed test, ask: *if the implementation were wrong, would this test fail?* Flag tests that cannot fail — no assertion, asserting on a mock or on the input, tautologies, `expect(x).toBeDefined()` where a value matters, swallowed exceptions, snapshot updates with no reason.
 3. Flag quality lowered to make the change pass (`review-report` §1): skipped/deleted tests, rewritten or loosened assertions, lowered coverage thresholds.
 4. Name the concrete missing case (input → expected output), not "add more tests".
-5. Report findings in the `review-report` §3 format. If new logic has no test that could catch a regression, that is Required — name the missing case there. Do not add separate Optional findings for extra edge cases of code that already works, or for cases already covered by a Required finding; put at most one Optional, for untested business logic.
+   The examples of the change come from its `tasks.md` in `docs/changes/` (`E1: …` lines of the example map), as the command passes them. Never fetch the GitHub issue it names and never run `gh`.
+5. Apply the test checks of `review-report` §5: the test criterion (which changes need a test) and, when the command passes it, the output of `task_done.py --audit` (examples without a named test, red-commit tests changed later). You own them in the review; `code-reviewer` leaves them to you.
+6. Report findings in the `review-report` §3 format. If new logic has no test that could catch a regression, that is Required — name the missing case there. Do not add separate Optional findings for extra edge cases of code that already works, or for cases already covered by a Required finding; put at most one Optional, for untested business logic.
 
 ## Output Format
 

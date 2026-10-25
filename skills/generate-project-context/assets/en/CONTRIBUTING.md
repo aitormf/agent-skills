@@ -14,7 +14,7 @@ Thanks for contributing. This document explains how to set up your environment, 
 **Read first:**
 - [`README.md`](README.md): what the project is.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): structure, layers and **non-negotiable principles**.
-- [`docs/adr/`](docs/adr/README.md): decisions that have been made and why.
+- [`docs/decisions/`](docs/decisions/README.md): decisions that have been made and why.
 - [`AGENTS.md`](AGENTS.md): instructions for AI agents (also useful for humans: it summarizes commands and boundaries).
 
 ## 1. Setting up your environment
@@ -50,14 +50,14 @@ Don't use `pip install` and don't edit `uv.lock` by hand.
 ## 3. Before you start
 
 - **Small changes** (obvious bug, typo, local refactor): go ahead, straight to a PR.
-- **Medium or large changes** (new feature, several modules, public API): open or assign yourself an issue first and write a short spec in `docs/specs/<feature>.md` (goal, requirements, out of scope and how it is verified end to end).
-- **Architecture changes** (new layer, change of persistence, new structural dependency, breaking a principle): need an **ADR** in `docs/adr/`, approved before implementation. Use `docs/adr/0000-template.md`.
+- **Medium or large changes** (new feature, several modules, public API): create a branch and describe the change in `docs/changes/<branch>/tasks.md` (problem, out of scope, examples and tasks with their verification; with the `idea-to-change` skill), and add `spec.md` and `plan.md` to that folder if there is design to decide. It may start from an issue: the PR closes it with `Closes #<n>`.
+- **Architecture changes** (new layer, change of persistence, new structural dependency, breaking a principle): need a **decision record** in `docs/decisions/`, accepted before implementation (the `record-decision` skill drafts it).
 
 Before implementing, check your plan against the non-negotiable principles in `docs/ARCHITECTURE.md`.
 
 ## 4. Git workflow
 
-- Branch off `main`, named `<type>/<short-description>`: `feat/export-csv`, `fix/booking-timezone`, `docs/adr-cache`.
+- Branch off `main`, named `<type>/<short-description>`: `feat/export-csv`, `fix/booking-timezone`, `docs/cache-decision`.
 - Nobody pushes directly to `main`; everything goes through a PR.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
 - Small commits that make sense on their own. You can reorder or squash yours before opening the PR.
@@ -76,7 +76,7 @@ Tools check this; here is just a summary:
 - **Secrets:** gitleaks blocks the commit if it finds one. Remove the secret; don't silence the check.
 
 Things tools don't check and that reviewers look at:
-- Clear names, consistent with the glossary in `docs/ARCHITECTURE.md`.
+- Clear names, consistent with the glossary in `AGENTS.md`.
 - No dead code, no "just in case" abstractions and no unnecessary dependencies.
 - Useful error messages; no swallowed generic exceptions.
 
@@ -101,11 +101,11 @@ You may use AI assistants and agents (Claude Code, Codex, Copilot, Cursor…). T
 **Before opening it:**
 - [ ] `./scripts/check.sh` green locally.
 - [ ] New or updated tests for the change.
-- [ ] Documentation updated in the same PR if applicable: `README.md`, `docs/ARCHITECTURE.md`, ADR, `AGENTS.md`, `.env.example`.
+- [ ] Documentation updated in the same PR if applicable: `README.md`, `docs/ARCHITECTURE.md`, `docs/decisions/`, `AGENTS.md`, `.env.example`.
 - [ ] No unrelated changes (mass reformatting, drive-by renames).
 
 **Description** (requested by `.github/pull_request_template.md`):
-- What changes and why; link to the issue, spec or ADR.
+- What changes and why; link to the issue, spec or decision.
 - How it was verified (tests, manual testing, screenshots).
 - Risks, migrations or deployment steps.
 - Relevant AI use.
@@ -120,8 +120,8 @@ You may use AI assistants and agents (Claude Code, Codex, Copilot, Cursor…). T
 
 | What changes | What to update |
 |---|---|
-| Structure, layers, integrations, principles | `docs/ARCHITECTURE.md` (principles require an ADR) |
-| A significant technical decision | New ADR in `docs/adr/` (ADRs are not edited: they are superseded by a new one) |
+| Structure, layers, integrations, principles | `docs/ARCHITECTURE.md` (principles require a decision record) |
+| An architecture choice, a business rule or a discarded approach | New record in `docs/decisions/` (accepted records are not edited: a new one supersedes them) |
 | Commands, tools or known pitfalls | `AGENTS.md` |
 | Installation or usage | `README.md` |
 | Environment variables | `.env.example` and `config.py` |

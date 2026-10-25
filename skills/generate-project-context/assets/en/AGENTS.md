@@ -31,14 +31,17 @@ Before implementing a non-trivial change, check your plan against the
 
 ## Workflow
 - Branch, PR and review process: see CONTRIBUTING.md.
-- Non-trivial changes: plan first (in `docs/plans/` if the task is long).
+- How much process each change gets: "How much process" below.
 - TDD: write the test, confirm it is RED, implement, make it GREEN.
 - Don't delete or weaken tests to make them pass. If a test looks wrong, stop and ask.
 - Small commits, Conventional Commits. Branches `feat/…`, `fix/…`.
 
+<!-- Here go "How much process" and "Glossary", from AGENTS-levels.md. -->
+
 ## Decisions
-Before changing persistence, module boundaries, auth or the public API, check `docs/adr/`.
-If your change contradicts an accepted ADR, STOP and point out the conflict.
+Before planning a change, read the index `docs/decisions/README.md` and open the decisions whose `affects` covers the paths you will touch.
+If your change contradicts an accepted decision, STOP and point out the conflict: it is changed by a new decision that supersedes it, never silently.
+A test that cites a decision (`# D-0021`) protects it: do not "fix" it without reading that decision.
 
 ## Security
 - Before touching external input, auth, SQL, files, subprocess, network, cryptography,

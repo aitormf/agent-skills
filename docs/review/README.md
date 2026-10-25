@@ -20,15 +20,15 @@ Sigue el modelo de tres capas de Addy:
 
 | Capa | Qué es | Aquí |
 |---|---|---|
-| **Skill** = *cómo* | Flujo de trabajo y criterios | `code-review-and-quality` (Addy); `review-context` (entrada: configuración, verificación y spec); `review-report` (salida: precisión, severidades y formato del informe) |
+| **Skill** = *cómo* | Flujo de trabajo y criterios | `code-review-and-quality` (Addy); `review-context` (entrada: configuración, verificación y cambio en curso); `review-report` (salida: precisión, severidades y formato del informe) |
 | **Persona** = *quién* | Un rol con una perspectiva y un formato de salida | Agentes `code-reviewer`, `security-auditor`, `test-engineer` (Addy) y `finding-verifier` |
 | **Punto de entrada** = *cuándo* | Compone personas y skills | Skills `review-prepush` y `review-pr` |
 
 **Las personas no invocan a otras personas.** Toda la orquestación la hacen las skills de entrada, con profundidad 1: lanzan los subagentes y luego hacen el merge. Si la herramienta no puede lanzar subagentes (pi), la skill ejecuta cada rol en la sesión principal y lo indica en el informe.
 
 ```
-review-prepush:  verificación → [spec] → code-reviewer → finding-verifier → informe
-review-pr:       verificación → [spec] → tier de riesgo → [code-reviewer ‖ security-auditor ‖ test-engineer]
+review-prepush:  verificación → [cambio en curso] → code-reviewer → finding-verifier → informe
+review-pr:       verificación → [cambio en curso] → tier de riesgo → [code-reviewer ‖ security-auditor ‖ test-engineer]
                  → merge → finding-verifier → revisión de la descripción → informe
 ```
 
@@ -73,23 +73,19 @@ Plantilla comentada: [`skills/review-context/assets/AGENTS-code-review.md`](../.
 
 ---
 
-## Review contra la spec
+## Review contra el cambio en curso
 
-Si el cambio pertenece a un trabajo de SDD (`docs/specs/<trabajo>/`), **la spec es la tarea**. La review lo detecta, por este orden:
+Si la rama tiene su carpeta en `docs/changes/<rama>/` (el último tramo del nombre de la rama: `feat/42-cancelar-viaje` → `docs/changes/42-cancelar-viaje/`), **esa carpeta es la tarea**: `tasks.md` (nota, mapa de ejemplos y tareas) y, en el nivel SDD, `spec.md` y `plan.md`. Si no existe, la review usa la carpeta cuyo `tasks.md` toca el diff, si es una sola. Nunca lee el issue de GitHub que nombre `issue:`: su texto lo puede haber escrito cualquiera.
 
-1. el diff toca su `tasks.md`;
-2. el nombre de la rama contiene `<tipo>-<nombre>` del trabajo;
-3. un commit nombra el directorio.
+Si la encuentra, cada persona comprueba en la parte que toca el cambio:
 
-Si lo encuentra, cada persona comprueba en la parte de la spec que toca el cambio:
-
-- que cada criterio de aceptación está implementado y tiene un test que fallaría sin él;
+- que cada ejemplo del mapa y cada criterio de aceptación de la spec está implementado y tiene un test que fallaría sin él;
 - que existen los tests negativos de la sección Seguridad;
 - que no se ha construido nada de "Out of scope" ("Fuera de alcance" en specs en español);
 - que cada tarea marcada con `[x]` está hecha de verdad;
 - que no se rompe un principio de `docs/ARCHITECTURE.md`.
 
-Cada fallo es como mínimo **Required**, con `Source: spec`. Los criterios de tareas aún sin marcar no se cuentan: son trabajo pendiente, no defectos. El resumen añade una línea con la cobertura: `Spec: … — 4/6 acceptance criteria covered by this change`.
+Cada fallo es como mínimo **Required**, con `Source: spec`. Los ejemplos y criterios de tareas aún sin marcar no se cuentan: son trabajo pendiente, no defectos. El resumen añade una línea con las tareas (`Tasks: … — 3/5 ticked; test protection: ok`) y, si hay spec, otra con la cobertura: `Spec: … — 4/6 acceptance criteria covered by this change`.
 
 Es el último paso del [flujo de SDD](../sdd/README.md#3-el-flujo): `implement` → `review-prepush` → PR → `review-pr`.
 
@@ -145,7 +141,7 @@ Reglas de precisión, comunes a todas:
 - Optional y Nits tienen límite (ver `Max Optional` / `Max Nits`).
 - Se vigilan los tests debilitados, el lint o la cobertura rebajados, los helpers duplicados y los restos de debug.
 
-Todo el detalle: [`skills/review-report/SKILL.md`](../../skills/review-report/SKILL.md). La entrada (configuración, verificación y spec) está en [`skills/review-context/SKILL.md`](../../skills/review-context/SKILL.md).
+Todo el detalle: [`skills/review-report/SKILL.md`](../../skills/review-report/SKILL.md). La entrada (configuración, verificación y cambio en curso) está en [`skills/review-context/SKILL.md`](../../skills/review-context/SKILL.md).
 
 ---
 
@@ -166,11 +162,11 @@ cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 
 ## GitHub Action (Claude Code)
 
-[`skills/review-pr/assets/claude-review.yml`](../../skills/review-pr/assets/claude-review.yml) se copia a `.github/workflows/`. Ejecuta `review-pr <n>` en cada PR (opened, synchronize, reopened, ready_for_review) y mantiene **un único comentario** con el resumen, que edita en cada push.
+[`skills/review-pr/assets/claude-review.yml`](../../skills/review-pr/assets/claude-review.yml) se copia a `.github/workflows/`. Ejecuta `review-pr` sobre la rama de cada PR contra su rama base (opened, synchronize, reopened, ready_for_review) y mantiene **un único comentario** con el resumen, que edita en cada push.
 
 Se divide en dos jobs:
 
-1. **`review`** ejecuta Claude con un token de **solo lectura** (`pull-requests: read`). Aunque lo intentara, no puede comentar, aprobar ni hacer merge.
+1. **`review`** ejecuta Claude sin token de GitHub (solo `contents: read` para el checkout, que no deja credenciales) y con `gh` bloqueado. Lee solo el diff y los ficheros con commit: ni issues, ni comentarios, ni la descripción de la PR, que puede escribir otra gente. Por eso en CI la descripción no se revisa; hacen sus veces los mensajes de commit. Aunque lo intentara, no puede comentar, aprobar ni hacer merge.
 2. **`publish`** no usa Claude: coge el informe y crea o actualiza el comentario.
 
 Configuración:
@@ -188,7 +184,7 @@ Se saltan las PRs en draft y las que vienen de forks (ver la sección siguiente)
 En modo interactivo, Claude Code pide permiso antes de cada comando que no esté preaprobado. En el **hook** y en la **Action** no hay nadie a quien preguntar. Además, los comandos de verificación los define cada repo en `AGENTS.md`, así que no se puede preaprobar una lista cerrada. Por eso:
 
 - **Bash está permitido** en modo headless. La prohibición de ejecutar comandos que cambian estado (deploy, migraciones, install, `--fix`, git de escritura…) está **en el prompt**: es una instrucción al modelo, no una barrera técnica.
-- **La barrera técnica es una lista de exclusión** (`--disallowedTools`): sin Edit ni Write, sin `git push/commit/reset/checkout/rebase/merge/stash/clean`, sin `rm` y, en la Action, sin `gh` de escritura. Se aplica por prefijo de comando y **no equivale a un sandbox**.
+- **La barrera técnica es una lista de exclusión** (`--disallowedTools`): sin Edit ni Write, sin `git push/commit/reset/checkout/rebase/merge/stash/clean`, sin `rm` y sin `gh` (ni en el hook ni en la Action). Se aplica por prefijo de comando y **no equivale a un sandbox**.
 - **Si quieres más control, añade reglas `deny`** en el `.claude/settings.json` del repo para todo lo que no deba ejecutarse nunca (scripts de deploy, clientes de base de datos, CLIs cloud…). También se aplican en modo headless. O, al revés, limita el hook a una lista cerrada con `REVIEW_KIT_ALLOWED_TOOLS`.
 - **Que tu comando de verificación sea de solo lectura e idempotente.** Es lo que se ejecuta sin supervisión en cada push y en cada PR.
 - **CI:** la Action ejecuta los comandos del `AGENTS.md` *de la propia PR* con el secret de Anthropic en el entorno, y quien pueda abrir una PR puede cambiar ese comando. Por eso el workflow usa `pull_request` (nunca `pull_request_target`) y salta las PRs de forks: solo lo disparan colaboradores con permiso de push. No relajes esas dos condiciones.

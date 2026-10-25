@@ -9,7 +9,7 @@ Este material viene de **review-kit** (aitormf), integrado en `aitormf/agent-ski
 - Los comandos `/review-prepush` y `/review-pr` son ahora skills (`skills/review-prepush/`, `skills/review-pr/`), para que funcionen en Claude Code, Codex, OpenCode y pi. Si la herramienta no puede lanzar subagentes, la skill ejecuta los roles en la sesión principal.
 - Se elimina el `/review` de upstream: es la skill `code-review-and-quality`, invocable directamente.
 - La configuración del repo se lee de `AGENTS.md` (antes `CLAUDE.md`).
-- `review-context` §4: si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el código contra ella.
+- `review-context` §4: si la rama tiene su carpeta en `docs/changes/<rama>/` (tareas y, en SDD, spec y plan), la review comprueba el código contra ella.
 - Namespace del plugin: `harness:` (antes `review-kit:`). Los agentes se generan para Codex y OpenCode con `scripts/build-agents.py`.
 - `install.sh` desaparece: se instala como el resto del repositorio (plugin o `npx skills`). El hook y la Action son assets de sus skills.
 
@@ -22,9 +22,9 @@ Todo fichero derivado lleva una cabecera `Origin:` con la ruta upstream. Esta ta
 | `skills/code-review-and-quality/SKILL.md` | `skills/code-review-and-quality/SKILL.md` | Modificado | Cabecera de origen; nota de precedencia de `review-report`; referencias a `security-and-hardening`, `performance-optimization` y `constraint-driven-development` (no incluidas) cambiadas por las checklists incluidas o eliminadas; `npm audit`/`package.json` generalizados a cualquier ecosistema; "See Also" re-apuntado. El resto, idéntico. |
 | `skills/code-review-and-quality/references/security-checklist.md` | `references/security-checklist.md` | Sin cambios | Solo cabecera. Movido dentro de la skill para que la ruta relativa funcione en modo plugin y en `.claude/`. |
 | `skills/code-review-and-quality/references/performance-checklist.md` | `references/performance-checklist.md` | Sin cambios | Ídem. |
-| `agents/code-reviewer.md` | `agents/code-reviewer.md` | Modificado | Frontmatter `tools` (solo lectura + Bash) y `skills`; formato de salida delegado en `review-report`; reglas 7–8 (precisión, solo lectura); bloque Composition con los comandos de review-kit. Cinco ejes intactos. |
+| `agents/code-reviewer.md` | `agents/code-reviewer.md` | Modificado | Frontmatter `tools` (solo lectura + Bash) y `skills`; formato de salida delegado en `review-report`; reglas 7–8 (precisión, solo lectura); bloque Composition con los comandos de review-kit; sección «Beyond the diff» (llamadores fuera del diff, decisiones; comprobaciones de tests de `review-report` §5 solo si va sin `test-engineer`). Cinco ejes intactos. |
 | `agents/security-auditor.md` | `agents/security-auditor.md` | Modificado | Frontmatter `tools`/`skills`; nota de formato y mapeo de severidades para review-kit; reglas 9–10 (checklist, rutas de alto riesgo, solo lectura); Composition. |
-| `agents/test-engineer.md` | `agents/test-engineer.md` | Modificado | Frontmatter `tools` **sin Write** (el kit solo revisa: esta persona audita tests, no los escribe) y `skills`; sección nueva "Auditing the tests of a diff"; Composition. |
+| `agents/test-engineer.md` | `agents/test-engineer.md` | Modificado | Frontmatter `tools` **sin Write** (el kit solo revisa: esta persona audita tests, no los escribe) y `skills`; sección nueva "Auditing the tests of a diff", con las comprobaciones de tests de `review-report` §5 en `review-pr`; Composition. |
 | `docs/review/agents.md` | `docs/agents.md` | Modificado | Tabla de personas (sin `web-performance-auditor`, con `finding-verifier`); ejemplos con `/review-prepush` y `/review-pr`; ejemplo de fan-out con paso de verificación; nombres con namespace en modo plugin. |
 | `docs/review/orchestration-patterns.md` | `references/orchestration-patterns.md` | Sin cambios | Solo cabecera. Movido a `docs/` (documentación, no se usa en ejecución). |
 

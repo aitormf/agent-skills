@@ -8,7 +8,7 @@ Borra las secciones que no apliquen; no dejes casillas marcadas sin haberlas com
 
 <!-- 2-5 frases. El "por qué" importa más que el "qué": el diff ya muestra el qué. -->
 
-Relacionado con: #<issue> · Spec: `docs/specs/<feature>.md` · ADR: `docs/adr/<NNNN>-<titulo>.md`
+Closes #<issue> · Cambio: `docs/changes/<rama>/` · Decisión: `docs/decisions/<NNNN>-<titulo>.md`
 
 ## Tipo de cambio
 
@@ -28,14 +28,14 @@ Relacionado con: #<issue> · Spec: `docs/specs/<feature>.md` · ADR: `docs/adr/<
 
 ## Revisión de principios
 
-- [ ] No incumple ningún principio innegociable de `docs/ARCHITECTURE.md` (o se justifica aquí / en un ADR)
+- [ ] No incumple ningún principio innegociable de `docs/ARCHITECTURE.md` (o se justifica aquí / en una decisión)
 - [ ] No se elimina ni debilita ningún test (o se explica por qué)
 - [ ] Sin dependencias nuevas (o justificadas abajo: qué aportan, mantenimiento, licencia)
 - [ ] Sin secretos, datos personales ni credenciales
 
 ## Documentación
 
-- [ ] Actualizada en esta misma PR si aplica: `README.md` · `docs/ARCHITECTURE.md` · ADR · `AGENTS.md` · `.env.example`
+- [ ] Actualizada en esta misma PR si aplica: `README.md` · `docs/ARCHITECTURE.md` · `docs/decisions/` · `AGENTS.md` · `.env.example`
 - [ ] No aplica
 
 ## Uso de IA

@@ -1,17 +1,17 @@
 ---
 name: sdd-next
-description: Tells where a work item in docs/specs/ stands and what the next step is, by looking at which artifacts exist and their status; with no arguments, summarizes all work items. Read-only, never changes status. Use it when asked "what now?", "where is X at?", "which specs are open?" or for the status of the specs.
+description: Tells where a change in docs/changes/ stands and what the next step is, by looking at which artifacts exist and their status; with no arguments, summarizes all work items. Read-only, never changes status. Use it when asked "what now?", "where is X at?", "which changes are open?" or for the status of the specs.
 ---
 
 # SDD next step
 
 Infer the state of each work item from its artifacts. There is no central backlog or state machine: the source of truth is the files and their frontmatter. **You only read**: you never change `status` or write artifacts, and you do not launch other skills unless the person asks.
 
-Work management (priority, owner, whether it is done) lives in the tracker. If an artifact has `issue:`, show it, but do not look it up.
+Work management (priority, owner) lives in the tracker. If `tasks.md` has `issue:`, show it, but do not look it up.
 
 ## How to infer the next step
 
-For `docs/specs/<work-item>/`, apply the first row that matches:
+For `docs/changes/<change>/`, apply the first row that matches:
 
 | Situation | Next step |
 |---|---|
@@ -23,7 +23,7 @@ For `docs/specs/<work-item>/`, apply the first row that matches:
 | `plan.md` in `draft` | Review it (`review-spec`) or have the person approve it |
 | Plan approved (or spec approved for a small change), no `tasks.md` | Split into tasks: `plan-to-tasks` |
 | `tasks.md` with unchecked boxes | Implement: `implement` agent (say how many are left) |
-| All boxes checked | Review the code against the spec (`review-prepush`) and open the PR (`review-pr`) |
+| All boxes checked (`status: done`) | Review the code against the spec (`review-prepush`) and open the PR (`review-pr`) |
 | `status: obsolete` | Nothing. Say what replaces it, if stated |
 
 A review has "undecided findings" if any of them has no `apply-review` decision noted below it.
@@ -40,4 +40,4 @@ Besides the next step, warn if:
 
 **One work item:** directory, artifacts with their status, task progress (`5/8`), next step and warnings.
 
-**All** (no argument): a table sorted by date, most recent first. Columns: work item, spec, plan, tasks, next step and warning. Finished and obsolete items go at the end, one line each. This view is generated every time: do not save it to a file.
+**All** (no argument): a table sorted by status, then by the last commit to the folder (`git log -1 --format=%ct -- <folder>`), most recent first. Columns: work item, spec, plan, tasks, next step and warning. Finished and obsolete items go at the end, one line each. This view is generated every time: do not save it to a file.

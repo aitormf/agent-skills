@@ -376,9 +376,9 @@ git init
 - [ ] `AGENTS.md` (menos de 150 líneas, de [`assets/es/AGENTS.md`](../../skills/generate-project-context/assets/es/AGENTS.md)) + `CLAUDE.md` con `@AGENTS.md`
 - [ ] `.claude/settings.json` con permisos permitidos y algún hook útil
 - [ ] `README.md`, `CONTRIBUTING.md` (plantilla en [`assets/es/CONTRIBUTING.md`](../../skills/generate-project-context/assets/es/CONTRIBUTING.md)), `docs/ARCHITECTURE.md` (aunque sea breve) con su sección "Principios innegociables" (plantilla en [`assets/es/ARCHITECTURE.md`](../../skills/generate-project-context/assets/es/ARCHITECTURE.md))
-- [ ] `docs/adr/0000-plantilla.md` (de [`assets/es/ADR.md`](../../skills/generate-project-context/assets/es/ADR.md)), índice `docs/adr/README.md` (de [`assets/es/adr-README.md`](../../skills/generate-project-context/assets/es/adr-README.md)) y `docs/adr/0001-...` con las primeras decisiones (uv, ruff, layout, framework)
+- [ ] `docs/decisions/` con su índice `README.md` y las primeras decisiones (uv, ruff, layout, framework), de las plantillas de [`record-decision/assets/es/`](../../skills/record-decision/assets/es/) ([`docs/decisions/`](../decisions/README.md) en este repo es un ejemplo)
 - [ ] `.github/pull_request_template.md` (de [`assets/es/pull_request_template.md`](../../skills/generate-project-context/assets/es/pull_request_template.md)) y `SECURITY.md` (de [`assets/es/SECURITY.md`](../../skills/generate-project-context/assets/es/SECURITY.md))
-- [ ] `docs/specs/` y `docs/plans/` creados, con una plantilla
+- [ ] `docs/changes/` para los cambios en curso (una carpeta por rama, ver la [guía de SDD](../sdd/README.md))
 - [ ] Primer test que pasa en CI antes de escribir funcionalidad
 - [ ] Prueba de fuego (shanraisshan/claude-code-best-practice): un desarrollador nuevo abre el agente, dice "ejecuta los tests" y **funciona a la primera**
 

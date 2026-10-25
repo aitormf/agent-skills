@@ -39,7 +39,7 @@ Follow the phases in order. Do not move on until the current one is done.
 ## When to stop and ask
 
 - **Three failed fixes:** stop. Each fix revealing a new problem somewhere else usually means a design problem, not a bug. Explain what you tried and what you learned, and ask the person before trying a fourth.
-- **The bug comes from the spec:** if the behaviour follows the spec in `docs/specs/` but the spec is wrong or incomplete, the spec gets fixed first. Say so; do not change behaviour against an approved spec on your own.
+- **The bug comes from the spec:** if the behaviour follows the spec of a change in `docs/changes/` but the spec is wrong or incomplete, the spec gets fixed first. Say so; do not change behaviour against an approved spec on your own.
 - **The fix is large:** if the root cause needs a change beyond a few files, propose following the "complex bug" path of SDD (`spec.md` + `tasks.md`) instead of fixing it on the spot.
 - **The cause is outside the repository** (a dependency, the platform, an external service): document what you found, propose a workaround if there is one, and leave the decision to the person.
 
@@ -57,3 +57,4 @@ Follow the phases in order. Do not move on until the current one is done.
 - **Fix**, and why it addresses the cause and not the symptom.
 - **Regression test**, and proof that it fails without the fix.
 - **Verification**: command and result.
+- **Discarded approaches**, if any is one someone would plausibly try again ("a retry hides it", "upgrading X does not fix it"): propose recording it as `discarded` with `record-decision`. Most bugs leave no record.

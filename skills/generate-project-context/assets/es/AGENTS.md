@@ -31,14 +31,17 @@ Antes de implementar un cambio no trivial, revisa tu plan contra la sección
 
 ## Flujo de trabajo
 - Proceso de ramas, PRs y revisión: ver CONTRIBUTING.md.
-- Cambios no triviales: plan primero (en `docs/plans/` si la tarea es larga).
+- Cuánto proceso lleva cada cambio: "Cuánto proceso", más abajo.
 - TDD: escribe el test, compruébalo en ROJO, implementa y pásalo a VERDE.
 - No borres ni debilites tests para que pasen. Si un test parece incorrecto, para y pregunta.
 - Commits pequeños, Conventional Commits. Ramas `feat/…`, `fix/…`.
 
+<!-- Aquí van "Cuánto proceso" y "Glosario", de AGENTS-levels.md. -->
+
 ## Decisiones
-Antes de cambiar persistencia, límites entre módulos, auth o la API pública, consulta `docs/adr/`.
-Si tu cambio contradice un ADR aceptado, PARA y señala el conflicto.
+Antes de planificar un cambio, lee el índice `docs/decisions/README.md` y abre las decisiones cuyo `affects` cubre las rutas que vas a tocar.
+Si tu cambio contradice una decisión aceptada, PARA y señala el conflicto: se cambia con una decisión nueva que la sustituya, nunca en silencio.
+Un test que cita una decisión (`# D-0021`) la protege: no lo "arregles" sin leer esa decisión.
 
 ## Seguridad
 - Antes de tocar entradas externas, auth, SQL, ficheros, subprocess, red, criptografía,

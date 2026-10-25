@@ -21,7 +21,7 @@ How to turn a review into findings and a report. These rules sit on top of `code
   - no "add tests for code that already works" unless it is business logic with no test at all;
   - no generic hardening or best-practice advice without a concrete scenario in this change.
 - **Order by impact** within each severity: correctness and security first, then structure, then everything else.
-- **Stay on the diff.** Pre-existing problems in untouched code are out of scope unless the change makes them reachable or worse.
+- **Stay on the diff.** Pre-existing problems in untouched code are out of scope unless the change makes them reachable or worse. A caller outside the diff that the change breaks is in scope: the change made it worse.
 - **Watch for quality being lowered to make the change pass** — these are at least Required:
   - tests weakened, deleted, skipped (`skip`, `xit`, `@Ignore`, `t.Skip`) or marked flaky without reason;
   - assertions rewritten to match new (possibly wrong) output, or loosened (`toEqual` → `toBeTruthy`, exact → contains);
@@ -38,6 +38,12 @@ How to turn a review into findings and a report. These rules sit on top of `code
 | **Required** | Real defect or risk that must be fixed before merge: missing/ineffective test for new logic, wrong error handling, quality lowered (§1), non-exploitable-yet-real security weakness | Must fix before merge |
 | **Optional** | Worth considering: simpler design, refactor, a missing test for untested business logic. Capped (default 3) | Author decides |
 | **Nit** | Cosmetic. Capped (default 3) | Author may ignore |
+
+Mapping of the checks beyond the diff:
+
+- The test checks of §5: a change that needs a test and has none, or a `PROBLEM` from `task_done.py --audit` → **Required**. Never Critical on their own: a process check does not block a push.
+- A change that contradicts an accepted decision in `docs/decisions/` with no record superseding it → **Required**; Critical only if it also breaks functionality as defined above.
+- A caller outside the diff broken by the change → the scale above, like any bug: Critical when it breaks on a realistic path.
 
 Mapping from `security-auditor`'s scale: Critical → Critical; High → Required; Medium → Required if exploitable in this codebase as deployed, else Optional; Low/Info → drop unless the repo's `Code review` section in AGENTS.md asks for them.
 
@@ -93,3 +99,12 @@ All reviews use this structure, in this order. Headings and field labels are alw
 - Findings refuted by the verifier: <N> (<one line each: ID — reason>)
 - Optional/Nit findings dropped by the limit (Max Optional=<n>, Max Nits=<n>): <N> (ID, title and impact/cost, one line each)
 ```
+
+## 5. Test checks
+
+Who applies them: `test-engineer` when it runs (`review-pr` tiers 1–2); otherwise the `code-reviewer`, when it is the only persona (`review-prepush`, `review-pr` tier 0). The review command says which. One owner, so the same finding is not reported twice.
+
+**When a change needs a test.** It needs one if it adds or changes a branch, a loop, a parser or format conversion, money, security or permissions, a data write, or if it fixes a bug (a regression test that fails without the fix). Docs, comments, configuration values and renames covered by existing tests do not; neither does a refactor whose behaviour existing tests already cover, as long as they stay green unchanged. "It is a small change" is not an exception: small changes break too. If in doubt, it needs a test.
+
+- A change that needs a test and has none that would fail without it is a missing test for new logic: **Required**. Do not report missing tests for changes the criterion exempts.
+- **Test protection of the task list.** When the command passes the output of `task_done.py --audit` (from the `task-done` skill), turn each `PROBLEM` line into one finding, **Required**, `Source: verification`: a ticked task without its red commit (`test(T3): …`), an example of the task list without a test named after it, a red-commit test changed or removed later (quality lowered, §1), a map example in no task. Locate it at the test file or the task line. Do not redo the check by hand, and do not report `pending` tasks: they are work not done yet. If the audit did not run, or could not read the git history of the branch (`PROBLEM: cannot read the git history…`, e.g. no base branch), do not guess and do not turn it into a finding: it is listed under Verification.

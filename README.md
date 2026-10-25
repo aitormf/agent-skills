@@ -10,7 +10,7 @@ docs/arnes/ Guías del arnés: el porqué de cada pieza. El código y las planti
 docs/sdd/   Guía de uso de SDD
 docs/review/ Guía de code review y material de Addy (UPSTREAM.md)
 scripts/    check.sh, generador de agentes y tests
-tests/      Sandbox con bugs plantados para probar la review
+tests/      Sandbox con bugs plantados para probar la review y suite de activación de skills
 ```
 
 ## Instalar
@@ -25,6 +25,8 @@ El repositorio es privado: se instala por SSH y solo funciona para quien tenga a
 | pi | Paquete de pi | — (pi no tiene subagentes) |
 
 Sin los agentes, el flujo funciona igual: la revisión y la implementación se hacen en la sesión principal, pero sin contexto limpio.
+
+¿El proyecto ya usaba la v1? Sigue [Actualizar un repositorio a la v2](docs/actualizar-a-v2.md).
 
 ### Claude Code
 
@@ -109,8 +111,33 @@ Copia las skills a `.agents/skills/`, enlaza `.claude/skills/` y registra las ve
 
 | Skill | Qué hace |
 |---|---|
-| [`generate-project-context`](skills/generate-project-context/SKILL.md) | Entrevista para crear AGENTS.md, ARCHITECTURE.md (con principios innegociables), CONTRIBUTING.md, ADRs y SECURITY.md. Sustituye a la constitución de Spec Kit |
+| [`generate-project-context`](skills/generate-project-context/SKILL.md) | Entrevista para crear AGENTS.md, ARCHITECTURE.md (con principios innegociables), CONTRIBUTING.md, el registro de decisiones (`docs/decisions/`) y SECURITY.md. Sustituye a la constitución de Spec Kit; en proyectos con `docs/adr/`, ofrece moverlos |
 | [`setup-guardrails-python`](skills/setup-guardrails-python/SKILL.md) | Instala los guardrails deterministas de un repo Python: check.sh, pre-commit, CI, seguridad, y permisos y hooks de Claude Code |
+
+### Flujo por defecto: de la idea al cambio
+
+Cuánto proceso lleva cada cambio lo dice la tabla de niveles que `generate-project-context` añade al `AGENTS.md` de cada proyecto ([`AGENTS-levels.md`](skills/generate-project-context/assets/es/AGENTS-levels.md)). Para una feature normal (nivel B), el camino es este:
+
+| Skill / agente | Qué hace |
+|---|---|
+| [`idea-to-change`](skills/idea-to-change/SKILL.md) | De idea (o de un issue de GitHub) a un cambio listo para implementar, en `docs/changes/<rama>/tasks.md` y en su propia rama: nota (problema, plazo máximo, fuera de alcance), mapa de ejemplos (reglas, ejemplos, preguntas) y tareas en rebanadas verticales que nombran sus tests. Las decisiones van a `docs/decisions/` en `proposed`. Una sola parada: la persona revisa el mapa y las decisiones en el fichero, no en el chat. El texto de un issue se trata como entrada no fiable |
+| agente [`implement`](agents/implement.md) | Implementa las tareas de `docs/changes/<rama>/tasks.md`: commit de tests en rojo, un test cada vez, `task-done` |
+| [`task-done`](skills/task-done/SKILL.md) | Marca la tarea en `tasks.md` solo si su verificación pasa y sus tests en rojo siguen intactos en los commits de la rama; con la última, pone `status: done` |
+
+```
+idea-to-change → rama + docs/changes/<rama>/tasks.md → ★ persona: mapa de ejemplos y decisiones
+  → tareas y commit → implement → review-prepush → PR (Closes #<n> si partió de un issue) → review-pr
+```
+
+Si hay diseño de verdad que decidir, el nivel siguiente es el SDD (más abajo).
+
+### Decisiones
+
+| Skill | Qué hace |
+|---|---|
+| [`record-decision`](skills/record-decision/SKILL.md) | Registra en `docs/decisions/` las decisiones que deben sobrevivir al trabajo en curso: arquitectura, reglas de negocio y enfoques descartados. Las redacta en `proposed`; solo una persona las pasa a `accepted`. Mantiene el índice, gestiona la sustitución y migra `docs/adr/`. `check_decisions.py` valida el directorio |
+
+Los agentes leen solo el índice y abren las decisiones cuyo `affects` cubre lo que van a tocar. Una decisión aceptada no se edita: se escribe otra que la sustituye.
 
 ### Spec-Driven Development
 
@@ -124,7 +151,7 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 | [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
 | [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a `tasks.md`, con la verificación de cada tarea |
 | agente [`implement`](agents/implement.md) | Implementa las tareas, marca `[x]` y termina con el comando de verificación en verde |
-| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa. La usa `implement` |
+| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. La usa `implement` |
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 | [`sdd-decisions`](skills/sdd-decisions/SKILL.md) | Interna: qué es una decisión de la persona (se pregunta) y qué un supuesto o arreglo con respuesta por defecto (se propone por escrito) |
 
@@ -136,9 +163,9 @@ idea-to-spec → [review-spec → apply-review] → persona: status: approved
 
 Convenciones de SDD:
 
-- Cada trabajo vive en `docs/specs/<AAAAMMDD>-<tipo>-<nombre>/` (`spec.md`, `plan.md`, `tasks.md` y las revisiones).
+- Cada cambio vive en `docs/changes/<rama>/`, con el último tramo del nombre de la rama (`feat/42-cancelar-viaje` → `docs/changes/42-cancelar-viaje/`): `tasks.md` (el mismo formato que en el nivel B), `spec.md`, `plan.md` y las revisiones. Subir del nivel B al SDD es añadir ficheros a la carpeta.
 - `spec.md` y `plan.md` llevan `status: draft | approved | obsolete` en el frontmatter. **Solo una persona pone `approved`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación.
-- No hay backlog central. La gestión del trabajo (prioridad, responsable, hecho) vive en el tracker; la spec puede enlazarlo con `issue:`.
+- No hay backlog central: el tablero es la carpeta (`grep -l "status: open" docs/changes/*/tasks.md`). La prioridad y el responsable viven en el tracker; `tasks.md` enlaza su issue con `issue:`, y la PR lo cierra.
 - El contrato con los guardrails es el comando de verificación de la sección `Commands` (o `Comandos`) de `AGENTS.md`.
 
 ### Depuración
@@ -155,20 +182,23 @@ Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agen
 
 | Skill / agente | Qué hace |
 |---|---|
-| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
+| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Comprueba además que cada ejemplo de `tasks.md` tiene su test y que los tests en rojo no cambiaron (`task-done --audit`), los choques con decisiones aceptadas y los llamadores fuera del diff. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
 | [`review-pr`](skills/review-pr/SKILL.md) | Review de una PR según su riesgo: tres personas en paralelo, verificador y revisión de la descripción. Nunca aprueba. Incluye la GitHub Action |
 | [`code-review-and-quality`](skills/code-review-and-quality/SKILL.md) | Review de cinco ejes en la sesión actual (Addy) |
 | [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |
 | agentes [`code-reviewer`](agents/code-reviewer.md), [`security-auditor`](agents/security-auditor.md), [`test-engineer`](agents/test-engineer.md), [`finding-verifier`](agents/finding-verifier.md) | Las personas que lanzan `review-prepush` y `review-pr` |
 
-Si el cambio pertenece a una spec de `docs/specs/`, la review comprueba el código contra ella: criterios de aceptación con test, nada fuera de alcance, tareas `[x]` hechas de verdad.
+Si la rama tiene su carpeta en `docs/changes/`, la review comprueba el código contra ella: ejemplos y criterios de aceptación con test, nada fuera de alcance, tareas `[x]` hechas de verdad. Ni la review ni el hook ni la Action leen issues ni usan `gh` para las tareas.
 
 ## Desarrollo
 
 ```bash
-scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos y task-done (rápido, sin red)
+scripts/check.sh                    # agentes generados al día, frontmatter, manifiestos, task-done y check_decisions (rápido, sin red)
 scripts/test-guardrails-python.sh   # smoke test de setup-guardrails-python (requiere uv, jq y red)
+tests/evals/triggering/run.py       # suite de activación: ¿cada petición real invoca la skill esperada? (requiere claude y red)
 ```
+
+- **Al crear, renombrar o cambiar la `description` de una skill**, añade o ajusta sus frases en `tests/evals/triggering/cases.tsv` (una por línea: `<skill>⇥<petición>`, mejor en español) y pasa la suite. Cada caso se ejecuta con `claude -p --plugin-dir .` en un directorio vacío y sin herramientas que escriban; cuenta la primera skill invocada. Opciones: `--only <skill>`, `--runs N` para ver la variación, `--model`, y `--save` para guardar el resultado con fecha en `results/`.
 
 - **Al cambiar `agents/*.md`**, ejecuta `scripts/build-agents.py` y haz commit de `adapters/`. `check.sh` falla si se te olvida.
 - **Al publicar cambios**, sube `version` en `.claude-plugin/plugin.json` y en `.codex-plugin/plugin.json`, que deben coincidir. Claude Code y Codex solo actualizan cuando cambia la versión.

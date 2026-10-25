@@ -55,7 +55,9 @@ fi
 # Read-only by design: no Edit/Write. Bash stays allowed because the repo's own check
 # commands (declared in AGENTS.md) are arbitrary; the prompt forbids state-changing
 # commands, and the deny list below plus the repo's .claude/settings.json deny rules
-# are enforced by Claude Code regardless of the prompt.
+# are enforced by Claude Code regardless of the prompt. Bash(gh:*) is only a prefix rule
+# (/usr/bin/gh or `bash -c 'gh …'` get past it): the real control is that claude runs
+# with no GitHub credentials (no token variables, an empty gh config directory).
 allowed="${REVIEW_KIT_ALLOWED_TOOLS:-Read,Grep,Glob,Agent,Bash}"
 denied="Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(git reset:*),Bash(git checkout:*),Bash(git switch:*),Bash(git rebase:*),Bash(git merge:*),Bash(git stash:*),Bash(git clean:*),Bash(rm:*),Bash(gh:*)"
 
@@ -64,6 +66,10 @@ mkdir -p "$out_dir"
 report="$out_dir/last-prepush.md"
 
 echo "review-kit: running $cmd (Ctrl+C or SKIP_CLAUDE_REVIEW=1 to skip)…" >&2
+
+gh_config=$(mktemp -d) || fail "could not create an empty gh config directory."
+trap 'rm -rf "$gh_config"' EXIT
+no_github=(env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u GITHUB_ENTERPRISE_TOKEN GH_CONFIG_DIR="$gh_config")
 
 args=(-p "$cmd" --output-format text --allowedTools "$allowed" --disallowedTools "$denied")
 [ -n "${REVIEW_KIT_MODEL:-}" ] && args+=(--model "$REVIEW_KIT_MODEL")
@@ -74,7 +80,7 @@ for t in timeout gtimeout; do   # gtimeout: macOS with coreutils
 done
 # </dev/null: the hook's stdin holds the ref list; claude -p would read it as prompt input.
 # ${runner[@]+...}: empty-array safe under `set -u` on macOS's bash 3.2.
-${runner[@]+"${runner[@]}"} claude "${args[@]}" </dev/null >"$report" 2>&1
+${runner[@]+"${runner[@]}"} "${no_github[@]}" claude "${args[@]}" </dev/null >"$report" 2>&1
 status=$?
 
 cat "$report"

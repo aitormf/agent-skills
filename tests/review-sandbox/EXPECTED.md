@@ -10,11 +10,12 @@ Tarea declarada en el commit de la rama `feature/orders-pagination-invoices`:
 
 | # | Tipo | Dónde | Qué | Severidad esperada |
 |---|------|-------|-----|--------------------|
-| B1 | Lógica | `src/orders.js` (`pageOrders`) | `start = page * pageSize` con páginas 1-indexadas: `page=1` devuelve los pedidos 11–20 y se salta el primer bloque; la última página sale vacía. Corrección: `(page - 1) * pageSize`. | Critical |
+| B1 | Lógica | `src/orders.js` (`pageOrders`) | `start = page * pageSize` con páginas 1-indexadas: `page=1` devuelve los elementos 11–20 de la lista y se salta el primer bloque; la última página sale vacía. Corrección: `(page - 1) * pageSize`. | Critical |
 | B2 | Test inútil | `test/orders.test.js` ("pageOrders returns a page of orders") | Solo comprueba que `items` es un array de ≤10 elementos y el total; pasa con B1. Debería comprobar los ids concretos de la página 1 (1–10) y la última página. | Required |
 | B3 | Seguridad | `src/invoices.js` (`readInvoice`) + `src/server.js` (`/invoices`) | Path traversal: `?file=../../package.json` (o `../../../../etc/passwd`) lee cualquier fichero accesible. Corrección: validar `file` contra un patrón (`^[\w-]+\.pdf$`) y/o comprobar que `path.resolve` queda dentro de `INVOICES_DIR`. | Critical |
 | B4 | Restos | `src/orders.js` | `console.log('DEBUG pageOrders', …)` en cada petición. | Required (o Optional) |
 | B5 | Restos | `src/invoices.js` | `// TODO: cache invoices in memory` sin ticket. | Nit / Optional |
+| B6 | Llamador fuera del diff | `src/stats.js` (`firstOrder`), fichero que la rama no toca | `listOrders()` pasa a devolver los pedidos más recientes primero; `firstOrder()` sigue tomando `listOrders()[0]` como el pedido más antiguo y ahora devuelve el más reciente (el panel muestra mal «cliente desde»). Solo se ve buscando los llamadores de `listOrders`. Corrección: ordenar en `pageOrders`/el endpoint, o que `firstOrder` no dependa del orden. | Critical o Required |
 
 ## Señuelos (NO deberían sobrevivir como hallazgos)
 

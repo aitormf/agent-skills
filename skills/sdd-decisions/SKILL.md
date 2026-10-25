@@ -1,6 +1,6 @@
 ---
 name: sdd-decisions
-description: Shared criterion of the SDD skills (idea-to-spec, spec-to-plan, plan-to-tasks, review-spec, apply-review) — what is a decision for the person, to be asked, and what is a fix or an assumption with a clear default, to be proposed and written down. Also the question format with a recommended option. Load it whenever one of those skills asks the person something or classifies a review finding.
+description: Shared criterion of idea-to-change, of the SDD skills (idea-to-spec, spec-to-plan, plan-to-tasks, review-spec, apply-review) and of record-decision — what is a decision for the person, to be asked, and what is a fix or an assumption with a clear default, to be proposed and written down; and which decisions are recorded in docs/decisions/. Also the question format with a recommended option. Load it whenever one of those skills asks the person something or classifies a review finding.
 user-invocable: false
 ---
 
@@ -25,6 +25,14 @@ Everything else has a **clear default**: a reversible detail where one option is
 If in doubt, it is a decision. If a decision is already taken in an approved artifact (the spec for the plan; the spec and plan for the tasks), it is not asked again.
 
 **This is not assuming silently.** An assumption is written in the artifact, in sight; the person or a review can change it. What is never allowed is an assumption nobody can see.
+
+## What is recorded
+
+Once the person has answered, a decision that **outlives the current work** is recorded in `docs/decisions/` with `record-decision`: a later change could contradict it, or someone could propose the discarded option again. It is an architecture choice, a business rule with its edge, or an approach that was tried and discarded.
+
+Assumptions are never recorded there: they stay in the artifact where they were written. Neither are decisions that only matter until the work item is closed (the wording of one message, the order of two tasks).
+
+Draft the records as `proposed` once the planning is done (the spec and plan are drafted, or the example map is settled), and show them together with that artifact: accepting them is part of the same review, not an extra stop.
 
 ## How to ask
 
