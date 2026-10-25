@@ -2,7 +2,7 @@
 id: D-0027
 title: En CI, lo que protege el job de review es que no tiene token; bloquear gh es defensa en profundidad
 type: architecture
-status: proposed
+status: accepted
 date: 2026-10-25
 affects: [skills/review-pr/]
 supersedes: null
