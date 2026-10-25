@@ -21,7 +21,7 @@ La contradicción entre la guía («el código manda») y el SDD actual («la sp
 |---|---|---|---|
 | **Qué hace** el sistema | Tests (y tests de arquitectura) | Mientras exista el código | Avisan cuando el código se desfasa; una spec no |
 | **Por qué** se decidió así | `docs/decisions/NNNN-*.md` + índice | Permanente; no se editan, se sustituyen | Registran lo que se pensó en un momento; si cambia, queda escrito que cambió |
-| **Qué vamos a hacer y en qué pasos** | Issue de GitHub (nota, mapa de ejemplos, tareas) | Hasta cerrar el issue | Solo sirve mientras se trabaja; el issue da el tablero Kanban sin hacer nada más |
+| **Qué vamos a hacer y en qué pasos** | `docs/changes/<rama>/tasks.md` (nota, mapa de ejemplos, tareas); antes, un issue de GitHub (ver §13) | Hasta terminar el trabajo | Solo sirve mientras se trabaja; pasa por commit y PR como el código |
 
 `spec.md` y `plan.md` siguen existiendo en el nivel SDD, pero como **documentos de trabajo**: al terminar, sus decisiones se pasan a `docs/decisions/` y la spec se marca `obsolete` o se archiva. Nadie la mantiene al día.
 
@@ -229,6 +229,7 @@ Cada fase deja el repo usable. Las fases 1 y 2 aportan valor aunque no se haga e
 | 2 | #18 + #11 en `implement`, commit en rojo y comprobación en `task-done` | La protección de los tests es la base del nivel B |
 | 3 | `idea-to-issue`, `task-done` sobre issues, snippet de niveles en `AGENTS.md` | El flujo por defecto; depende de 1 y 2 |
 | 4 | Comprobaciones nuevas en la review y #10 | Cierra el círculo: ejemplos, tests intactos y decisiones |
+| 4b | Cambios en `docs/changes/` y arreglos de la review de la PR #20 (§13) | Las fases 3 y 4 hacían leer y ejecutar a los agentes texto de cualquiera |
 | 5 | Adelgazar el SDD (#13, #15, cierre con decisiones), retirar `sdd-next`, documentación y versión del plugin | Con el flujo nuevo probado, el SDD queda como último nivel |
 | Backlog | #8, #7, #9, ideas restantes del plan de mejoras | Sin evidencia de que hagan falta todavía |
 
@@ -266,3 +267,44 @@ Resueltas el 2026-10-24.
 2. **Cómo se reconoce un issue de trabajo:** sin etiqueta. `task-done` y la review usan el issue que se les pasa o el enlazado en la rama, y buscan el checklist `- [ ] T1.`. Si más adelante algo necesita listar trabajos, se añade una etiqueta entonces.
 3. **Nombres:** `idea-to-issue` (paralelo a `idea-to-spec`: dice qué produce) y `record-decision`. Las skills y los agentes se escriben siempre en inglés, también la `description`; la suite de activación de la fase 0 comprueba que las peticiones en español las activan igual.
 4. **Migración de `docs/adr/`:** `generate-project-context` ofrece moverlos en modo brownfield; si la persona no quiere, conviven y el índice los enlaza.
+
+## 13. Cambio tras la review de la PR #20
+
+La review de la PR #20 encontró que el diseño de las fases 3 y 4 hace que los agentes lean y ejecuten texto que puede haber escrito cualquiera:
+
+- **R1:** el job de review de CI lee el cuerpo del issue con Bash y la clave de la API en el entorno.
+- **R2:** el hook pre-push dejaba usar `gh` para leer el issue, y la lista de bloqueos se podía saltar (`gh pr -R o/r merge`).
+- **R3:** `implement` ejecuta el comando `verificación:` escrito en el issue.
+
+La inyección de prompts no se filtra de forma fiable. La defensa es controlar quién escribe el texto que lee el agente y qué puede hacer después. Por eso el cambio en curso vuelve al repo, y de paso el nivel B y el SDD comparten sitio:
+
+```
+docs/changes/42-cancelar-viaje/
+  tasks.md     # todos los niveles: nota, mapa de ejemplos, tareas; status e issue en el frontmatter
+  spec.md      # solo nivel C
+  plan.md      # solo nivel C
+```
+
+| Decisión | Qué cambia |
+|---|---|
+| [D-0021](decisions/0021-cambios-en-curso-en-docs-changes.md) (sustituye a D-0004) | Cada cambio es `docs/changes/<rama>/`, para todos los niveles; `docs/specs/` desaparece. Los issues son solo la entrada de ideas |
+| [D-0022](decisions/0022-cambio-por-el-nombre-de-la-rama.md) (sustituye a D-0013) | `task-done` y la review encuentran el cambio por el nombre de la rama |
+| [D-0023](decisions/0023-texto-de-fuera-del-repo-es-entrada-no-fiable.md) | El texto que no ha pasado por un commit es entrada no fiable; una persona lo aprueba antes de que un agente actúe |
+| [D-0024](decisions/0024-tests-en-rojo-acotados-a-la-rama.md) (sustituye a D-0012) | Los tests en rojo se protegen en los commits de la rama desde la rama base, sin eximir a ningún commit (arregla R4 y R5) |
+
+D-0008, D-0014 y D-0015 quedan `obsolete`: ya no hay issue que reconocer, D-0024 absorbe el acotado de D-0014, y no hace falta plan B sin `gh`.
+
+**Fase 4b:**
+
+1. `idea-to-issue` pasa a escribir `docs/changes/<rama>/tasks.md` y crear la rama; puede partir de un issue, con el aviso de D-0023. Se renombra a `idea-to-change` (suite de activación, manifiestos, README y guía incluidos).
+2. `task_done.py`: fuera el modo issue, `gh` y el exit 4. Cambio por la rama (D-0022) y protección según D-0024. `status: done` al marcar la última tarea.
+3. Skills del SDD (`idea-to-spec`, `spec-to-plan`, `plan-to-tasks`, `review-spec`, `apply-review`, `debug-root-cause`) y `docs/sdd/README.md`: rutas a `docs/changes/<rama>/`. `plan-to-tasks` escribe el mismo formato de tareas que el nivel B.
+4. `implement`, `review-context`, `review-prepush`, `review-pr` y `review-report` leen `docs/changes/<rama>/`, no el issue ni `docs/specs/`.
+5. Hook `pre-push`: vuelve a bloquear `Bash(gh:*)` entero. `claude-review.yml`: sin `issues: read`.
+6. Arreglos de la review que siguen valiendo:
+   - **R6:** el índice puede enlazar `../adr/` y `--next` no reutiliza números de ADR.
+   - **R7 y R8:** los tests que faltan de `--audit` y `check_decisions.py`.
+   - **O1:** el exit 3 sin línea `PROBLEM`.
+   - **N1:** el enlace roto.
+   - **N2:** la descripción de la PR.
+7. `docs/actualizar-a-v2.md` (con `git mv docs/specs/<trabajo> docs/changes/<rama>`), `README.md` y las plantillas de `generate-project-context`.

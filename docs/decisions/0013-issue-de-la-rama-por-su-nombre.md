@@ -2,11 +2,11 @@
 id: D-0013
 title: task-done encuentra el issue de la rama por el número con que empieza su nombre
 type: architecture
-status: accepted
+status: superseded
 date: 2026-10-24
 affects: [skills/task-done/, skills/idea-to-issue/, agents/implement.md]
 supersedes: null
-superseded_by: null
+superseded_by: D-0022
 issue: null
 ---
 

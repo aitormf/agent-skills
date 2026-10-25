@@ -2,11 +2,11 @@
 id: D-0012
 title: Los tests en rojo se protegen con un commit test(Tn) y task-done comprueba líneas, no ficheros
 type: architecture
-status: accepted
+status: superseded
 date: 2026-10-24
 affects: [skills/task-done/, agents/implement.md]
 supersedes: null
-superseded_by: null
+superseded_by: D-0024
 issue: "#18"
 ---
 

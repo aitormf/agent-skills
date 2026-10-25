@@ -2,7 +2,7 @@
 id: D-0015
 title: Sin gh o sin red, idea-to-issue escribe el cuerpo del issue en docs/specs/<trabajo>/tasks.md
 type: architecture
-status: accepted
+status: obsolete
 date: 2026-10-24
 affects: [skills/idea-to-issue/, skills/task-done/]
 supersedes: null
@@ -13,6 +13,8 @@ issue: null
 # D-0015: Sin gh o sin red, idea-to-issue escribe el cuerpo del issue en docs/specs/<trabajo>/tasks.md
 
 ## Contexto
+
+Obsoleta desde el 2026-10-25: con D-0021 las tareas siempre viven en el repo; ya no hace falta un plan B sin gh.
 
 El flujo por defecto vive en un issue (D-0004), pero `gh` puede no estar instalado, sin sesión o sin red (plan-v2, sección 10).
 

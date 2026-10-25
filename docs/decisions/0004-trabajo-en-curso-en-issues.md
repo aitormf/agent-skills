@@ -2,11 +2,11 @@
 id: D-0004
 title: El trabajo en curso (nota, mapa, tareas) vive en un issue de GitHub
 type: architecture
-status: accepted
+status: superseded
 date: 2026-10-24
 affects: [skills/task-done/, skills/idea-to-issue/]
 supersedes: null
-superseded_by: null
+superseded_by: D-0021
 issue: null
 ---
 

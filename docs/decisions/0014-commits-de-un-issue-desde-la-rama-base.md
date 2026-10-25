@@ -2,7 +2,7 @@
 id: D-0014
 title: Para una tarea de un issue, el commit en rojo se busca en la rama desde la rama base
 type: architecture
-status: accepted
+status: obsolete
 date: 2026-10-24
 affects: [skills/task-done/]
 supersedes: null
@@ -13,6 +13,8 @@ issue: null
 # D-0014: Para una tarea de un issue, el commit en rojo se busca en la rama desde la rama base
 
 ## Contexto
+
+Obsoleta desde el 2026-10-25: D-0024 aplica el acotado desde la rama base a todos los cambios, ya no solo a los issues.
 
 Los IDs `T<n>` se repiten entre trabajos. Con `tasks.md`, `task-done` mira solo los commits desde que se añadió el fichero (D-0012); un issue no está en git y no marca ese inicio.
 
