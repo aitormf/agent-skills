@@ -9,10 +9,11 @@ A task is marked `[x]` by a script, not by hand: the script runs the task's veri
 
 The checklist is the `- [ ] T1.` lines of `docs/changes/<branch>/tasks.md`, the folder named after the last segment of the current branch (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/tasks.md`). That is the default; another path can be passed. The script reads only files and git: no `gh`, no network. When it ticks the last task, it sets `status: done` in the frontmatter of `tasks.md`.
 
-If the task lists its examples (`- [ ] T3. <task> — tests: E1, E2 — verification: …`), the script first checks the test protection in git, among the commits of the current branch that are not in the base branch (`origin/HEAD`, else `origin/main`, `origin/master`, `main` or `master`). One branch, one change: task and example IDs repeat across changes, so older commits do not count. It checks that:
+If the task lists its examples (`- [ ] T3. <task> — tests: E1, E2 — verification: …`) or already has a red commit, the script first checks the test protection in git, among the commits of the current branch that are not in the base branch (`origin/HEAD`, else `origin/main`, `origin/master`, `main` or `master`). One branch, one change: task and example IDs repeat across changes, so older commits do not count. It checks that:
 
 - there is a red commit whose subject starts with `test(T3):`, made before the implementation;
 - the red commit adds a line naming each example (`test_E1_…`, `it("E1 …")`), so every example has its test;
+- `tasks.md` still declares the examples the task declared at its red commit: dropping one is a change of behaviour for the person, and does not turn the protection off;
 - no later commit (the red commits of other tasks and merge commits included) and no uncommitted change removes or changes a non-blank line the red commits added. Lines are followed by identity (`git blame`), not by text: changing the other lines of those files, even one with the same text, adding new tests, and renaming the whole file are allowed; moving the lines elsewhere is not.
 
 `review-prepush` runs the same check over the whole checklist, read-only: `task_done.py --audit [docs/changes/<branch>/tasks.md]`. It runs no verification and ticks nothing; it checks every task that is ticked or has a red commit (committed history only) and that every example of the map (`E1: …` lines) is in some task's `tests:`, and reports unticked tasks without a red commit as pending. Exit 0 if nothing is wrong, 3 if something is (`PROBLEM` lines), 2 if it cannot read the checklist.

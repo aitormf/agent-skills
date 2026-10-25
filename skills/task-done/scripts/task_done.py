@@ -94,8 +94,9 @@ def declared_examples(block: str) -> list[str]:
 
 def git(root: Path, *args: str) -> str:
     # core.quotePath=false: paths with non-ASCII characters (test_canción.py) come out as they are.
+    # log.showSignature=false: signature checks must not mix into the output that is parsed.
     result = subprocess.run(
-        ["git", "-c", "core.quotePath=false", "-C", str(root), *args],
+        ["git", "-c", "core.quotePath=false", "-c", "log.showSignature=false", "-C", str(root), *args],
         capture_output=True,
         encoding="utf-8",
         errors="surrogateescape",
@@ -168,13 +169,37 @@ def branch_commits(path: Path) -> tuple[Path, str, list[tuple[str, list[str], st
     return root, base, commits
 
 
+def has_red(commits: list[tuple[str, list[str], str]], task_id: str) -> bool:
+    return any((m := RED_SUBJECT.match(subject)) and m.group(1) == task_id for _, _, subject in commits)
+
+
 def check_protection(path: Path, task_id: str, examples: list[str]) -> list[str]:
-    """Problems with the red commit of task_id; an empty list if its tests are protected."""
+    """Problems with the red commit of task_id; an empty list if its tests are protected.
+
+    A task with no examples and no red commit has nothing to protect. One with a red commit is
+    always checked, even if its examples were removed from tasks.md afterwards.
+    """
     try:
         root, base, commits = branch_commits(path)
-        return protection_problems(root, base, commits, task_id, examples)
+        if not examples and not has_red(commits, task_id):
+            return []
+        return protection_problems(root, base, commits, task_id, examples, tasks=path)
     except (OSError, RuntimeError, ValueError) as error:
+        if not examples:
+            return []
         return [f"PROBLEM: cannot read the git history of the branch: {error}"]
+
+
+def examples_at(root: Path, sha: str, tasks: Path, task_id: str) -> list[str]:
+    """The examples task_id declared in tasks.md as it was at commit sha; [] if it was not there."""
+    try:
+        rel = tasks.resolve().relative_to(root).as_posix()
+        lines = git(root, "show", f"{sha}:{rel}").splitlines()
+    except (RuntimeError, ValueError):
+        return []
+    pattern = task_pattern(task_id)
+    found = [i for i, line in enumerate(lines) if pattern.match(line)]
+    return declared_examples(task_block(lines, found[0])) if len(found) == 1 else []
 
 
 def blamed(root: Path, rev: str | None, path: str, red: str) -> dict[int, str]:
@@ -233,8 +258,13 @@ def protection_problems(
     task_id: str,
     examples: list[str],
     worktree: bool = True,
+    tasks: Path | None = None,
 ) -> list[str]:
-    """commits: (sha, parents, subject) of the branch, parents first. worktree: also check the uncommitted changes."""
+    """commits: (sha, parents, subject) of the branch, parents first. worktree: also check the uncommitted changes.
+
+    tasks: the tasks.md file; the examples the task declared there at its red commits stay protected
+    even if tasks.md no longer declares them.
+    """
     red = [sha for sha, _, subject in commits if (m := RED_SUBJECT.match(subject)) and m.group(1) == task_id]
     if not red:
         return [
@@ -245,6 +275,15 @@ def protection_problems(
         ]
 
     problems: list[str] = []
+    if tasks is not None:
+        earlier = list(dict.fromkeys(e for sha in red for e in examples_at(root, sha, tasks, task_id)))
+        dropped = [e for e in earlier if e not in examples]
+        if dropped:
+            problems.append(
+                f"tasks.md no longer declares {', '.join(dropped)} for {task_id}, but it did at the red commit: "
+                "removing an example is a change of behaviour for the person to decide"
+            )
+        examples = list(dict.fromkeys(examples + earlier))
     # The lines each red commit added, per (red commit, file), by their number in the red commit's version.
     added: dict[tuple[str, str], dict[int, str]] = {}
     for sha in red:
@@ -359,20 +398,21 @@ def audit(path: Path) -> int:
         examples = declared_examples(task_block(lines, i))
         assigned.update(examples)
         mark = "[x]" if ticked else "[ ]"
-        if not examples:
+        if not examples and task_id not in with_red:
             print(f"{task_id} {mark}: no examples declared")
             continue
         if not ticked and task_id not in with_red:
             print(f"{task_id} {mark}: pending, no red commit yet ({', '.join(examples)})")
             continue
         try:
-            found = protection_problems(root, base, commits, task_id, examples, worktree=False)
+            found = protection_problems(root, base, commits, task_id, examples, worktree=False, tasks=path)
         except (OSError, RuntimeError, ValueError) as error:
             found = [f"cannot read the git history: {error}"]
         for problem in found:
             print(f"{task_id} {mark}: PROBLEM: {problem}")
         if not found:
-            print(f"{task_id} {mark}: ok, the red commit tests {', '.join(examples)}, untouched since")
+            tested = f"tests {', '.join(examples)}" if examples else "declares no examples"
+            print(f"{task_id} {mark}: ok, the red commit {tested}, untouched since")
         problems += len(found)
 
     task_lines = {i for i, _ in tasks}
@@ -419,13 +459,13 @@ def main(argv: list[str]) -> int:
 
     block = task_block(lines, index)
     examples = declared_examples(block)
+    problems = check_protection(path, task_id, examples)
+    for problem in problems:
+        print(f"task_done: {problem}")
+    if problems:
+        print(f"✘ {task_id} NOT marked: the tests of its red commit are not protected.")
+        return PROTECTION_FAILED
     if examples:
-        problems = check_protection(path, task_id, examples)
-        for problem in problems:
-            print(f"task_done: {problem}")
-        if problems:
-            print(f"✘ {task_id} NOT marked: the tests of its red commit are not protected.")
-            return PROTECTION_FAILED
         print(f"--- red commit of {task_id} found; {', '.join(examples)} have tests and they are untouched")
 
     shown = shlex.join(command)

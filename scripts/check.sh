@@ -117,6 +117,21 @@ done_ T15 || true; [ $rc = 3 ] && grep -q "E17 has no test" "$tmp/out" || fail "
 printf 'def test_E18_p(): pass\n\ndef test_E18_q(): pass\n' > "$r/tests/test_p.py"; g add tests; g commit -qm "test(T16): E18 red"
 printf 'def test_E18_p(): pass\ndef test_E18_q(): pass\n' > "$r/tests/test_p.py"; g commit -qm "style(T16): drop a blank line" -- tests
 done_ T16 && marked T16 || fail "a blank line the red commit added was protected"
+printf -- '- [ ] T17. q — tests: E19 — verification: true\n' >> "$r/tasks.md"
+printf 'def test_E19_q(): assert f() == 19\n' > "$r/tests/test_q.py"; g add tasks.md tests; g commit -qm "test(T17): E19 red"
+printf 'def test_E19_q(): pass\n' > "$r/tests/test_q.py"; sed -i 's/T17\. q — tests: E19 — /T17. q — /' "$r/tasks.md"
+g add tasks.md tests; g commit -qm "feat(T17): q, and E19 dropped from tasks.md"
+done_ T17 || true; [ $rc = 3 ] && ! marked T17 && grep -q "no longer declares E19" "$tmp/out" || fail "dropping the examples from tasks.md turned off the protection of the red commit"
+python3 "$td" --audit "$r/tasks.md" >"$tmp/out" 2>&1 || true
+grep -q "^T17 \[ \]: PROBLEM: tasks.md no longer declares E19" "$tmp/out" || fail "--audit missed a task whose examples were dropped after its red commit"
+if command -v ssh-keygen >/dev/null; then  # signed commits with log.showSignature=true
+  ssh-keygen -q -t ed25519 -N '' -f "$tmp/sign" >/dev/null
+  printf -- '- [ ] T18. r — tests: E20 — verification: true\n' >> "$r/tasks.md"
+  printf 'def test_E20_r(): assert f() == 20\n' > "$r/tests/test_r.py"; g add tasks.md tests
+  g -c gpg.format=ssh -c user.signingkey="$tmp/sign" commit -S -qm "test(T18): E20 red"
+  g config log.showSignature true
+  done_ T18 || true; g config --unset log.showSignature; [ $rc = 0 ] && marked T18 || fail "log.showSignature=true with signed commits broke the history parsing"
+fi
 
 echo "▶ task-done --audit (read-only, for the review)"
 audit() { rc=0; python3 "$td" --audit "$@" >"$tmp/out" 2>&1 || rc=$?; return $rc; }
