@@ -26,6 +26,8 @@ El repositorio es privado: se instala por SSH y solo funciona para quien tenga a
 
 Sin los agentes, el flujo funciona igual: la revisión y la implementación se hacen en la sesión principal, pero sin contexto limpio.
 
+¿El proyecto ya usaba la v1? Sigue [Actualizar un repositorio a la v2](docs/actualizar-a-v2.md).
+
 ### Claude Code
 
 ```
