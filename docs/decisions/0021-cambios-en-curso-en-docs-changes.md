@@ -2,11 +2,11 @@
 id: D-0021
 title: Cada cambio en curso es una carpeta docs/changes/<rama>/ en el repo, para todos los niveles; los issues de GitHub son solo la entrada de ideas
 type: architecture
-status: accepted
+status: superseded
 date: 2026-10-25
 affects: [skills/idea-to-change/, skills/idea-to-spec/, skills/spec-to-plan/, skills/plan-to-tasks/, skills/review-spec/, skills/task-done/, agents/implement.md, skills/review-prepush/, skills/review-pr/, docs/sdd/]
 supersedes: D-0004
-superseded_by: null
+superseded_by: D-0029
 issue: null
 ---
 

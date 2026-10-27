@@ -230,10 +230,11 @@ Cada fase deja el repo usable. Las fases 1 y 2 aportan valor aunque no se haga e
 | 3 | `idea-to-issue`, `task-done` sobre issues, snippet de niveles en `AGENTS.md` | El flujo por defecto; depende de 1 y 2 |
 | 4 | Comprobaciones nuevas en la review y #10 | Cierra el círculo: ejemplos, tests intactos y decisiones |
 | 4b | Cambios en `docs/changes/` y arreglos de la review de la PR #20 (§13) | Las fases 3 y 4 hacían leer y ejecutar a los agentes texto de cualquiera |
-| 5 | Adelgazar el SDD (#13, #15, cierre con decisiones), retirar `sdd-next`, documentación y versión del plugin | Con el flujo nuevo probado, el SDD queda como último nivel |
+| 5 | Una PR por tarea: un fichero por tarea con dependencias, tablero, tareas pequeñas con flags (§14) | Sale de probar el flujo B; cambia el formato de las tareas, que el SDD adelgazado tiene que usar ya |
+| 6 | Adelgazar el SDD (#13, #15, cierre con decisiones), retirar `sdd-next`, documentación y versión del plugin | Con el flujo nuevo probado, el SDD queda como último nivel |
 | Backlog | #8, #7, #9, ideas restantes del plan de mejoras | Sin evidencia de que hagan falta todavía |
 
-**Prueba antes de la fase 5:** usar el flujo B en un trabajo real (por ejemplo, en `ia-testing`) y medir lo mismo que en #13 y #15: tiempo, caracteres leídos y preguntas que eran decisiones.
+**Prueba antes de la fase 5:** usar el flujo B en un trabajo real (por ejemplo, en `ia-testing`) y medir lo mismo que en #13 y #15: tiempo, caracteres leídos y preguntas que eran decisiones. Hecha el 2026-10-27: el flujo funciona, y de ella sale la fase 5 (§14).
 
 ## 10. Riesgos
 
@@ -310,3 +311,56 @@ D-0008, D-0014 y D-0015 quedan `obsolete`: ya no hay issue que reconocer, D-0024
    - **N1:** el enlace roto.
    - **N2:** la descripción de la PR.
 7. `docs/actualizar-a-v2.md` (con `git mv docs/specs/<trabajo> docs/changes/<rama>`), `README.md` y las plantillas de `generate-project-context`.
+
+## 14. Una PR por tarea (fase 5)
+
+Tras probar el flujo B (2026-10-27): las PRs de un cambio entero son largas de leer. Se quiere una PR por tarea, con tareas pequeñas y de un solo propósito. Eso pide dependencias entre tareas y un fichero por tarea.
+
+```
+docs/changes/42-cancelar-viaje/
+  README.md          # nota, mapa de ejemplos; status e issue
+  tasks/
+    T1-cancelar-sin-reembolso.md
+    T2-reembolso-total.md
+    T3-retirar-flag.md
+  spec.md, plan.md   # solo nivel C
+```
+
+```yaml
+---
+id: T2
+title: Reembolso total si se cancela con más de 1 h
+status: todo            # todo | doing | done
+depends_on: [T1]
+examples: [E1, E3]
+verification: pytest tests/test_cancel.py -k "E1 or E3"
+---
+Propósito en una frase, qué entra y qué no, y el flag si lo hay.
+```
+
+| Decisión | Qué cambia |
+|---|---|
+| [D-0029](decisions/0029-un-fichero-por-tarea.md) (sustituye a D-0021) | README.md y `tasks/T<n>-<slug>.md` por cambio; desaparece `tasks.md` |
+| [D-0030](decisions/0030-dependencias-entre-tareas.md) | Solo `depends_on`; lo que bloquea y lo que está listo se calcula. Un script de tablero |
+| [D-0031](decisions/0031-una-rama-y-una-pr-por-tarea.md) (sustituye a D-0022) | Ramas `<cambio>/plan` y `<cambio>/T<n>`, una PR cada una; `done` dentro de la PR; el agente abre la PR |
+| [D-0032](decisions/0032-la-review-audita-la-tarea-de-la-rama.md) (sustituye a D-0019) | La review audita la tarea de la rama, o el plan entero en la PR del plan |
+| [D-0033](decisions/0033-tareas-pequenas-y-main-desplegable.md) | Un propósito por tarea, unas 300 líneas, rama base desplegable con flags; la última tarea retira el flag |
+
+D-0024 (protección de los tests en rojo) sigue igual: la base de cada rama de tarea es la rama base.
+
+**Flujo:**
+
+1. `idea-to-change`: nota y mapa de ejemplos; la persona da el ok (D-0026). Escribe el README y las tareas, y abre la PR del plan.
+2. Mergeada la PR del plan, `implement` toma una tarea lista del tablero, crea `<cambio>/T<n>` desde la rama base y hace el commit en rojo y después el código.
+3. `task-done` comprueba la protección, ejecuta la verificación y pone `status: done` en la tarea. El agente hace push, abre la PR y pasa a la siguiente tarea lista.
+4. La review de cada PR audita solo su tarea.
+
+**Trabajo:**
+
+1. `task_done.py`: leer la tarea de su fichero, sacar carpeta y tarea de la rama, `status: done` en el fichero de la tarea y en el README cuando todas están `done` en la base, y `--audit` con el alcance de D-0032.
+2. Script de tablero (D-0030), con tests de ciclo, dependencia inexistente, tarea lista y bloqueada.
+3. `idea-to-change` y `plan-to-tasks`: partir con D-0033, escribir los ficheros de tarea y abrir la PR del plan.
+4. `implement`: una tarea por rama, elegida del tablero; push y PR al terminar; seguir con la siguiente lista.
+5. Review: `review-context`, `review-prepush`, `review-pr`, `review-report` y `code-reviewer` (tamaño y propósito único, D-0033).
+6. Documentación: README, `docs/actualizar-a-v2.md` (paso de `tasks.md` a `tasks/`), plantillas de `generate-project-context` (mecanismo de flags en `AGENTS.md`), `docs/sdd/README.md`.
+

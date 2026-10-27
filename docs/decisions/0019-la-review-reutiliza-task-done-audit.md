@@ -2,11 +2,11 @@
 id: D-0019
 title: La review comprueba los ejemplos y los tests en rojo con task_done.py --audit, de solo lectura
 type: architecture
-status: accepted
+status: superseded
 date: 2026-10-24
 affects: [skills/task-done/, skills/review-prepush/, skills/review-pr/, skills/review-report/]
 supersedes: null
-superseded_by: null
+superseded_by: D-0032
 issue: null
 ---
 
