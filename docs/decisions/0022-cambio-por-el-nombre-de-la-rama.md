@@ -2,11 +2,11 @@
 id: D-0022
 title: task-done y la review encuentran el cambio en curso por el nombre de la rama
 type: architecture
-status: accepted
+status: superseded
 date: 2026-10-25
 affects: [skills/task-done/, skills/review-prepush/, skills/review-pr/, agents/implement.md]
 supersedes: D-0013
-superseded_by: null
+superseded_by: D-0031
 issue: null
 ---
 
