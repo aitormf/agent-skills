@@ -19,7 +19,7 @@ Con una PR por tarea (D-0031), cada tarea se mergea sola en la rama base. Para q
 ## Decisión
 
 - **Un solo propósito por tarea:** o comportamiento nuevo, o refactor, o preparación (fontanería, migración). No se mezclan. El propósito cabe en una frase.
-- **Tamaño orientativo:** unas 300 líneas de diff sin contar los tests. Si una tarea promete más, se parte.
+- **Tamaño orientativo:** unas 150 líneas de diff sin contar los tests. Si una tarea promete más, se parte.
 - **Cada tarea deja la rama base en verde y desplegable.** Si el comportamiento queda a medias, va detrás de un feature flag apagado por defecto, con el mecanismo que diga `AGENTS.md`.
 - **Un cambio con flag termina con una tarea que lo retira**, con el código muerto y los tests del camino viejo. Esa tarea depende de todas las demás.
 

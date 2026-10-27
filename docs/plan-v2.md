@@ -344,7 +344,7 @@ Propósito en una frase, qué entra y qué no, y el flag si lo hay.
 | [D-0030](decisions/0030-dependencias-entre-tareas.md) | Solo `depends_on`; lo que bloquea y lo que está listo se calcula. Un script de tablero |
 | [D-0031](decisions/0031-una-rama-y-una-pr-por-tarea.md) (sustituye a D-0022) | Ramas `<cambio>/plan` y `<cambio>/T<n>`, una PR cada una; `done` dentro de la PR; el agente abre la PR |
 | [D-0032](decisions/0032-la-review-audita-la-tarea-de-la-rama.md) (sustituye a D-0019) | La review audita la tarea de la rama, o el plan entero en la PR del plan |
-| [D-0033](decisions/0033-tareas-pequenas-y-main-desplegable.md) | Un propósito por tarea, unas 300 líneas, rama base desplegable con flags; la última tarea retira el flag |
+| [D-0033](decisions/0033-tareas-pequenas-y-main-desplegable.md) | Un propósito por tarea, unas 150 líneas, rama base desplegable con flags; la última tarea retira el flag |
 
 D-0024 (protección de los tests en rojo) sigue igual: la base de cada rama de tarea es la rama base.
 
