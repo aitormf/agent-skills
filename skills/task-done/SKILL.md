@@ -1,6 +1,6 @@
 ---
 name: task-done
-description: Runs a task's verification command and sets the task to status done only if the command passes, so no task is done without evidence; when the task lists its examples, it first checks in git that their tests were committed red on the branch and left untouched. Also shows the board of a change (ready, blocked, doing, done tasks). Use it whenever a task in docs/changes/<change>/tasks/ (from idea-to-change or plan-to-tasks) is to be marked as done, or to see which tasks are ready; the implement agent uses it for each task.
+description: Runs a task's verification command and sets the task to status done only if the command passes, so no task is done without evidence; when the task lists its examples, it first checks in git that their tests were committed red on the branch and left untouched. Also shows the board of a change (ready, blocked, doing, done tasks). Use it whenever a task in docs/changes/<change>/tasks/ (from idea-to-change or plan-to-tasks) is to be marked as done, or to see where a change stands and which tasks are ready; the implement agent uses it for each task.
 ---
 
 # Mark a task as done
@@ -20,7 +20,7 @@ verification: pytest tests/test_cancel.py -k "E1 or E3"
 ---
 ```
 
-Each task has its own branch and PR, `<…>/<change>/T<n>`, from the base branch; the plan has `<change>/plan`. By default the script takes the folder and the task from the current branch (`42-cancel-trip/T2` → `docs/changes/42-cancel-trip/`, task `T2`: the change is the second-to-last segment, the task the last one). The folder, a task file or the task ID can be passed instead. The script reads only files and git: no `gh`, no network. When the verification passes it sets `status: done` in the task file, inside the task's own PR; once every task of the change is done (here, or already merged into the base branch), it also sets `status: done` in the README.
+Each task has its own branch and PR, `<…>/<change>/T<n>`, from the base branch; the plan has `<change>/plan`. By default the script takes the folder and the task from the current branch (`42-cancel-trip/T2` → `docs/changes/42-cancel-trip/`, task `T2`: the change is the second-to-last segment, the task the last one). The folder, a task file or the task ID can be passed instead. The script reads only files and git: no `gh`, no network. When the verification passes it sets `status: done` in the task file, inside the task's own PR; once every task of the change is done (here, or already merged into the base branch), it also sets `status: done` in the README, and `status: obsolete` in `spec.md` and `plan.md` if the change has them: they are working documents, and their decisions are already in `docs/decisions/` (D-0006).
 
 If the task lists its examples (`examples: [E1, E2]`) or already has a red commit, the script first checks the test protection in git, among the commits of the current branch that are not in the base branch (`origin/HEAD`, else `origin/main`, `origin/master`, `main` or `master`). One branch, one task: task and example IDs repeat across changes, so older commits do not count. It checks that:
 
@@ -60,7 +60,7 @@ Exit 0 if nothing is wrong, 3 if something is (`PROBLEM` lines), 2 if it cannot 
    - `✘ T3 NOT marked`: the task is not done. Fix the code, not the test, and run it again.
    - `task_done: PROBLEM: cannot read the git history of the branch: no base branch found` (exit 3): there is no `origin/HEAD`, `origin/main`, `origin/master`, `main` or `master` to tell the branch's commits apart. Report it; do not edit the status by hand.
    - Exit 2: the call was wrong, the task file is malformed (the message says which field), or there is no folder or task file where it looked: the message names what it searched (`docs/changes/<change>`, `tasks/T3-*.md`). Pass the right folder and task, or check that you are on the task's branch (`<change>/T<n>`; the plan branch has no task to mark). Also exit 2 if the change is already finished in the base branch (`status: done` in its README there): the branch reuses the name of an earlier change. Report it and propose renaming the branch.
-   - `✔ every task of the change is done: status: done in …/README.md`: the change is finished; commit the README with the task.
+   - `✔ every task of the change is done: status: done in …/README.md`: the change is finished; commit the README with the task, and `spec.md` and `plan.md` if it set them `obsolete`.
 
 ## Rules
 

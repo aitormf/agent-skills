@@ -1,0 +1,280 @@
+{
+  "model": null,
+  "runs": 1,
+  "passed": 34,
+  "total": 34,
+  "results": [
+    {
+      "expected": [
+        "idea-to-spec"
+      ],
+      "prompt": "quiero escribir una spec para que los usuarios puedan cancelar un viaje",
+      "got": "harness:idea-to-spec",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-change"
+      ],
+      "prompt": "tengo una idea a medio pensar: avisar al conductor cuando un pasajero llega tarde. Ayúdame a definirla",
+      "got": "harness:idea-to-change",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-change"
+      ],
+      "prompt": "quiero que los pasajeros puedan valorar al conductor al acabar el viaje, prepáralo para implementarlo",
+      "got": "harness:idea-to-change",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-change"
+      ],
+      "prompt": "prepara las tareas para añadir el filtro por fecha al listado de viajes",
+      "got": "harness:idea-to-change",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-change"
+      ],
+      "prompt": "hagamos el mapa de ejemplos de la regla de reembolsos al cancelar",
+      "got": "harness:idea-to-change",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-change"
+      ],
+      "prompt": "prepara el issue 57 para implementarlo: mapa de ejemplos y tareas",
+      "got": "harness:idea-to-change",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-change"
+      ],
+      "prompt": "I have an idea: let drivers pause new bookings for a day. Turn it into a change we can implement",
+      "got": "harness:idea-to-change",
+      "ok": true
+    },
+    {
+      "expected": [
+        "idea-to-spec"
+      ],
+      "prompt": "help me turn this idea into a spec: export the invoices as CSV",
+      "got": "harness:idea-to-spec",
+      "ok": true
+    },
+    {
+      "expected": [
+        "review-spec"
+      ],
+      "prompt": "revisa la spec de docs/changes/cancelaciones/spec.md antes de implementarla",
+      "got": "harness:review-spec",
+      "ok": true
+    },
+    {
+      "expected": [
+        "review-spec"
+      ],
+      "prompt": "¿le ves huecos o contradicciones al plan de docs/changes/cancelaciones/plan.md?",
+      "got": "harness:review-spec",
+      "ok": true
+    },
+    {
+      "expected": [
+        "apply-review"
+      ],
+      "prompt": "vamos a repasar los hallazgos de docs/changes/cancelaciones/review-spec.md y decidir cuáles aplicamos",
+      "got": "harness:apply-review",
+      "ok": true
+    },
+    {
+      "expected": [
+        "spec-to-plan"
+      ],
+      "prompt": "la spec de cancelaciones está aprobada, haz el plan técnico",
+      "got": "harness:spec-to-plan",
+      "ok": true
+    },
+    {
+      "expected": [
+        "spec-to-plan"
+      ],
+      "prompt": "¿cómo implementarías la spec de docs/changes/cancelaciones/spec.md? diseña la solución",
+      "got": "harness:spec-to-plan",
+      "ok": true
+    },
+    {
+      "expected": [
+        "plan-to-tasks"
+      ],
+      "prompt": "parte el plan de cancelaciones en tareas",
+      "got": "harness:plan-to-tasks",
+      "ok": true
+    },
+    {
+      "expected": [
+        "plan-to-tasks"
+      ],
+      "prompt": "el plan está aprobado, prepáralo para implementar",
+      "got": "harness:plan-to-tasks",
+      "ok": true
+    },
+    {
+      "expected": [
+        "task-done"
+      ],
+      "prompt": "marca la T3 de docs/changes/cancelaciones/tasks/T3-reembolso.md como hecha",
+      "got": "harness:task-done",
+      "ok": true
+    },
+    {
+      "expected": [
+        "task-done"
+      ],
+      "prompt": "enséñame el tablero de tareas de cancelaciones: cuáles están listas y cuáles bloqueadas",
+      "got": "harness:task-done",
+      "ok": true
+    },
+    {
+      "expected": [
+        "task-done"
+      ],
+      "prompt": "la T2 ya pasa su test, márcala como hecha",
+      "got": "harness:task-done",
+      "ok": true
+    },
+    {
+      "expected": [
+        "task-done"
+      ],
+      "prompt": "¿en qué punto está el cambio de cancelaciones? ¿qué tarea toca ahora?",
+      "got": "harness:task-done",
+      "ok": true
+    },
+    {
+      "expected": [
+        "review-prepush"
+      ],
+      "prompt": "¿está lista la rama para hacer push?",
+      "got": "harness:review-prepush",
+      "ok": true
+    },
+    {
+      "expected": [
+        "review-prepush"
+      ],
+      "prompt": "revisa mis cambios antes de subirlos",
+      "got": "harness:review-prepush",
+      "ok": true
+    },
+    {
+      "expected": [
+        "review-pr"
+      ],
+      "prompt": "revisa la PR 42",
+      "got": "harness:review-pr",
+      "ok": true
+    },
+    {
+      "expected": [
+        "review-pr"
+      ],
+      "prompt": "review this pull request before we merge it: #42",
+      "got": "harness:review-pr",
+      "ok": true
+    },
+    {
+      "expected": [
+        "debug-root-cause"
+      ],
+      "prompt": "el test test_refund_total falla y no sé por qué",
+      "got": "harness:debug-root-cause",
+      "ok": true
+    },
+    {
+      "expected": [
+        "debug-root-cause"
+      ],
+      "prompt": "ya intenté arreglar el bug del reembolso dos veces y sigue fallando, encuentra la causa",
+      "got": "harness:debug-root-cause",
+      "ok": true
+    },
+    {
+      "expected": [
+        "generate-project-context"
+      ],
+      "prompt": "prepara el AGENTS.md y los principios de arquitectura de este proyecto",
+      "got": "harness:generate-project-context",
+      "ok": true
+    },
+    {
+      "expected": [
+        "generate-project-context"
+      ],
+      "prompt": "vamos a adoptar agentes en este repo, necesito la documentación para ellos",
+      "got": "harness:generate-project-context",
+      "ok": true
+    },
+    {
+      "expected": [
+        "setup-guardrails-python"
+      ],
+      "prompt": "monta los guardrails de este repo Python: ruff, mypy, pre-commit y CI",
+      "got": "harness:setup-guardrails-python",
+      "ok": true
+    },
+    {
+      "expected": [
+        "setup-guardrails-python"
+      ],
+      "prompt": "endurece la seguridad de este proyecto Python: gitleaks, dependabot y hooks",
+      "got": "harness:setup-guardrails-python",
+      "ok": true
+    },
+    {
+      "expected": [
+        "none"
+      ],
+      "prompt": "¿qué hora es en Tokio?",
+      "got": null,
+      "ok": true
+    },
+    {
+      "expected": [
+        "none"
+      ],
+      "prompt": "explica qué hace un decorador en Python",
+      "got": null,
+      "ok": true
+    },
+    {
+      "expected": [
+        "record-decision"
+      ],
+      "prompt": "apunta esta decisión: los reembolsos son totales si se cancela con más de 1h de antelación",
+      "got": "harness:record-decision",
+      "ok": true
+    },
+    {
+      "expected": [
+        "record-decision"
+      ],
+      "prompt": "deja registrado que probamos Redis para la caché de sesiones y lo descartamos por la latencia",
+      "got": "harness:record-decision",
+      "ok": true
+    },
+    {
+      "expected": [
+        "record-decision"
+      ],
+      "prompt": "migra los ADRs de docs/adr a docs/decisions",
+      "got": "harness:record-decision",
+      "ok": true
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 Cómo usar las skills de SDD de este repositorio para ir de una idea a código revisable sin que el agente se desvíe.
 
+**El SDD es el último nivel de proceso.** El proceso se ajusta al tamaño y al riesgo ([D-0001](../decisions/0001-proceso-ajustado-al-riesgo.md)): lo trivial y los bugs van sin parada antes del código (nivel C); una feature normal, con `idea-to-change` y una parada en el mapa de ejemplos (nivel B); las reglas delicadas añaden una parada en los tests en rojo (nivel A). El SDD queda para una feature grande o con diseño de verdad que decidir (varios componentes, contratos, migraciones). La tabla está en el [README](../../README.md#cuánto-proceso-niveles-a-b-y-c).
+
 - **Qué hace cada skill por dentro:** su `SKILL.md`, en [`skills/`](../../skills/).
 - **Qué va en cada sección de una spec:** [secciones-de-la-spec.md](secciones-de-la-spec.md).
 
@@ -11,11 +13,7 @@ Cómo usar las skills de SDD de este repositorio para ir de una idea a código r
 
 En SDD primero se decide **qué** se construye y **por qué** (la spec). De ahí salen **cómo** (el plan) y **en qué pasos** (las tareas), y solo después se implementa. Al final se comprueba el resultado contra la spec.
 
-Esta guía sigue el enfoque *spec-anchored*:
-
-- la spec se escribe antes del código y lo guía;
-- se queda en el repositorio como referencia viva;
-- si la implementación revela que estaba incompleta, **se corrige la spec**, no se deja desfasada.
+La spec y el plan son **documentos de trabajo** ([D-0006](../decisions/0006-spec-y-plan-son-documentos-de-trabajo.md)): guían el cambio mientras dura y nadie los mantiene al día después. Lo que perdura es **qué** hace el sistema, en los tests, y **por qué**, en `docs/decisions/`. Cuando se termina la última tarea, `task-done` marca la spec y el plan `obsolete`.
 
 Con agentes compensa por tres motivos:
 
@@ -28,7 +26,7 @@ Con agentes compensa por tres motivos:
 - **Exploración y prototipos.** Si aún no sabes qué construir, explora primero y escribe la spec cuando tengas el rumbo.
 - **Bugs triviales.** Un fix de una línea no necesita spec.
 - **Requisitos muy inestables.** La spec quedará obsoleta antes de implementarse.
-- **Proceso desproporcionado.** No hagas el flujo completo para una tarea de 30 minutos (ver [§5](#5-ajustar-el-proceso-al-tamaño)).
+- **Proceso desproporcionado.** Si no hay diseño que decidir, usa `idea-to-change` (nivel B). Ver [§5](#5-ajustar-el-proceso-al-tamaño-y-partir).
 
 Y recuerda: una spec detallada da sensación de que todo está cubierto. No sustituye a los tests, a probar con usuarios ni al feedback real.
 
@@ -41,13 +39,13 @@ Las skills de SDD leen dos cosas del proyecto. Funcionan sin ellas, pero pierden
 | Necesitan | Para qué | Cómo se consigue |
 |---|---|---|
 | `docs/ARCHITECTURE.md` con **"Principios innegociables"** | `spec-to-plan` comprueba el plan contra ellos; `review-spec` marca como bloqueante cada choque | Skill [`generate-project-context`](../../skills/generate-project-context/SKILL.md) |
-| **Comando de verificación** en la sección `Comandos` de `AGENTS.md` | `plan-to-tasks` lo pone como última tarea; `implement` no termina hasta que sale en verde | `generate-project-context`, y [`setup-guardrails-python`](../../skills/setup-guardrails-python/SKILL.md) en Python |
+| **Comando de verificación** en la sección `Comandos` de `AGENTS.md` | `plan-to-tasks` lo usa en la verificación de las tareas; `implement` no abre una PR hasta que sale en verde | `generate-project-context`, y [`setup-guardrails-python`](../../skills/setup-guardrails-python/SKILL.md) en Python |
 
 ### Instalar las skills
 
 Cómo instalarlas en Claude Code, Codex, OpenCode o pi: [README del repositorio](../../README.md#instalar).
 
-Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`, `plan-to-tasks`, `sdd-next` y `sdd-decisions` (interna: el criterio de qué se pregunta), y conviene tener también los agentes `implement` y `spec-reviewer`. El plugin de Claude Code lo instala todo de una vez. En Claude Code, las skills del plugin llevan namespace: `/harness:idea-to-spec`, etc. Pedirlas en lenguaje natural ("quiero una spec para…") funciona igual.
+Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`, `plan-to-tasks` y `sdd-decisions` (interna: el criterio de qué se pregunta), y conviene tener también los agentes `implement` y `spec-reviewer`. El plugin de Claude Code lo instala todo de una vez. En Claude Code, las skills del plugin llevan namespace: `/harness:idea-to-spec`, etc. Pedirlas en lenguaje natural ("quiero una spec para…") funciona igual.
 
 ---
 
@@ -56,19 +54,19 @@ Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`
 ```
               idea
                │
-   ┌───── idea-to-spec ─────► spec.md (draft)
+   ┌───── idea-to-spec ─────► spec.md (draft) + decisiones en proposed
    │           │
    │     review-spec ───────► review-spec.md   (recomendación)
    │           │
    │     apply-review ──────► spec.md corregida
    │           │
-   │   ★ persona: status: approved
+   │   ★ persona: status: approved y decisiones accepted
    │           │
-   │     spec-to-plan ──────► plan.md (draft) + comprobación de principios
+   │     spec-to-plan ──────► plan.md (draft) + comprobación de principios + decisiones
    │           │
    │     review-spec / apply-review  (si el cambio lo merece)
    │           │
-   │   ★ persona: status: approved
+   │   ★ persona: status: approved y decisiones accepted
    │           │
    │     plan-to-tasks ─────► tasks/T<n>-<slug>.md + PR del plan (<cambio>/plan)
    │           │
@@ -77,22 +75,27 @@ Para SDD necesitas `idea-to-spec`, `review-spec`, `apply-review`, `spec-to-plan`
    │     implement (agente) ► por cada tarea lista: rama <cambio>/T<n>, código,
    │           │              status: done (con task-done), verificación en verde y PR
    │           │
-   └──── review-prepush (contra la tarea) → PR de la tarea → review-pr
+   │           │
+   │     review-prepush (contra la tarea) → PR de la tarea → review-pr
+   │           │
+   └──── última tarea: task-done ► README done, spec.md y plan.md obsolete
 ```
 
-En cualquier momento puedes preguntar *"¿en qué punto está X?"* o *"¿qué specs hay abiertas?"*. La skill `sdd-next` te lo dice leyendo los artefactos.
+**Los borradores se escriben, no se pegan en el chat.** Cada skill escribe su artefacto en `draft` y en el chat da un resumen corto: la ruta, lo decidido, los supuestos numerados, lo que queda abierto y una línea por decisión registrada. Lo lees en el fichero y lo corriges ahí o contestando; "ok" acepta los supuestos y las decisiones.
+
+¿En qué punto está un cambio? Mira el `status` de `spec.md` y `plan.md`, y el tablero de `task-done` (`scripts/board.py docs/changes/<cambio>`) para las tareas. Los cambios abiertos son los que tienen `status: open` en su README.
 
 ### Paso a paso
 
 | Paso | Cómo pedirlo | Qué produce | Qué decides tú |
 |---|---|---|---|
-| **1. Spec** | *"Quiero una spec para <idea>"* | La rama del plan, `<cambio>/plan`, y `docs/changes/<cambio>/spec.md` en `draft` | Las decisiones de producto, alcance, seguridad o difíciles de revertir. Cada pregunta trae una opción recomendada; "ok" las acepta todas. Lo demás se anota en `Supuestos` (ver [§3.1](#31-qué-se-pregunta-y-qué-se-propone)) |
+| **1. Spec** | *"Quiero una spec para <idea>"* | La rama del plan, `<cambio>/plan`, `docs/changes/<cambio>/spec.md` en `draft`, escrita directamente, y las decisiones que sobreviven al cambio en `docs/decisions/` en `proposed`. En el chat, solo el resumen | Las decisiones de producto, alcance, seguridad o difíciles de revertir, y si se parte un cambio grande. Cada pregunta trae una opción recomendada; "ok" las acepta todas. Lo demás se anota en `Supuestos` (ver [§3.1](#31-qué-se-pregunta-y-qué-se-propone)) |
 | **2. Revisar la spec** | *"Revisa la spec de <trabajo>"* (mejor con el subagente `spec-reviewer`) | `review-spec.md`: hallazgos por prioridad, cada uno como **decisión** (con opciones y recomendación) o **arreglo** (con el cambio concreto), y una recomendación | Nada todavía |
 | **3. Aplicar la revisión** | *"Aplica la revisión de <trabajo>"* | La spec corregida y las decisiones anotadas en la revisión | Las decisiones, una a una. Los arreglos llegan en bloque: se aplican todos salvo los que excluyas ("todos menos el 4"). Luego, si afecta a otras specs en borrador |
-| **4. Aprobar** | Tú, a mano: `status: approved` en el frontmatter | — | Que la spec está lista. **Es la puerta principal** |
-| **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en `draft`, con la tabla de principios | Solo las decisiones técnicas que son tuyas; lo que la spec ya decide no se vuelve a preguntar. Los principios que se incumplen se justifican o llevan un ADR |
-| **6. Revisar y aprobar el plan** | Como los pasos 2–4 (se genera `review-plan.md`) | — | Aprobar el plan |
-| **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | Un fichero por tarea en `tasks/`, con el mismo formato que en el nivel B: tareas pequeñas de un solo propósito, con sus dependencias (`depends_on`), los ficheros que tocan y cómo se verifican. Y la PR del plan | Que el desglose es razonable; hacer merge de la PR del plan |
+| **4. Aprobar** | Tú, a mano: `status: approved` en el frontmatter, y "ok" a las decisiones | Las decisiones pasan a `accepted` | Que la spec está lista. **Es la puerta principal** |
+| **5. Plan** | *"Planifica <trabajo>"* | `plan.md` en `draft`, escrito directamente: un plan de diseño (componentes, los que reutiliza, contratos, modelo de datos, qué test cubre cada criterio, riesgos), no un guion de implementación, con la tabla de principios | Solo las decisiones técnicas que son tuyas; lo que la spec ya decide no se vuelve a preguntar. Los principios que se incumplen se justifican o llevan una decisión que los sustituye |
+| **6. Revisar y aprobar el plan** | Como los pasos 2–4 (se genera `review-plan.md`). La revisión de un plan se queda en el diseño: los detalles de implementación no son hallazgos | — | Aprobar el plan |
+| **7. Tareas** | *"Parte el plan de <trabajo> en tareas"* | Un fichero por tarea en `tasks/`, escrito directamente, con el mismo formato que en el nivel B: tareas pequeñas de un solo propósito, con sus dependencias (`depends_on`), sus tests del más simple al más complejo, los ficheros que tocan y cómo se verifican. Y la PR del plan, con la spec, el plan y las decisiones | Solo si el plan tiene un hueco que es decisión tuya. Que el desglose es razonable lo ves en la PR del plan, y la mergeas |
 | **8. Implementar** | *"Implementa <trabajo>"* (agente `implement`, sesión limpia) | Una rama y una PR por tarea lista, con sus tests, `status: done` en la tarea y el comando de verificación en verde. Sigue con la siguiente tarea lista mientras las PRs esperan | Revisar y mergear cada PR. Si el agente para por un hueco, resolverlo, normalmente corrigiendo la spec |
 | **9. Revisar el código** | `review-prepush` antes del push, y en cada PR `review-pr` | Informe con hallazgos verificados y la cobertura de la tarea: sus ejemplos y criterios con test, nada fuera de su propósito | Corregir lo Critical y Required; hacer merge. Ver la [guía de code review](../review/README.md) |
 
@@ -149,12 +152,12 @@ docs/changes/
   |---|---|
   | `draft` | Se está escribiendo o corrigiendo |
   | `approved` | Una persona la ha dado por buena. Lo siguiente puede construirse encima |
-  | `obsolete` | Ya no aplica: descartada o sustituida (indica por cuál) |
+  | `obsolete` | Ya no aplica: el cambio está terminado (lo pone `task-done` con la última tarea), o se descartó o se sustituyó (indica por cuál) |
 
 - **Solo una persona pone `approved`.** Ninguna skill ni agente lo hace. Las revisiones recomiendan; no aprueban.
-- **Las puertas preguntan.** Si pides planificar una spec en borrador, o implementar sin plan aprobado, la skill para, te avisa y te pregunta si sigues. Puedes seguir, pero queda anotado y `sdd-next` lo señalará.
-- **Si cambia algo aprobado,** vuelve a `draft`. `sdd-next` avisa cuando la spec es más reciente que el plan, porque el plan puede estar desfasado.
-- **El progreso de la implementación** es el `status` de cada tarea en la rama base: `done` quiere decir mergeada. `task-done` lo pone dentro de la PR de la tarea, solo si su verificación pasa, y pone `status: done` en el README cuando todas lo están. La carpeta se puede borrar cuando se quiera: git la guarda.
+- **Las puertas preguntan.** Si pides planificar una spec en borrador, o implementar sin plan aprobado, la skill para, te avisa y te pregunta si sigues. Puedes seguir, pero queda anotado en el plan.
+- **Si cambia algo aprobado,** vuelve a `draft`. Si cambias la spec después del plan, revisa si el plan sigue valiendo.
+- **El progreso de la implementación** es el `status` de cada tarea en la rama base: `done` quiere decir mergeada. `task-done` lo pone dentro de la PR de la tarea, solo si su verificación pasa, y pone `status: done` en el README y `obsolete` en la spec y el plan cuando todas lo están. Las decisiones ya están en `docs/decisions/` desde la PR del plan. La carpeta se puede borrar cuando se quiera: git la guarda.
 
 En equipo, una opción más robusta es que la spec vaya en **su propia PR**: el cambio a `status: approved` lo hace quien la aprueba, y el merge deja constancia de quién y cuándo.
 
@@ -173,9 +176,9 @@ Así cada herramienta hace lo suyo: el tracker gestiona el trabajo y la carpeta 
 
 ---
 
-## 5. Ajustar el proceso al tamaño
+## 5. Ajustar el proceso al tamaño y partir
 
-`idea-to-spec` te propone el recorrido, pero decides tú:
+Antes del SDD, comprueba el nivel: si no hay diseño de verdad que decidir, `idea-to-change` (nivel B) basta. Dentro del SDD, decides tú:
 
 | Cambio | Artefactos | Revisiones |
 |---|---|---|
@@ -186,6 +189,8 @@ Así cada herramienta hace lo suyo: el tracker gestiona el trabajo y la carpeta 
 | Refactor arquitectural | Todos, más una decisión en `docs/decisions/` si cambia un principio | Spec y plan |
 
 Sin plan, las puertas de `plan-to-tasks` e `implement` se aplican a la spec.
+
+**Cuándo partir.** Cada revisión y cada plan crecen con la spec, y con ellos el tiempo de lectura. `idea-to-spec` propone partir el cambio cuando tiene varias historias de usuario que se pueden entregar por separado o pasa de unos 12 requisitos funcionales; `spec-to-plan`, cuando el plan pasa de unas 150 líneas sin bajar a detalles de implementación. Cada corte es un cambio con su carpeta, que se entrega por sí solo. Decides tú.
 
 ---
 
@@ -217,14 +222,14 @@ Qué va en cada sección y ejemplos: [secciones-de-la-spec.md](secciones-de-la-s
    >
    > Supuestos: 1. El umbral de 10 minutos es fijo, no configurable por el usuario.
 
-   Contestas "ok". El resultado es la rama `alertas-retraso/plan` con `docs/changes/alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
+   Contestas "ok". La spec ya está escrita en el fichero, no en el chat: el resultado es la rama `alertas-retraso/plan` con `docs/changes/alertas-retraso/spec.md` en `draft`, con RF-01… y criterios como *"Dado un usuario que sigue la línea C3, cuando un tren de la C3 acumula 11 minutos de retraso, entonces recibe un aviso en menos de 2 minutos"*.
 2. *"Revisa la spec"*. `review-spec.md` recomienda "Devolver" por un bloqueante: no dice qué pasa si el retraso baja y vuelve a subir, así que puede haber avisos duplicados. Importante: falta la sección Seguridad, y el aviso incluye datos del usuario.
 3. *"Aplica la revisión"*. El bloqueante es una decisión y eliges la opción B: un aviso por tren y trayecto, con una ventana de 15 minutos. La sección Seguridad que faltaba es un arreglo: llega en la lista de arreglos junto a dos menores, y contestas "ok". La spec queda corregida.
 4. Cambias tú `status: approved`.
 5. *"Planifica"*. `plan.md` encaja la detección en la capa `application` y el envío en `infra`. En la tabla de principios, "El dominio no tiene E/S" se cumple porque la regla de detección es una función pura. Si el plan hubiera propuesto llamar a la API desde el dominio, saldría ahí como incumplimiento.
 6. Lo apruebas y pides *"Parte el plan en tareas"*. Salen 4 ficheros en `tasks/`: T1 detecta el retraso detrás del flag `alertas_retraso`, apagado; T2 y T3 dependen de T1; T4 retira el flag y depende de todas. El agente abre la PR del plan y tú la mergeas.
 7. En una sesión nueva, *"Implementa alertas-retraso"*. El agente hace T1 en `alertas-retraso/T1` y abre su PR. T2 y T3 están bloqueadas por T1, así que para y te dice que la PR de T1 espera revisión.
-8. Mergeas T1 y vuelves a pedirlo. El tablero muestra T2 y T3 listas: el agente abre una PR para cada una, cada rama desde `main`. Al mergearlas, T4 queda lista; su PR retira el flag y pone `status: done` en el README.
+8. Mergeas T1 y vuelves a pedirlo. El tablero muestra T2 y T3 listas: el agente abre una PR para cada una, cada rama desde `main`. Al mergearlas, T4 queda lista; su PR retira el flag y, con `task-done`, pone `status: done` en el README y `obsolete` en la spec y el plan. Las decisiones del cambio (la ventana de 15 minutos, por ejemplo) ya estaban en `docs/decisions/` desde la PR del plan.
 
 ---
 

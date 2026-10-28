@@ -35,7 +35,7 @@ Sin los agentes, el flujo funciona igual: la revisión y la implementación se h
 /plugin install harness@aitormf
 ```
 
-- Como plugin, todo va con namespace: las skills son `/harness:idea-to-spec`, `/harness:sdd-next`… y los agentes, `harness:implement` y `harness:spec-reviewer`.
+- Como plugin, todo va con namespace: las skills son `/harness:idea-to-change`, `/harness:idea-to-spec`… y los agentes, `harness:implement` y `harness:spec-reviewer`.
 - Para que el equipo lo tenga en un proyecto, declara el catálogo en el `.claude/settings.json` del proyecto. Claude Code ofrecerá instalarlo al abrir el proyecto:
 
   ```json
@@ -114,9 +114,20 @@ Copia las skills a `.agents/skills/`, enlaza `.claude/skills/` y registra las ve
 | [`generate-project-context`](skills/generate-project-context/SKILL.md) | Entrevista para crear AGENTS.md, ARCHITECTURE.md (con principios innegociables), CONTRIBUTING.md, el registro de decisiones (`docs/decisions/`) y SECURITY.md. Sustituye a la constitución de Spec Kit; en proyectos con `docs/adr/`, ofrece moverlos |
 | [`setup-guardrails-python`](skills/setup-guardrails-python/SKILL.md) | Instala los guardrails deterministas de un repo Python: check.sh, pre-commit, CI, seguridad, y permisos y hooks de Claude Code |
 
-### Flujo por defecto: de la idea al cambio
+### Cuánto proceso: niveles A, B y C
 
-Cuánto proceso lleva cada cambio lo dice la tabla de niveles que `generate-project-context` añade al `AGENTS.md` de cada proyecto ([`AGENTS-levels.md`](skills/generate-project-context/assets/es/AGENTS-levels.md)). Para una feature normal (nivel B), el camino es este:
+El proceso se ajusta al tamaño y al riesgo del cambio. El nivel dice dónde se para la persona antes de que haya código; la tabla completa, con las señales para subir o bajar, es la que `generate-project-context` añade al `AGENTS.md` de cada proyecto ([`AGENTS-levels.md`](skills/generate-project-context/assets/es/AGENTS-levels.md)).
+
+| Nivel | Para qué | Parada antes del código |
+|---|---|---|
+| **C** | Trivial, bug con causa clara (test y arreglo) o de causa desconocida (`debug-root-cause`) | Ninguna: se revisa el diff con `review-prepush` |
+| **B** (por defecto) | Feature normal: `idea-to-change` | Una por idea: el mapa de ejemplos y sus decisiones |
+| **A** | Reglas delicadas (dinero, datos personales) | Lo de B, y los tests en rojo de cada tarea delicada (`level: A`) |
+| **SDD** (último nivel) | Feature grande o con diseño de verdad que decidir: `idea-to-spec` → `spec-to-plan` → `plan-to-tasks` | La spec y el plan, que la persona aprueba en el fichero |
+
+Todos los niveles con tareas terminan igual: una PR del plan y una PR por tarea, y las decisiones que sobreviven al cambio en `docs/decisions/`.
+
+### Flujo por defecto: de la idea al cambio (nivel B)
 
 | Skill / agente | Qué hace |
 |---|---|
@@ -131,7 +142,7 @@ idea-to-change → docs/changes/<cambio>/ → ★ persona: mapa de ejemplos y de
     (la PR de la última tarea cierra el issue con Closes #<n>, si partió de uno)
 ```
 
-Si hay diseño de verdad que decidir, el nivel siguiente es el SDD (más abajo).
+Si hay diseño de verdad que decidir, el último nivel es el SDD (más abajo).
 
 ### Decisiones
 
@@ -141,20 +152,19 @@ Si hay diseño de verdad que decidir, el nivel siguiente es el SDD (más abajo).
 
 Los agentes leen solo el índice y abren las decisiones cuyo `affects` cubre lo que van a tocar. Una decisión aceptada no se edita: se escribe otra que la sustituye.
 
-### Spec-Driven Development
+### Spec-Driven Development (último nivel)
 
-Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
+Para cuando hay diseño de verdad que decidir. Las skills escriben la spec, el plan y las tareas directamente en el fichero, en `draft`, y en el chat solo preguntan las decisiones de la persona y resumen lo supuesto. La spec y el plan son documentos de trabajo: al terminar la última tarea, `task-done` los marca `obsolete`, y lo que perdura son las decisiones (en `docs/decisions/`) y los tests. Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 
 | Skill / agente | Qué hace |
 |---|---|
-| [`idea-to-spec`](skills/idea-to-spec/SKILL.md) | De idea a `spec.md` mediante entrevista por rondas |
+| [`idea-to-spec`](skills/idea-to-spec/SKILL.md) | De idea a `spec.md`, preguntando solo las decisiones; propone partir un cambio grande |
 | [`review-spec`](skills/review-spec/SKILL.md) · agente [`spec-reviewer`](agents/spec-reviewer.md) | Revisa la spec o el plan. Recomienda, nunca aprueba |
 | [`apply-review`](skills/apply-review/SKILL.md) | Pregunta las decisiones una a una y aplica los arreglos en bloque, salvo los que la persona excluya |
-| [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
-| [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a un fichero por tarea en `tasks/`, con sus dependencias y su verificación, y la PR del plan |
+| [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a un `plan.md` de diseño (componentes, los que reutiliza, contratos, qué test cubre cada criterio), con comprobación de principios |
+| [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a un fichero por tarea en `tasks/` (el formato del nivel B), con sus dependencias, sus tests en orden y su verificación, y la PR del plan |
 | agente [`implement`](agents/implement.md) | Implementa las tareas listas, una rama y una PR por tarea, cada una con el comando de verificación en verde |
 | [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y solo si pasa le pone `status: done`; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. Su tablero dice qué tareas están listas. La usa `implement` |
-| [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 | [`sdd-decisions`](skills/sdd-decisions/SKILL.md) | Interna: qué es una decisión de la persona (se pregunta) y qué un supuesto o arreglo con respuesta por defecto (se propone por escrito) |
 
 ```
@@ -166,7 +176,7 @@ idea-to-spec → [review-spec → apply-review] → persona: status: approved
 Convenciones de SDD:
 
 - Cada cambio vive en `docs/changes/<cambio>/` (`docs/changes/42-cancelar-viaje/`): `README.md` y `tasks/` (el mismo formato que en el nivel B), `spec.md`, `plan.md` y las revisiones. El plan va en la rama `<cambio>/plan` y cada tarea en `<cambio>/T<n>`, cada una con su PR. Subir del nivel B al SDD es añadir ficheros a la carpeta.
-- `spec.md` y `plan.md` llevan `status: draft | approved | obsolete` en el frontmatter. **Solo una persona pone `approved`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación.
+- `spec.md` y `plan.md` llevan `status: draft | approved | obsolete` en el frontmatter. **Solo una persona pone `approved`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación. `task-done` los pone en `obsolete` con la última tarea.
 - No hay backlog central: los cambios abiertos son las carpetas con `status: open` (`grep -l "status: open" docs/changes/*/README.md`), y el tablero de cada uno lo da `task-done` (`scripts/board.py`). La prioridad y el responsable viven en el tracker; el README enlaza su issue con `issue:`, y la PR de la última tarea lo cierra.
 - El contrato con los guardrails es el comando de verificación de la sección `Commands` (o `Comandos`) de `AGENTS.md`.
 

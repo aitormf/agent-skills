@@ -1,5 +1,5 @@
 ---
-status: draft      # draft | approved | obsolete. Only a person marks it approved.
+status: draft      # draft | approved | obsolete. Only a person marks it approved; task-done marks it obsolete when the change is done.
 issue:             # optional: tracker link or ID (e.g. TRIBBU-123)
 ---
 

@@ -36,3 +36,4 @@ security or something hard to reverse (see the sdd-decisions skill); "fix" if it
 <!-- Clashes with the non-negotiable principles of docs/ARCHITECTURE.md or with accepted decisions in docs/decisions/. -->
 
 ## Risks
+<!-- In a plan review, also the implementation details worth a look for implement: one line each, not findings. -->

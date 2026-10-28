@@ -11,7 +11,8 @@ Lo que se instala como plugin se actualiza solo cuando cambia la versión. Lo qu
 - [ ] **Claude Code (plugin):** `/plugin marketplace update aitormf` y después actualiza `harness@aitormf` desde `/plugin`. Comprueba que aparece `/harness:idea-to-change`.
 - [ ] **Codex (plugin):** actualiza el marketplace y el plugin `harness@aitormf`. Los agentes no vienen con el plugin: vuelve a copiar `adapters/codex/agents/*.toml` a `.codex/agents/` (o a `~/.codex/agents/`).
 - [ ] **OpenCode:** `npx skills update` y vuelve a copiar `adapters/opencode/agents/*.md` a `.opencode/agents/`.
-- [ ] **`npx skills` (cualquier agente):** `npx skills update`, y haz commit de `.agents/skills/`, `.claude/skills/` y `skills-lock.json`. Si instalaste skills sueltas, añade las nuevas: `idea-to-change` y `record-decision`.
+- [ ] **`npx skills` (cualquier agente):** `npx skills update`, y haz commit de `.agents/skills/`, `.claude/skills/` y `skills-lock.json`. Si instalaste skills sueltas, añade las nuevas, `idea-to-change` y `record-decision`, y borra de `.agents/skills/`, `.claude/skills/` y `skills-lock.json` la skill del siguiente paso del SDD, que ya no existe (D-0007).
+- [ ] **Desaparece la skill del siguiente paso del SDD** ([D-0007](decisions/README.md), versión 0.5.0), la que decía en qué punto estaba cada trabajo. Con el plugin se va sola; si la copiaste a mano en otro sitio, bórrala. Su trabajo lo hacen el `status` de `spec.md` y `plan.md`, el tablero de `task-done` (`scripts/board.py docs/changes/<cambio>`) y, para ver los cambios abiertos, `grep -l "status: open" docs/changes/*/README.md`.
 
 Instrucciones de instalación completas: [README](../README.md#instalar).
 
@@ -94,5 +95,6 @@ Para contárselo a quien trabaje en el repositorio.
 - **`task-done` comprueba los tests en rojo:** si falta el commit en rojo en la rama o se ha cambiado un test suyo, aunque sea en el commit en rojo de otra tarea, no marca la tarea (exit 3).
 - **La review comprueba más cosas:** ejemplos con test, tests en rojo intactos, dependencias mergeadas, tamaño y propósito de la tarea, choques con decisiones aceptadas y llamadores fuera del diff.
 - **Las decisiones se registran:** las redacta el agente en `proposed` y una persona las pasa a `accepted`. Una decisión aceptada no se edita: se sustituye por otra.
+- **El SDD es el último nivel y es más corto:** `idea-to-spec`, `spec-to-plan` y `plan-to-tasks` escriben el artefacto en `draft` directamente y en el chat solo preguntan las decisiones y resumen lo supuesto. El plan se queda en el diseño. Con la última tarea, `task-done` marca `spec.md` y `plan.md` `obsolete`: lo que perdura son las decisiones y los tests.
 
 Las tareas en curso de la v1 (sin `tests:`) pasan al formato nuevo con `examples: []` (sección 4) y se terminan como siempre.
