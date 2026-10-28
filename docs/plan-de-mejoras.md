@@ -1,6 +1,6 @@
 # Plan de mejoras
 
-Fecha: 2026-10-20, revisado el 2026-10-22. Documento de trabajo para decidir qué hacer. No describe nada implementado.
+Fecha: 2026-10-20, revisado el 2026-10-22. Estado: **histórico** (2026-10-28). Lo que seguía pendiente pasó a la [v2](plan-v2.md) y a la [v3](plan-v3.md) (fase 3); no se actualiza más.
 
 Reúne la comparación de este repo con [karajan-code](https://github.com/manufosela/karajan-code) y [Ponytail](https://github.com/DietrichGebert/ponytail), las issues abiertas (#1–#5, inspiradas en [superpowers](https://github.com/obra/superpowers)), las issues creadas a raíz de la comparación (#7–#12), las que salieron de medir el coste del flujo de SDD (#13–#15, #18) y la PR #6.
 

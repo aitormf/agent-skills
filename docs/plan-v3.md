@@ -1,6 +1,6 @@
 # Plan de la v3
 
-Fecha: 2026-10-28. Estado: **borrador**.
+Fecha: 2026-10-28. Estado: **aprobado** (PR #25); fase 1 en curso.
 
 Sale de usar la v2 (versión 0.5.0) y de repasar el [plan de mejoras](plan-de-mejoras.md). Tres mejoras pedidas y unas cuantas pequeñas que siguen pendientes.
 
@@ -80,4 +80,4 @@ Del [plan de mejoras](plan-de-mejoras.md), lo que sigue siendo útil:
 5. Reglas de complejidad de ruff en `setup-guardrails-python` (idea 20).
 6. Tabla de qué se garantiza en cada herramienta (idea 7).
 
-Al aprobar este plan, `plan-de-mejoras.md` pasa a ser histórico, con una nota que remita aquí, y #2 se cierra (cubierto por la fase 5 de la v2).
+Al aprobarse este plan, `plan-de-mejoras.md` pasó a ser histórico, con una nota que remite aquí, y #2 se cerró (cubierto por la fase 5 de la v2).
