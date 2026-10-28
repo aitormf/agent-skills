@@ -1,12 +1,12 @@
 ---
-status: open      # open | done. task-done sets done when it ticks the last task.
-issue: null       # the GitHub issue this change started from (a number), or null. The PR closes it: Closes #<n>.
+status: open      # open | done. task-done sets done when the last task is done.
+issue: null       # the GitHub issue this change started from (a number), or null. The PR of the last task closes it: Closes #<n>.
 ---
 <!--
-TEMPLATE for docs/changes/<branch>/tasks.md (idea-to-change; plan-to-tasks uses the same format).
+TEMPLATE for docs/changes/<change>/README.md (idea-to-change; plan-to-tasks uses the same folder).
 Write it in the project language, headings included (Spanish: Problema, Plazo máximo, Fuera de alcance,
 Mapa de ejemplos, Supuestos, Tareas). Delete this comment. The note is about 10 lines.
-Sections still empty are left with "—" until their step.
+Sections still empty are left with "—" until their step. The tasks are files in tasks/ (assets/task.md).
 -->
 # <change title>
 
@@ -36,5 +36,5 @@ Question: <what is not decided yet> → D-NNNN | options, recommended one marked
 
 ## Tasks
 
-- [ ] T1. <thinnest end-to-end slice> — tests: E1 — verification: <single-test command>
-- [ ] W1. Full verification — verification: <verification command from AGENTS.md>
+One file per task in `tasks/`, each with its branch and PR. Which are ready: the board of `task-done`
+(`scripts/board.py`). Do not list them here: the task files are the only source.

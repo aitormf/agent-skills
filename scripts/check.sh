@@ -42,46 +42,61 @@ EOF
 echo "▶ task-done"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 td=skills/task-done/scripts/task_done.py
-printf -- '- [ ] T1. a — verification: `python3 --version`\n- [ ] T2. b — verification: false\n- [ ] T3. c — verification: `python3 --version`\n' > "$tmp/tasks.md"
-python3 "$td" "$tmp/tasks.md" T1 -- python3 --version 2>"$tmp/err" >/dev/null
-grep -q warning "$tmp/err" && { echo "task-done avisó con el comando declarado" >&2; exit 1; }
-python3 "$td" "$tmp/tasks.md" T2 -- false >/dev/null && { echo "task-done marcó una tarea fallida" >&2; exit 1; }
-python3 "$td" "$tmp/tasks.md" T3 -- true 2>"$tmp/err" >/dev/null
-grep -q warning "$tmp/err" || { echo "task-done no avisó de un comando no declarado" >&2; exit 1; }
-python3 "$td" "$tmp/tasks.md" T9 -- true >/dev/null 2>&1 && { echo "task-done aceptó una tarea inexistente" >&2; exit 1; }
-grep -q -- '- \[x\] T1\.' "$tmp/tasks.md" && grep -q -- '- \[ \] T2\.' "$tmp/tasks.md" && grep -q -- '- \[x\] T3\.' "$tmp/tasks.md" \
-  || { echo "task-done no dejó tasks.md como se esperaba" >&2; exit 1; }
+fail() { echo "task-done: $1" >&2; cat "$tmp/out" >&2; exit 1; }
+task() {  # task <change folder> <id> <examples> [status] [depends_on] [verification]: writes <folder>/tasks/<id>-t.md
+  mkdir -p "$1/tasks"
+  printf -- '---\nid: %s\ntitle: task %s\nstatus: %s   # todo | doing | done\ndepends_on: [%s]\nexamples: [%s]\nverification: %s\n---\nPurpose.\n' \
+    "$2" "$2" "${4:-todo}" "${5:-}" "$3" "${6:-true}" > "$1/tasks/$2-t.md"
+}
+status_is() { grep -q "^status: $2 " "$1"; }  # status_is <task file> <status>
+: > "$tmp/out"
+f="$tmp/plain"; task "$f" T1 "" todo "" 'python3 --version'; task "$f" T2 "" todo "" false; task "$f" T3 "" todo "" 'python3 --version'
+printf -- '---\nstatus: open\n---\n' > "$f/README.md"
+python3 "$td" "$f" T1 -- python3 --version 2>"$tmp/err" >/dev/null
+grep -q warning "$tmp/err" && fail "warned with the declared command"
+python3 "$td" "$f" T2 -- false >/dev/null && fail "marked a failing task"
+python3 "$td" "$f/tasks/T3-t.md" -- true 2>"$tmp/err" >/dev/null || fail "did not take the task from its file"
+grep -q warning "$tmp/err" || fail "did not warn about a command that is not the declared one"
+python3 "$td" "$f" T9 -- true >"$tmp/out" 2>&1 && fail "accepted a task that does not exist"
+grep -q "T9-\*\.md" "$tmp/out" || fail "did not name the task file searched"
+status_is "$f/tasks/T1-t.md" done && status_is "$f/tasks/T2-t.md" todo && status_is "$f/tasks/T3-t.md" done \
+  && grep -q '^status: open$' "$f/README.md" || fail "did not leave the task files and the README as expected"
+grep -q '^status: done   # todo | doing | done$' "$f/tasks/T1-t.md" || fail "dropped the comment of the status line"
+sed -i 's/^status: todo /status: wip /' "$f/tasks/T2-t.md"
+python3 "$td" "$f" T2 -- true >"$tmp/out" 2>&1 && fail "accepted a task file with a malformed frontmatter"
+grep -q "status 'wip'" "$tmp/out" || fail "did not say what is malformed in the task file"
 
 echo "▶ task-done: red commit protection (commits of the branch since the base branch)"
 r="$tmp/repo"; mkdir -p "$r/tests" "$r/src"; git -C "$r" init -q -b main
+ch="$r/docs/changes/a"
 g() { git -C "$r" -c user.name=t -c user.email=t@t "$@"; }
-done_() { rc=0; python3 "$td" "$r/tasks.md" "$1" -- true >"$tmp/out" 2>&1 || rc=$?; return $rc; }
-marked() { grep -q -- "- \[x\] $1\." "$r/tasks.md"; }
-fail() { echo "task-done: $1" >&2; cat "$tmp/out" >&2; exit 1; }
+done_() { rc=0; python3 "$td" "$ch" "$1" -- true >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+marked() { status_is "$ch/tasks/$1-t.md" done; }
 printf 'def test_E1_old(): assert f() == 0\n' > "$r/tests/test_old.py"; g add -A; g commit -qm "test(T1): E1 red, an older change"
 g checkout -qb feat/1-a
-printf -- '- [ ] T1. a — tests: E1, E2 — verification: true\n- [ ] T2. b — tests: E3 — verification: true\n- [ ] T3. c — tests: E4 — verification: true\n- [ ] T4. d — tests: E5 — verification: true\n- [ ] T5. e — tests: E6 — verification: true\n- [ ] T6. f — tests: E7 — verification: true\n- [x] T7. g — tests: E8 — verification: true\n' > "$r/tasks.md"
+mkdir -p "$ch"; { printf -- '---\nstatus: open\n---\n\n## Example map\n\n'; for i in $(seq 1 20); do echo "  E$i: e$i"; done; } > "$ch/README.md"
+task "$ch" T1 "E1, E2"; task "$ch" T2 E3; task "$ch" T3 E4; task "$ch" T4 E5; task "$ch" T5 E6; task "$ch" T6 E7; task "$ch" T7 E8 done
 g add -A; g commit -qm "docs: tasks"
 done_ T1 || true; [ $rc = 3 ] && ! marked T1 && grep -q "since main" "$tmp/out" || fail "counted a red commit from the base branch"
 printf 'def test_E1_a(): assert f() == 1\ndef test_E2_b(): assert f() == 2\n' > "$r/tests/test_a.py"
-g add -A; g commit -qm "test(T1): E1 E2 red"
-echo 'def f(): return 1' > "$r/src/a.py"; g add -A; g commit -qm "feat(T1): a"
+g add tests; g commit -qm "test(T1): E1 E2 red"
+echo 'def f(): return 1' > "$r/src/a.py"; g add src; g commit -qm "feat(T1): a"
 done_ T1 && marked T1 || fail "rejected a protected red commit"
-printf 'def test_E3_c(): assert f() == 3\n' >> "$r/tests/test_a.py"; g add -A; g commit -qm "test(T2): E3 red"
+printf 'def test_E3_c(): assert f() == 3\n' >> "$r/tests/test_a.py"; g add tests; g commit -qm "test(T2): E3 red"
 done_ T1 || fail "a red commit of another task that only adds tests broke T1's protection"
 sed -i 's/== 3/== 1/' "$r/tests/test_a.py"
 done_ T2 || true; [ $rc = 3 ] && ! marked T2 || fail "accepted an uncommitted change to a red test"
-g commit -qam "feat(T2): c"
+g commit -qm "feat(T2): c" -- tests
 done_ T2 || true; [ $rc = 3 ] || fail "accepted a commit that changes a red test"
-printf 'def test_E9_d(): pass\n' > "$r/tests/test_d.py"; g add -A; g commit -qm "test(T3): E9 red"
+printf 'def test_E9_d(): pass\n' > "$r/tests/test_d.py"; g add tests; g commit -qm "test(T3): E9 red"
 done_ T3 || true; [ $rc = 3 ] && grep -q "E4 has no test" "$tmp/out" || fail "accepted a red commit without the task's example"
-printf 'def test_E5_e(): pass\n' > "$r/tests/test_e.py"; g add -A; g commit -qm "test(T4): E5 red"
-printf 'def test_E5_e(): pass\ndef test_e_edge(): pass\n' > "$r/tests/test_e.py"; g commit -qam "feat(T4): e"
+printf 'def test_E5_e(): pass\n' > "$r/tests/test_e.py"; g add tests; g commit -qm "test(T4): E5 red"
+printf 'def test_E5_e(): pass\ndef test_e_edge(): pass\n' > "$r/tests/test_e.py"; g commit -qm "feat(T4): e" -- tests
 done_ T4 && marked T4 || fail "rejected new tests added after the red commit"
-printf 'def test_E6_f(): assert f() == 6\n' > "$r/tests/test_f.py"; g add -A; g commit -qm "test(T5): E6 red"
-printf 'def test_E6_f(): assert True\ndef test_E7_g(): assert f() == 7\n' > "$r/tests/test_f.py"; g commit -qam "test(T6): E7 red"
+printf 'def test_E6_f(): assert f() == 6\n' > "$r/tests/test_f.py"; g add tests; g commit -qm "test(T5): E6 red"
+printf 'def test_E6_f(): assert True\ndef test_E7_g(): assert f() == 7\n' > "$r/tests/test_f.py"; g commit -qm "test(T6): E7 red" -- tests
 done_ T5 || true; [ $rc = 3 ] && ! marked T5 && grep -q "test(T6)" "$tmp/out" || fail "accepted a red test changed by the red commit of another task"
-printf -- '- [ ] T8. h — tests: E1 — verification: true\n- [ ] T9. i — tests: E11 — verification: true\n- [ ] T10. j — tests: E12 — verification: true\n' >> "$r/tasks.md"
+task "$ch" T8 E1; task "$ch" T9 E11; task "$ch" T10 E12
 printf 'def test_E10_h(): pass\n' > "$r/tests/test_h.py"; g add tests; g commit -qm "test(T8): E10 red"
 done_ T8 || true; [ $rc = 3 ] && grep -q "E1 has no test" "$tmp/out" || fail "took a test of E10 for a test of E1"
 printf 'def test_E11_i(): assert f() == 11\n' > "$r/tests/test_i.py"; g add tests; g commit -qm "test(T9): E11 red"
@@ -90,7 +105,7 @@ done_ T9 || true; [ $rc = 3 ] && grep -q "removes or changes" "$tmp/out" || fail
 printf 'def test_E12_j(): pass\n' >> "$r/tests/test_old.py"; g add tests; g commit -qm "test(T10): E12 red"
 sed -i 's/== 0/== 10/' "$r/tests/test_old.py"; g commit -qm "feat(T10): j" -- tests
 done_ T10 && marked T10 || fail "rejected a change to a line the red commit did not add, in a file it touched"
-printf -- '- [ ] T11. k — tests: E13 — verification: true\n- [ ] T12. l — tests: E14 — verification: true\n- [ ] T13. m — tests: E15 — verification: true\n- [ ] T14. n — tests: E16 — verification: true\n- [ ] T15. o — tests: E17 — verification: true\n- [ ] T16. p — tests: E18 — verification: true\n' >> "$r/tasks.md"
+task "$ch" T11 E13; task "$ch" T12 E14; task "$ch" T13 E15; task "$ch" T14 E16; task "$ch" T15 E17; task "$ch" T16 E18
 printf "it('old', () => {\n  expect(g()).toBe(0);\n});\n" > "$r/tests/k.test.js"; g add tests; g commit -qm "test: an older test"
 printf "it('E13 k', () => {\n  expect(k()).toBe(13);\n});\n" >> "$r/tests/k.test.js"; g add tests; g commit -qm "test(T11): E13 red"
 printf "it('E13 k', () => {\n  expect(k()).toBe(13);\n});\n" > "$r/tests/k.test.js"; g commit -qm "feat(T11): drop the old test" -- tests
@@ -117,83 +132,127 @@ done_ T15 || true; [ $rc = 3 ] && grep -q "E17 has no test" "$tmp/out" || fail "
 printf 'def test_E18_p(): pass\n\ndef test_E18_q(): pass\n' > "$r/tests/test_p.py"; g add tests; g commit -qm "test(T16): E18 red"
 printf 'def test_E18_p(): pass\ndef test_E18_q(): pass\n' > "$r/tests/test_p.py"; g commit -qm "style(T16): drop a blank line" -- tests
 done_ T16 && marked T16 || fail "a blank line the red commit added was protected"
-printf -- '- [ ] T17. q — tests: E19 — verification: true\n' >> "$r/tasks.md"
-printf 'def test_E19_q(): assert f() == 19\n' > "$r/tests/test_q.py"; g add tasks.md tests; g commit -qm "test(T17): E19 red"
-printf 'def test_E19_q(): pass\n' > "$r/tests/test_q.py"; sed -i 's/T17\. q — tests: E19 — /T17. q — /' "$r/tasks.md"
-g add tasks.md tests; g commit -qm "feat(T17): q, and E19 dropped from tasks.md"
-done_ T17 || true; [ $rc = 3 ] && ! marked T17 && grep -q "no longer declares E19" "$tmp/out" || fail "dropping the examples from tasks.md turned off the protection of the red commit"
-python3 "$td" --audit "$r/tasks.md" >"$tmp/out" 2>&1 || true
-grep -q "^T17 \[ \]: PROBLEM: tasks.md no longer declares E19" "$tmp/out" || fail "--audit missed a task whose examples were dropped after its red commit"
+task "$ch" T17 E19
+printf 'def test_E19_q(): assert f() == 19\n' > "$r/tests/test_q.py"; g add docs tests; g commit -qm "test(T17): E19 red"
+printf 'def test_E19_q(): pass\n' > "$r/tests/test_q.py"; sed -i 's/^examples: \[E19\]$/examples: []/' "$ch/tasks/T17-t.md"
+g add docs tests; g commit -qm "feat(T17): q, and E19 dropped from the task file"
+done_ T17 || true; [ $rc = 3 ] && ! marked T17 && grep -q "no longer declares E19" "$tmp/out" || fail "dropping the examples from the task file turned off the protection of the red commit"
+python3 "$td" --audit "$ch" T17 >"$tmp/out" 2>&1 || true
+grep -q "^T17 (todo): PROBLEM: the task file of T17 no longer declares E19" "$tmp/out" || fail "--audit missed a task whose examples were dropped after its red commit"
 if command -v ssh-keygen >/dev/null; then  # signed commits with log.showSignature=true
   ssh-keygen -q -t ed25519 -N '' -f "$tmp/sign" >/dev/null
-  printf -- '- [ ] T18. r — tests: E20 — verification: true\n' >> "$r/tasks.md"
-  printf 'def test_E20_r(): assert f() == 20\n' > "$r/tests/test_r.py"; g add tasks.md tests
+  task "$ch" T18 E20
+  printf 'def test_E20_r(): assert f() == 20\n' > "$r/tests/test_r.py"; g add docs tests
   g -c gpg.format=ssh -c user.signingkey="$tmp/sign" commit -S -qm "test(T18): E20 red"
   g config log.showSignature true
   done_ T18 || true; g config --unset log.showSignature; [ $rc = 0 ] && marked T18 || fail "log.showSignature=true with signed commits broke the history parsing"
 fi
 
-echo "▶ task-done --audit (read-only, for the review)"
+echo "▶ task-done --audit of a task (read-only, for the review)"
 audit() { rc=0; python3 "$td" --audit "$@" >"$tmp/out" 2>&1 || rc=$?; return $rc; }
-cp "$r/tasks.md" "$tmp/before.md"
-audit "$r/tasks.md" || true; [ $rc = 3 ] || fail "--audit did not fail on broken red tests"
-grep -q "^T4 \[x\]: ok" "$tmp/out" || fail "--audit did not accept a protected task"
-grep -q "^T2 \[ \]: PROBLEM: commit .* removes or changes" "$tmp/out" || fail "--audit missed a red test changed later"
-grep -q "^T5 \[ \]: PROBLEM: commit .* 'test(T6)" "$tmp/out" || fail "--audit missed a red test changed by another task's red commit"
-grep -q "^T3 \[ \]: PROBLEM: E4 has no test" "$tmp/out" || fail "--audit missed an example without a test"
-grep -q "^T7 \[x\]: PROBLEM: no red commit" "$tmp/out" || fail "--audit missed a ticked task without a red commit"
-cmp -s "$r/tasks.md" "$tmp/before.md" || fail "--audit edited tasks.md"
+cp -r "$ch" "$tmp/before"
+audit "$ch" T4; [ $rc = 0 ] && grep -q "^T4 (done): ok" "$tmp/out" || fail "--audit did not accept a protected task"
+audit "$ch" T2 || true; [ $rc = 3 ] && grep -q "^T2 (todo): PROBLEM: commit .* removes or changes" "$tmp/out" || fail "--audit missed a red test changed later"
+audit "$ch" T5 || true; grep -q "^T5 (todo): PROBLEM: commit .* 'test(T6)" "$tmp/out" || fail "--audit missed a red test changed by another task's red commit"
+audit "$ch" T3 || true; grep -q "^T3 (todo): PROBLEM: E4 has no test" "$tmp/out" || fail "--audit missed an example without a test"
+audit "$ch" T7 || true; grep -q "^T7 (done): PROBLEM: no red commit" "$tmp/out" || fail "--audit missed a done task without a red commit"
+diff -r "$ch" "$tmp/before" >/dev/null || fail "--audit edited the change folder"
 printf 'def test_E5_e(): assert False\n' > "$r/tests/test_e.py"
-audit "$r/tasks.md" || true; grep -q "^T4 \[x\]: ok" "$tmp/out" || fail "--audit counted uncommitted changes"
+audit "$ch" T4 || true; grep -q "^T4 (done): ok" "$tmp/out" || fail "--audit counted uncommitted changes"
 git -C "$r" checkout -q -- tests/test_e.py
-printf '  E9: an example of the map in no task\n' >> "$r/tasks.md"
-audit "$r/tasks.md" || true; grep -q "^E9: PROBLEM" "$tmp/out" || fail "--audit missed a map example in no task"
 
-echo "▶ task-done: the change of the branch, docs/changes/<branch>/tasks.md"
+echo "▶ task-done: the change and the task of the branch, <change>/T<n>"
 tda="$PWD/$td"; c="$tmp/change"; mkdir -p "$c/tests" "$c/src"; git -C "$c" init -q -b main
 gc() { git -C "$c" -c user.name=t -c user.email=t@t "$@"; }
-tdc() { rc=0; (cd "$c/src" && python3 "$tda" "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+tdc() { rc=0; (cd "$c/tests" && python3 "$tda" "$@") >"$tmp/out" 2>&1 || rc=$?; return $rc; }
 printf 'def test_E1_old(): pass\n' > "$c/tests/test_old.py"; gc add -A; gc commit -qm "test(T1): E1 red, an older change"
-gc checkout -qb feat/7-cancel; mkdir -p "$c/docs/changes/7-cancel"; ct="$c/docs/changes/7-cancel/tasks.md"
-printf -- '---\nstatus: open\nissue: 7\n---\n\n## Tasks\n\n- [ ] T1. a — tests: E1 — verification: true\n- [ ] W1. Full verification — verification: true\n' > "$ct"
-tdc T1 -- true || true; [ $rc = 3 ] || fail "with tasks.md not committed, counted a red commit from the base branch"
+cc="$c/docs/changes/7-cancel"; mkdir -p "$cc"
+printf -- '---\nstatus: open\nissue: 7\n---\n\n## Example map\n\n  E1: a\n  E2: b\n' > "$cc/README.md"
+task "$cc" T1 E1; task "$cc" T2 E2 todo T1
+gc add docs; gc commit -qm "docs: plan of 7-cancel"  # the plan PR, merged
+gc checkout -qb 7-cancel/plan
+tdc -- true || true; [ $rc = 2 ] && grep -q "plan branch" "$tmp/out" || fail "marked a task on the plan branch"
+gc checkout -qb 7-cancel/T9 main
+tdc -- true || true; [ $rc = 2 ] && grep -q "7-cancel/tasks/T9-\*\.md" "$tmp/out" || fail "did not exit 2 naming the task file searched for a task that does not exist"
+gc checkout -qb 8-other/T1 main
+tdc -- true || true; [ $rc = 2 ] && grep -q "docs/changes/8-other" "$tmp/out" || fail "did not exit 2 naming the folder searched for a branch without a change folder"
+tdc --audit || true; [ $rc = 2 ] || fail "--audit did not exit 2 for a branch without a change folder"
+gc checkout -qb 7-cancel/T1 main
+tdc -- true || true; [ $rc = 3 ] || fail "counted a red commit from the base branch for the task of the branch"
 printf 'def test_E1_a(): pass\n' > "$c/tests/test_a.py"; gc add tests; gc commit -qm "test(T1): E1 red"
 echo 'x = 1' > "$c/src/a.py"; gc add src; gc commit -qm "feat(T1): a"
-tdc T1 -- true && grep -q -- '- \[x\] T1\.' "$ct" || fail "did not tick T1 in the change of the branch, with tasks.md not committed"
-grep -q '^status: open$' "$ct" || fail "set status: done with tasks left"
-cp "$ct" "$tmp/ct"; printf -- '- [ ] T2. b — tests: E2 — verification: true\n' >> "$ct"
-tdc --audit && grep -q "^T2 \[ \]: pending" "$tmp/out" || fail "--audit did not report an unticked task without a red commit as pending"
-cp "$tmp/ct" "$ct"
-tdc W1 -- true && grep -q '^status: done$' "$ct" && grep -q '^issue: 7$' "$ct" || fail "did not set status: done when the last task was ticked"
-tdc --audit && grep -q "^T1 \[x\]: ok" "$tmp/out" || fail "--audit did not check the change of the branch"
-gc checkout -qb feat/8-other
-tdc W1 -- true || true; [ $rc = 2 ] && grep -q "docs/changes/8-other/tasks.md" "$tmp/out" || fail "did not exit 2 naming the path searched for a branch without a change folder"
-tdc --audit || true; [ $rc = 2 ] || fail "--audit did not exit 2 for a branch without a change folder"
-gc checkout -q feat/7-cancel; gc add docs; gc commit -qm "docs: 7-cancel done"; gc checkout -q main; gc merge -q --ff-only feat/7-cancel
-gc checkout -qb fix/7-cancel  # same last segment as a change already finished in main
-tdc W1 -- true || true; [ $rc = 2 ] && grep -q "finished change" "$tmp/out" || fail "reused the folder of a finished change"
+tdc -- true && status_is "$cc/tasks/T1-t.md" done && status_is "$cc/tasks/T2-t.md" todo || fail "did not mark the task of the branch"
+grep -q '^status: open$' "$cc/README.md" || fail "set status: done in the README with tasks left"
+tdc --audit && grep -q "^T1 (done): ok" "$tmp/out" || fail "--audit did not check the task of the branch"
+gc commit -qam "feat(T1): done"
+gc checkout -qb feat/7-cancel/T2 main  # branched before T1 is merged: its T1 is still todo
+tdc --audit || true; [ $rc = 3 ] && grep -q "^T2 (todo): pending" "$tmp/out" \
+  && grep -q "^T2 (todo): PROBLEM: depends on T1, not done in main" "$tmp/out" || fail "--audit missed a dependency not done in the base branch"
+sed -i 's/^examples: \[E2\]$/examples: [E2, E5]/' "$cc/tasks/T2-t.md"
+tdc --audit || true; grep -q "^T2 (todo): PROBLEM: E5 not in the example map" "$tmp/out" || fail "--audit missed an example of the task that is not in the map"
+gc checkout -q -- docs
+gc checkout -q main; gc merge -q --ff-only 7-cancel/T1; gc checkout -q feat/7-cancel/T2
+tdc --audit && ! grep -q PROBLEM "$tmp/out" || fail "--audit did not take T1 as done once merged into the base branch"
+printf 'def test_E2_b(): pass\n' > "$c/tests/test_b.py"; gc add tests; gc commit -qm "test(T2): E2 red"
+mkdir -p "$c/src"; echo 'y = 2' > "$c/src/b.py"; gc add src; gc commit -qm "feat(T2): b"
+tdc -- true && status_is "$cc/tasks/T2-t.md" done || fail "did not mark T2"
+grep -q '^status: done$' "$cc/README.md" && grep -q '^issue: 7$' "$cc/README.md" || fail "did not set status: done in the README when the last task was done (T1 done in the base branch)"
+gc commit -qam "feat(T2): done"; gc checkout -q main; gc merge -q --no-edit feat/7-cancel/T2
+gc checkout -qb fix/7-cancel/T1  # same name as a change already finished in main
+tdc -- true || true; [ $rc = 2 ] && grep -q "finished change" "$tmp/out" || fail "reused the folder of a finished change"
 tdc --audit || true; [ $rc = 2 ] && grep -q "finished change" "$tmp/out" || fail "--audit reused the folder of a finished change"
-gc checkout -q main; mkdir -p "$c/docs/changes/11-z"; zt="$c/docs/changes/11-z/tasks.md"
-printf -- '---\nstatus: open\n---\n\n- [ ] T1. a — verification: true\n\nstatus: done (only the frontmatter counts)\n' > "$zt"
-gc add docs; gc commit -qm "docs: 11-z, open"; gc checkout -qb feat/11-z
-tdc T1 -- true && grep -q -- '- \[x\] T1\.' "$zt" || fail "took 'status: done' outside the frontmatter for a finished change"
+gc checkout -q main; zc="$c/docs/changes/11-z"; mkdir -p "$zc"
+printf -- '---\nstatus: open\n---\n\nstatus: done (only the frontmatter counts)\n' > "$zc/README.md"; task "$zc" T1 ""
+gc add docs; gc commit -qm "docs: 11-z, open"; gc checkout -qb 11-z/T1
+tdc -- true && status_is "$zc/tasks/T1-t.md" done || fail "took 'status: done' outside the frontmatter for a finished change"
 n="$tmp/nobase"; mkdir -p "$n"; git -C "$n" init -q -b trunk
 git -C "$n" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "chore: start"
-printf -- '- [ ] T1. a — tests: E1 — verification: true\n' > "$n/tasks.md"
-rc=0; python3 "$td" "$n/tasks.md" T1 -- true >"$tmp/out" 2>&1 || rc=$?
+task "$n/ch" T1 E1
+rc=0; python3 "$td" "$n/ch" T1 -- true >"$tmp/out" 2>&1 || rc=$?
 [ $rc = 3 ] && grep -q "PROBLEM: .*no base branch" "$tmp/out" || fail "did not exit 3 with a PROBLEM line without a base branch"
-audit "$n/tasks.md" || true; [ $rc = 3 ] && grep -q "^PROBLEM: .*no base branch" "$tmp/out" || fail "--audit did not exit 3 with a PROBLEM line without a base branch"
+audit "$n/ch" T1 || true; [ $rc = 3 ] && grep -q "^PROBLEM: .*no base branch" "$tmp/out" || fail "--audit did not exit 3 with a PROBLEM line without a base branch"
 w="$tmp/work"; mkdir -p "$w/tests"; git init -q --bare -b main "$tmp/origin.git"; git -C "$w" init -q -b main
 gw() { git -C "$w" -c user.name=t -c user.email=t@t "$@"; }
 gw commit -q --allow-empty -m "chore: start"; gw remote add origin "$tmp/origin.git"; gw push -q origin main main:develop
-gw checkout -qb feat/9-x origin/develop; printf -- '- [ ] T1. a — tests: E1 — verification: true\n' > "$w/tasks.md"; gw add -A; gw commit -qm "docs: tasks"
+gw checkout -qb feat/9-x origin/develop; task "$w/ch" T1 E1; gw add -A; gw commit -qm "docs: tasks"
 gw remote set-head origin develop
-audit "$w/tasks.md" || true; grep -q "since origin/develop" "$tmp/out" || fail "--audit did not take origin/HEAD as the base branch"
+audit "$w/ch" T1 || true; grep -q "since origin/develop" "$tmp/out" || fail "--audit did not take origin/HEAD as the base branch"
 gw checkout -qb old main; printf 'def test_E1_old(): pass\n' > "$w/tests/test_old.py"; gw add tests; gw commit -qm "test(T1): E1 red, merged earlier"
 gw push -q origin old:main; gw checkout -qb feat/10-y origin/main  # the local main is stale: it lacks that commit
-printf -- '- [x] T1. a — tests: E1 — verification: true\n' > "$w/tasks.md"; gw add -A; gw commit -qm "docs: tasks"
+task "$w/ch" T1 E1 done; gw add -A; gw commit -qm "docs: tasks"
 gw remote set-head origin -d
-audit "$w/tasks.md" || true; grep -q "since origin/main" "$tmp/out" && grep -q "^T1 \[x\]: PROBLEM: no red commit" "$tmp/out" || fail "--audit took a stale local main over origin/main"
+audit "$w/ch" T1 || true; grep -q "since origin/main" "$tmp/out" && grep -q "^T1 (done): PROBLEM: no red commit" "$tmp/out" || fail "--audit took a stale local main over origin/main"
+
+echo "▶ task-done: board (D-0030) and --audit of the plan (D-0032)"
+bd=skills/task-done/scripts/board.py
+b="$tmp/board"; bc="$b/docs/changes/9-board"; mkdir -p "$bc"; git -C "$b" init -q -b main
+gb() { git -C "$b" -c user.name=t -c user.email=t@t "$@"; }
+board() { rc=0; python3 "$bd" "$@" >"$tmp/out" 2>&1 || rc=$?; return $rc; }
+printf -- '---\nstatus: open\n---\n\n## Example map\n\n  E1: a\n  E2: b\n  E3: c\n  E4: d\n' > "$bc/README.md"
+task "$bc" T1 E1 done; task "$bc" T2 E2 todo T1; task "$bc" T3 E3 todo T2; task "$bc" T4 E4; task "$bc" T5 "" todo "T1, T6"; task "$bc" T6 ""
+gb add -A; gb commit -qm "docs: plan of 9-board"; gb branch 9-board/T4
+task "$bc" T6 "" done  # done here, not merged
+board "$bc"; [ $rc = 0 ] || fail "the board failed on a valid change"
+grep -q "^T1 done: task T1$" "$tmp/out" && grep -q "^T2 ready: task T2$" "$tmp/out" && grep -q "^T3 blocked by T2: task T3$" "$tmp/out" \
+  || fail "the board did not list done, ready and blocked tasks"
+grep -q "^T4 doing (branch 9-board/T4): task T4$" "$tmp/out" || fail "the board did not take a task with a branch as doing"
+grep -q "^T6 doing: task T6$" "$tmp/out" && grep -q "^T5 blocked by T6: task T5$" "$tmp/out" || fail "the board took a task done but not merged as done"
+gb checkout -q -- docs; gb checkout -qb 9-board/plan
+rc=0; (cd "$b" && python3 "$tda" --audit) >"$tmp/out" 2>&1 || rc=$?
+[ $rc = 0 ] && grep -q "audit of the plan" "$tmp/out" || fail "--audit of the plan branch failed on a valid plan"
+(cd "$b/docs" && python3 "${tda%/*}/board.py") >"$tmp/out" 2>&1 && grep -q "^T2 ready" "$tmp/out" || fail "the board did not take the change from the branch"
+task "$bc" T2 E2 todo T9
+board "$bc" || true; [ $rc = 2 ] && grep -q "T2 depends on T9, which does not exist" "$tmp/out" || fail "the board did not exit 2 on a dependency that does not exist"
+(cd "$b" && python3 "$tda" --audit) >"$tmp/out" 2>&1 && fail "--audit of the plan branch accepted a dependency that does not exist"
+grep -q "^PROBLEM: T2 depends on T9" "$tmp/out" || fail "--audit of the plan missed a dependency that does not exist"
+task "$bc" T2 E2 todo T3
+board "$bc" || true; [ $rc = 2 ] && grep -q "cycle: T2 -> T3 -> T2" "$tmp/out" || fail "the board did not exit 2 on a cycle"
+audit "$bc" || true; [ $rc = 3 ] && grep -q "^PROBLEM: cycle: T2 -> T3 -> T2" "$tmp/out" || fail "--audit of the plan missed a cycle"
+task "$bc" T2 E2 wip T1
+board "$bc" || true; [ $rc = 2 ] && grep -q "status 'wip'" "$tmp/out" || fail "the board did not exit 2 on a malformed frontmatter"
+audit "$bc" || true; [ $rc = 3 ] && grep -q "^PROBLEM: T2-t.md: status 'wip'" "$tmp/out" || fail "--audit of the plan missed a malformed frontmatter"
+gb checkout -q -- docs; printf '  E9: an example of the map in no task\n' >> "$bc/README.md"
+audit "$bc" || true; [ $rc = 3 ] && grep -q "^PROBLEM: E9 is in the example map but in no task's examples" "$tmp/out" || fail "--audit of the plan missed a map example in no task"
 
 echo "▶ review: no GitHub credentials in the pre-push hook nor in the review job; gh denied as defence in depth (D-0021, D-0027)"
 mkdir -p "$tmp/bin"

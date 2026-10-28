@@ -65,7 +65,7 @@ Order: `ARCHITECTURE.md` → decisions → `CONTRIBUTING.md` → `SECURITY.md` �
 - `AGENTS.md` must include:
   - the "Planning" line: check the plan against the principles in `docs/ARCHITECTURE.md` before implementing;
   - the "Decisions" section: read the index of `docs/decisions/`, open the records whose `affects` covers the change, and never contradict an accepted one silently;
-  - the snippet `assets/<lang>/AGENTS-levels.md`: the levels of process (where the person stops before there is code), the signals to go up or down, the evidence rule and the glossary. Copy it as is; only fill in the glossary with the terms from round 1 (one line each, under ~15) and replace the skill names if the project does not use this plugin;
+  - the snippet `assets/<lang>/AGENTS-levels.md`: the levels of process (where the person stops before there is code), the signals to go up or down, the evidence rule, the feature-flag mechanism and the glossary. Copy it as is; only fill in the feature-flag line (ask how the project hides unfinished behaviour, or write that it has none) and the glossary with the terms from round 1 (one line each, under ~15) and replace the skill names if the project does not use this plugin;
   - a link to `CONTRIBUTING.md` for the process.
 - `CLAUDE.md` contains only `@AGENTS.md`, unless it already has content. In that case, propose moving it into `AGENTS.md`.
 - `pull_request_template.md` goes in `.github/`. Offer it, do not impose it.

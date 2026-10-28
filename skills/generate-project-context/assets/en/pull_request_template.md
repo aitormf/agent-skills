@@ -8,7 +8,7 @@ Delete the sections that don't apply; don't leave boxes ticked that you haven't 
 
 <!-- 2-5 sentences. The "why" matters more than the "what": the diff already shows the what. -->
 
-Closes #<issue> · Change: `docs/changes/<branch>/` · Decision: `docs/decisions/<NNNN>-<title>.md`
+Closes #<issue> (last task; otherwise Refs #<issue>) · Change: `docs/changes/<change>/` · Task: `T<n>` · Decision: `docs/decisions/<NNNN>-<title>.md`
 
 ## Type of change
 

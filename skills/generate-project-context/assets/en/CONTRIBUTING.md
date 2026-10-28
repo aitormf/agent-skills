@@ -50,7 +50,7 @@ Don't use `pip install` and don't edit `uv.lock` by hand.
 ## 3. Before you start
 
 - **Small changes** (obvious bug, typo, local refactor): go ahead, straight to a PR.
-- **Medium or large changes** (new feature, several modules, public API): create a branch and describe the change in `docs/changes/<branch>/tasks.md` (problem, out of scope, examples and tasks with their verification; with the `idea-to-change` skill), and add `spec.md` and `plan.md` to that folder if there is design to decide. It may start from an issue: the PR closes it with `Closes #<n>`.
+- **Medium or large changes** (new feature, several modules, public API): describe the change in `docs/changes/<change>/` (a `README.md` with the problem, out of scope and examples, and one file per task in `tasks/` with its dependencies and verification; with the `idea-to-change` skill), and add `spec.md` and `plan.md` to that folder if there is design to decide. The plan goes in its own PR, from the branch `<change>/plan`; then each task in its own branch, `<change>/T<n>`, and PR: one purpose, about 150 lines without the tests, and `main` deployable after each one (unfinished behaviour behind a feature flag, see `AGENTS.md`). It may start from an issue: the PR of the last task closes it with `Closes #<n>`.
 - **Architecture changes** (new layer, change of persistence, new structural dependency, breaking a principle): need a **decision record** in `docs/decisions/`, accepted before implementation (the `record-decision` skill drafts it).
 
 Before implementing, check your plan against the non-negotiable principles in `docs/ARCHITECTURE.md`.

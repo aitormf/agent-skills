@@ -7,7 +7,7 @@ description: Tells where a change in docs/changes/ stands and what the next step
 
 Infer the state of each work item from its artifacts. There is no central backlog or state machine: the source of truth is the files and their frontmatter. **You only read**: you never change `status` or write artifacts, and you do not launch other skills unless the person asks.
 
-Work management (priority, owner) lives in the tracker. If `tasks.md` has `issue:`, show it, but do not look it up.
+Work management (priority, owner) lives in the tracker. If the change's `README.md` has `issue:`, show it, but do not look it up.
 
 ## How to infer the next step
 
@@ -15,15 +15,16 @@ For `docs/changes/<change>/`, apply the first row that matches:
 
 | Situation | Next step |
 |---|---|
-| No `spec.md` (and no `tasks.md`) | Write the spec: `idea-to-spec` |
+| No `spec.md` (and no `tasks/`) | Write the spec: `idea-to-spec` |
 | `spec.md` in `draft`, with a review that has undecided findings | Decide them: `apply-review` |
 | `spec.md` in `draft` | Review it (`review-spec`) or have the person approve it |
 | `spec.md` approved, no `plan.md` | Plan: `spec-to-plan` (or straight to tasks, for a small change) |
 | `plan.md` in `draft`, with a review that has undecided findings | Decide them: `apply-review` |
 | `plan.md` in `draft` | Review it (`review-spec`) or have the person approve it |
-| Plan approved (or spec approved for a small change), no `tasks.md` | Split into tasks: `plan-to-tasks` |
-| `tasks.md` with unchecked boxes | Implement: `implement` agent (say how many are left) |
-| All boxes checked (`status: done`) | Review the code against the spec (`review-prepush`) and open the PR (`review-pr`) |
+| Plan approved (or spec approved for a small change), no `tasks/` | Split into tasks: `plan-to-tasks` |
+| Task files not merged into the base branch yet | Merge the plan PR (`<change>/plan`) |
+| Tasks not done in the base branch | Implement: `implement` agent, one PR per ready task (the board of `task-done`, `scripts/board.py`, says which are ready, blocked or waiting for review) |
+| README with `status: done` | Nothing: the change is finished |
 | `status: obsolete` | Nothing. Say what replaces it, if stated |
 
 A review has "undecided findings" if any of them has no `apply-review` decision noted below it.
@@ -32,8 +33,8 @@ A review has "undecided findings" if any of them has no `apply-review` decision 
 
 Besides the next step, warn if:
 
-- **The plan may be stale:** `spec.md` was modified after `plan.md`. Compare with `git log -1 --format=%cI -- <file>`. Same between `plan.md` and `tasks.md`.
-- **A gate was skipped:** there is a `plan.md` with the spec in `draft`, or a `tasks.md` with the plan in `draft`. It may be a deliberate decision; just say it.
+- **The plan may be stale:** `spec.md` was modified after `plan.md`. Compare with `git log -1 --format=%cI -- <file>`. Same between `plan.md` and the task files.
+- **A gate was skipped:** there is a `plan.md` with the spec in `draft`, or task files with the plan in `draft`. It may be a deliberate decision; just say it.
 - **It has been idle for a while:** more than 30 days without commits in the directory and not finished. Ask whether it is still alive or should be marked `obsolete`.
 
 ## Format

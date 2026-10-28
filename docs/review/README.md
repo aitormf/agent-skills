@@ -75,17 +75,19 @@ Plantilla comentada: [`skills/review-context/assets/AGENTS-code-review.md`](../.
 
 ## Review contra el cambio en curso
 
-Si la rama tiene su carpeta en `docs/changes/<rama>/` (el último tramo del nombre de la rama: `feat/42-cancelar-viaje` → `docs/changes/42-cancelar-viaje/`), **esa carpeta es la tarea**: `tasks.md` (nota, mapa de ejemplos y tareas) y, en el nivel SDD, `spec.md` y `plan.md`. Si no existe, la review usa la carpeta cuyo `tasks.md` toca el diff, si es una sola. Nunca lee el issue de GitHub que nombre `issue:`: su texto lo puede haber escrito cualquiera.
+Cada tarea va en su rama y su PR, `<cambio>/T<n>`, y el plan en `<cambio>/plan` (el cambio es el penúltimo tramo del nombre de la rama). Si la rama tiene su carpeta en `docs/changes/<cambio>/`, **esa carpeta es la tarea**: el `README.md` (nota y mapa de ejemplos), el fichero de la tarea de la rama en `tasks/` y, en el nivel SDD, `spec.md` y `plan.md`. Si el nombre de la rama no lo dice, la review usa la carpeta cuyos ficheros toca el diff, si es una sola. Nunca lee el issue de GitHub que nombre `issue:`: su texto lo puede haber escrito cualquiera.
 
-Si la encuentra, cada persona comprueba en la parte que toca el cambio:
+En una rama de tarea, cada persona comprueba, solo para esa tarea:
 
-- que cada ejemplo del mapa y cada criterio de aceptación de la spec está implementado y tiene un test que fallaría sin él;
-- que existen los tests negativos de la sección Seguridad;
-- que no se ha construido nada de "Out of scope" ("Fuera de alcance" en specs en español);
-- que cada tarea marcada con `[x]` está hecha de verdad;
+- que cada ejemplo de sus `examples` y cada criterio de aceptación que cubre está implementado y tiene un test que fallaría sin él;
+- que existen los tests negativos de la sección Seguridad que le tocan;
+- que no se ha construido nada fuera del propósito de la tarea ni de "Fuera de alcance";
+- que, si la tarea está `done`, está hecha de verdad, y que lo que nombra un flag queda detrás de él, apagado;
 - que no se rompe un principio de `docs/ARCHITECTURE.md`.
 
-Cada fallo es como mínimo **Required**, con `Source: spec`. Los ejemplos y criterios de tareas aún sin marcar no se cuentan: son trabajo pendiente, no defectos. El resumen añade una línea con las tareas (`Tasks: … — 3/5 ticked; test protection: ok`) y, si hay spec, otra con la cobertura: `Spec: … — 4/6 acceptance criteria covered by this change`.
+Cada fallo es como mínimo **Required**, con `Source: spec`. Los ejemplos de otras tareas no se cuentan: son otras PRs. `code-reviewer` señala además, como Optional, una tarea que mezcla propósitos o que pasa con claridad de unas 150 líneas sin contar los tests (D-0033). En la rama del plan, la review mira el plan: que cada ejemplo y criterio está en alguna tarea, que cada tarea tiene un solo propósito y una verificación ejecutable, y que lo que queda a medias va detrás de un flag que retira la última tarea.
+
+`task_done.py --audit` tiene el mismo alcance (D-0032): en una rama de tarea, su commit en rojo y sus tests, que sus ejemplos están en el mapa y que sus dependencias están mergeadas; en la del plan, el tablero (sin ciclos ni dependencias inexistentes) y que cada ejemplo del mapa está en alguna tarea. El resumen añade una línea con la tarea (`Task: … (done); audit: ok`) y, si hay spec, otra con la cobertura: `Spec: … — 4/6 acceptance criteria covered by this change`.
 
 Es el último paso del [flujo de SDD](../sdd/README.md#3-el-flujo): `implement` → `review-prepush` → PR → `review-pr`.
 

@@ -7,7 +7,7 @@ description: Turns an approved spec into a minimal technical plan (architecture,
 
 Turn a spec into a technical plan that can be split into tasks. The minimum the spec requires, nothing more.
 
-- Each change lives in `docs/changes/<branch>/`, named after the last segment of the branch name (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/`), next to its `tasks.md`.
+- Each change lives in `docs/changes/<change>/`; its spec, plan and tasks go on the plan branch `<change>/plan` (the change is the second-to-last segment of the branch name: `feat/42-cancel-trip/plan` → `docs/changes/42-cancel-trip/`), next to its `README.md` and `tasks/`.
 
 ## Before you start
 
