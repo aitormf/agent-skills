@@ -105,6 +105,20 @@ npx skills add git@github.com:aitormf/agent-skills.git -s <skill> -a <agente>   
 
 Copia las skills a `.agents/skills/`, enlaza `.claude/skills/` y registra las versiones en `skills-lock.json`. Haz commit de las tres cosas. `npx skills update` trae la versión nueva.
 
+### Bajo demanda: atril
+
+Con [atril](https://github.com/manufosela/karajan-code/tree/main/packages/atril), las skills viven en un almacén (`.atril/` del proyecto o `~/.atril`) y el agente solo carga las que necesita cada tarea (`atril route`), en vez de todas en cada sesión. Cada skill y cada agente del kit declara `kind` y lo que usa (`uses`) o a quién delega (`delegates`), así que `atril route` devuelve el bloque entero: `review-pr` trae `review-context`, `review-report`, `task-done` y sus cuatro agentes.
+
+Lo que se lee bajo demanda no se registra en la herramienta, y pierde dos cosas:
+- **Los agentes, sus restricciones** (`tools:` en Claude Code, `permission:` en OpenCode): leído como fichero, `code-reviewer` ya no es un subagente de solo lectura.
+- **`review-pr` y `review-prepush`, su `allowed-tools`:** las órdenes de git y `gh` de solo lectura piden permiso. Es fricción, no un riesgo.
+
+Por eso:
+- **Fijo**, con `atril expose` y `atril sync` (que pasa por [rulesync](https://github.com/dyoshikawa/rulesync)): los seis agentes, `review-pr`, `review-prepush`, `task-done` e `idea-to-change`. Cada agente lleva sus restricciones en los bloques `claudecode:` y `opencode:` de su frontmatter, que es lo que rulesync conserva.
+- **Bajo demanda:** el resto (el SDD, `generate-project-context`, `setup-guardrails-python`, `debug-root-cause`, `record-decision`…).
+
+En Codex los agentes heredan el sandbox de la sesión, con atril o sin él. Probado con atril 1.1.0 en Claude Code; el detalle está en el [plan v3](docs/plan-v3.md) (§3).
+
 ## Skills
 
 ### Preparar el proyecto
@@ -212,6 +226,7 @@ tests/evals/triggering/run.py       # suite de activación: ¿cada petición rea
 
 - **Al crear, renombrar o cambiar la `description` de una skill**, añade o ajusta sus frases en `tests/evals/triggering/cases.tsv` (una por línea: `<skill>⇥<petición>`, mejor en español) y pasa la suite. Cada caso se ejecuta con `claude -p --plugin-dir .` en un directorio vacío y sin herramientas que escriban; cuenta la primera skill invocada. Opciones: `--only <skill>`, `--runs N` para ver la variación, `--model`, y `--save` para guardar el resultado con fecha en `results/`.
 
-- **Al cambiar `agents/*.md`**, ejecuta `scripts/build-agents.py` y haz commit de `adapters/`. `check.sh` falla si se te olvida.
+- **Al cambiar `agents/*.md`**, ejecuta `scripts/build-agents.py` y haz commit de `adapters/` y de los bloques `claudecode:` y `opencode:` que escribe en el propio agente. `check.sh` falla si se te olvida.
+- **Cada skill y cada agente declara `kind`, y en `uses`, `delegates` o `related` lo que necesita** (`skill:<nombre>`, `agent:<nombre>`), para atril. Un agente lleva en `uses` las skills que precarga. `check.sh` lo valida.
 - **Al publicar cambios**, sube `version` en `.claude-plugin/plugin.json` y en `.codex-plugin/plugin.json`, que deben coincidir. Claude Code y Codex solo actualizan cuando cambia la versión.
 - Los catálogos (`.claude-plugin/marketplace.json` y `.agents/plugins/marketplace.json`) no llevan versión: la toman del plugin.

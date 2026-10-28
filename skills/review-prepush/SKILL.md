@@ -3,6 +3,14 @@ name: review-prepush
 description: Fast pre-push review of the current branch against its base — runs the repo's checks from AGENTS.md, a fresh-context code-reviewer (against the branch's docs/changes/ folder, if it has one), and an adversarial finding-verifier. Blocks only on confirmed Critical findings. Use before pushing, or when asked whether a branch is ready.
 argument-hint: "[base-branch]"
 allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*)
+kind: skill
+uses:
+  - skill:review-context
+  - skill:review-report
+  - skill:task-done
+delegates:
+  - agent:code-reviewer
+  - agent:finding-verifier
 ---
 
 <!--

@@ -1,6 +1,9 @@
 ---
 name: record-decision
 description: Records the decisions taken in a conversation as short files in docs/decisions/ (architecture, business rules and discarded approaches), keeps the index up to date and handles superseding an earlier decision. Drafts them as proposed; only the person accepts them. Use it after planning a change with the person, when a debugging session rules out an approach worth remembering, when asked to record, log or document a decision, or to migrate docs/adr/ to docs/decisions/.
+kind: skill
+uses:
+  - skill:sdd-decisions
 ---
 
 # Record a decision

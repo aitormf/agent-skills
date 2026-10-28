@@ -4,6 +4,22 @@ description: Adversarial verifier for code-review findings. Assumes every findin
 tools: Read, Grep, Glob, Bash
 skills:
   - review-report
+kind: agent
+uses:
+  - skill:review-report
+# Bloques para rulesync: los genera scripts/build-agents.py desde tools, skills, model y mode. No editar a mano.
+claudecode:
+  tools: Read, Grep, Glob, Bash
+  skills:
+    - review-report
+opencode:
+  mode: subagent
+  permission:
+    edit: deny
+    bash: ask
+    webfetch: deny
+    skill: allow
+    task: deny
 ---
 
 <!-- review-kit (original). Not part of addyosmani/agent-skills; follows its persona conventions (single role, single output format, Composition block). -->

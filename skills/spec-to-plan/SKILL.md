@@ -1,6 +1,12 @@
 ---
 name: spec-to-plan
 description: Turns an approved spec into a short, design-level technical plan (components and the existing ones it reuses, contracts, data model, technical decisions, which test covers each criterion, risks), checked against the non-negotiable principles in ARCHITECTURE.md, and writes it straight to the file as a draft. Use it when there is a spec and someone asks to plan, design the solution or decide how to implement it.
+kind: skill
+uses:
+  - skill:sdd-decisions
+  - skill:record-decision
+related:
+  - skill:plan-to-tasks
 ---
 
 # From spec to plan

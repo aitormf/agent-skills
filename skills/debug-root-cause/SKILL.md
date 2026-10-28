@@ -1,6 +1,9 @@
 ---
 name: debug-root-cause
 description: Finds the root cause of a failing test, bug or unexpected behaviour before changing any code, then fixes it with a regression test that is proven to fail without the fix. Use it when debugging a failure whose cause is not yet known, or after a fix did not work. Not for applying review findings, implementing tasks or changes whose cause is already clear.
+kind: skill
+related:
+  - skill:record-decision
 ---
 
 # Debug to the root cause

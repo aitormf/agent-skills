@@ -4,6 +4,24 @@ description: Implements the tasks of a change in progress — the task files of 
 mode: subagent
 model: sonnet
 tools: Read, Grep, Glob, Bash, Write, Edit, Skill
+kind: agent
+uses:
+  - skill:task-done
+related:
+  - skill:idea-to-change
+  - skill:plan-to-tasks
+# Bloques para rulesync: los genera scripts/build-agents.py desde tools, skills, model y mode. No editar a mano.
+claudecode:
+  tools: Read, Grep, Glob, Bash, Write, Edit, Skill
+  model: sonnet
+opencode:
+  mode: subagent
+  permission:
+    edit: allow
+    bash: ask
+    webfetch: deny
+    skill: allow
+    task: deny
 ---
 
 Implement the tasks of a change in progress: the folder `docs/changes/<change>/` you are given, or the one of the current branch (`<change>/T<n>` or `<change>/plan`: the change is the second-to-last segment). Its `README.md` has the note and the example map, and `tasks/` one file per task, with `status`, `depends_on`, `examples` and `verification` in its frontmatter (from `idea-to-change`, or from `plan-to-tasks` with a `spec.md` and a `plan.md` next to it). **One task, one branch, one PR:** each task is done on `<change>/T<n>`, from the base branch, and merged on its own.

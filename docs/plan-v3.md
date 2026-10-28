@@ -1,6 +1,6 @@
 # Plan de la v3
 
-Fecha: 2026-10-28. Estado: **aprobado** (PR #25). Fase 1 hecha, versión 0.6.0 ([D-0040](decisions/0040-review-de-pr-en-linea.md)).
+Fecha: 2026-10-28. Estado: **aprobado** (PR #25). Fase 1 hecha, versión 0.6.0 ([D-0040](decisions/0040-review-de-pr-en-linea.md)). Fase 2 hecha, versión 0.7.0 ([D-0041](decisions/0041-restricciones-de-agentes-para-rulesync.md)); lo que quedó fuera, en §3.5.
 
 Sale de usar la v2 (versión 0.5.0) y de repasar el [plan de mejoras](plan-de-mejoras.md). Tres mejoras pedidas y unas cuantas pequeñas que siguen pendientes.
 
@@ -78,13 +78,18 @@ Con OpenCode 2.2.0 y `opencode run --auto` (aprueba todo lo que no está denegad
 
 1. `kind: skill` o `kind: agent` en todo el frontmatter.
 2. `uses` y `delegates` donde hay dependencia real (las reviews, `implement`, `idea-to-change`, el SDD).
-3. En cada agente, bloques `claudecode:`, `codexcli:` y `opencode:` con sus restricciones, generados por `build-agents.py` desde `tools:`, para no escribirlos a mano.
+3. En cada agente, bloques `claudecode:` y `opencode:` con sus restricciones, generados por `build-agents.py` desde `tools:`, para no escribirlos a mano. Sin bloque `codexcli:`: `sandbox_mode` por agente no se aplica en Codex (el agente hereda el de la sesión), y un bloque que lo declara prometería una restricción que no existe.
 4. `check.sh` valida las reglas de atril (nombre en minúsculas, `kind`, relaciones bien formadas).
 5. Antes de nada, comprobar que Claude Code, Codex y OpenCode ignoran esas claves de más cuando el kit se instala como plugin o con `npx skills`.
 6. Documentar el uso recomendado:
    - **Fijo**, con `atril expose`: los agentes de la review y de `implement`, para que conserven sus restricciones, y las skills de uso diario (`task-done`, `idea-to-change`).
    - **Bajo demanda:** el resto (SDD, `generate-project-context`, `setup-guardrails-python`, `debug-root-cause`).
    - Primero en Claude Code; Codex y OpenCode cuando se compruebe lo que falta en la tabla.
+
+### 3.5 Hecho y pendiente
+
+- Hecho: los puntos 1 a 4 y 6 de §3.4. Del punto 5: Claude Code 2.1.312 carga el plugin con las claves nuevas (los 6 agentes, las 17 skills, y `code-reviewer` conserva sus herramientas) y `claude plugin validate --strict` pasa; Codex 0.165 carga una skill con `kind`, `uses` y `delegates` (`codex debug prompt-input`); OpenCode 2.2.0 ignora `kind` y `uses` en un agente sin perder `permission:` (§3.3).
+- Pendiente: probar `atril route` y `atril sync` con el kit ya marcado (el PC de esta fase no tiene Node), y el soporte de plugins de atril 1.2.0, que la prueba con 1.1.0 no tenía.
 
 ## 4. Mejoras pequeñas (fase 3)
 

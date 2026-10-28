@@ -44,6 +44,44 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF
 
+echo "▶ atril: kind, nombre y relaciones de skills y agentes"
+python3 - <<'EOF'
+import re, sys
+from pathlib import Path
+SLUG = re.compile(r"[a-z0-9][a-z0-9._-]*")
+def front(f):
+    """Claves de primer nivel y sus listas ("  - x") del frontmatter, hasta los bloques generados de los agentes."""
+    text = f.read_text(encoding="utf-8")[4:].split("\n---\n", 1)[0].split("\n# Bloques para rulesync", 1)[0]
+    fm, key = {}, None
+    for line in text.splitlines():
+        if line.startswith("  - ") and key:
+            fm[key].append(line[4:].strip())
+        elif not line.startswith(" "):
+            key, _, value = line.partition(":")
+            fm[key] = [value.strip()] if value.strip() else []
+    return fm
+items = {("skill", f.parent.name): f for f in Path("skills").glob("*/SKILL.md")}
+items |= {("agent", f.stem): f for f in Path("agents").glob("*.md")}
+bad = []
+for (kind, name), f in sorted(items.items()):
+    fm = front(f)
+    if fm.get("kind") != [kind]:
+        bad.append(f"{f}: falta 'kind: {kind}'")
+    if not SLUG.fullmatch(name):
+        bad.append(f"{f}: el nombre '{name}' no es un slug de atril (minúsculas, dígitos, . _ -)")
+    for rel, want in (("uses", "skill"), ("delegates", "agent"), ("related", None)):
+        for item in fm.get(rel, []):
+            k, _, n = item.partition(":")
+            if (k, n) not in items or (want and k != want):
+                bad.append(f"{f}: {rel} '{item}' no es {want or 'skill o agent'}:<nombre> de este repo")
+    missing = set(fm.get("skills", [])) - {i.partition(":")[2] for i in fm.get("uses", [])}
+    if kind == "agent" and missing:
+        bad.append(f"{f}: las skills precargadas {sorted(missing)} deben estar en uses, para que atril route las cargue")
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF
+
 echo "▶ test criterion: same text in implement and review-report"
 python3 - <<'EOF'
 import sys

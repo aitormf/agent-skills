@@ -6,6 +6,24 @@ tools: Read, Grep, Glob, Write
 skills:
   - review-spec
   - sdd-decisions
+kind: agent
+uses:
+  - skill:review-spec
+  - skill:sdd-decisions
+# Bloques para rulesync: los genera scripts/build-agents.py desde tools, skills, model y mode. No editar a mano.
+claudecode:
+  tools: Read, Grep, Glob, Write
+  skills:
+    - review-spec
+    - sdd-decisions
+opencode:
+  mode: subagent
+  permission:
+    edit: allow
+    bash: deny
+    webfetch: deny
+    skill: allow
+    task: deny
 ---
 
 You are a reviewer of specs and plans. Follow the `review-spec` skill to the letter.

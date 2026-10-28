@@ -2,6 +2,7 @@
 name: review-context
 description: Input side of every review (review-prepush, review-pr) — how to read the repo's review config from AGENTS.md (base branch, language, high-risk paths, conventions) and how to run the repo's verification commands and Semgrep safely before reviewing. Used by the review-kit commands in the main session, before any persona is spawned.
 user-invocable: false
+kind: skill
 ---
 
 <!-- review-kit (original). Not part of addyosmani/agent-skills. -->

@@ -1,6 +1,7 @@
 ---
 name: generate-project-context
 description: Creates or updates a project's context files (AGENTS.md, docs/ARCHITECTURE.md with its non-negotiable principles, CONTRIBUTING.md, the decision log in docs/decisions/, SECURITY.md and PR template) through a guided interview. Use it when starting a project, when adopting agents in an existing project, or when asked for a "constitution", project principles, architecture rules or documentation for agents.
+kind: skill
 ---
 
 # Project context
