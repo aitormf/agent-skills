@@ -130,6 +130,8 @@ Parte de que **cada hallazgo es un falso positivo** e intenta refutarlo leyendo 
 REVIEW_RESULT: …              última línea, para el hook y la Action
 ```
 
+Es el formato completo, el de `review-prepush` y el de `review-pr --full`. `review-pr` usa por defecto el **corto**: el resumen con una línea de recuento por gravedad, los Critical y Required enteros, y el resto plegado en `<details>`. Con `--inline` añade además los hallazgos en un bloque JSON, que es lo que publica la Action.
+
 Veredictos:
 
 - `review-prepush`: `BLOCK`, `FIX BEFORE PR` u `OK`.
@@ -164,12 +166,17 @@ cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 
 ## GitHub Action (Claude Code)
 
-[`skills/review-pr/assets/claude-review.yml`](../../skills/review-pr/assets/claude-review.yml) se copia a `.github/workflows/`. Ejecuta `review-pr` sobre la rama de cada PR contra su rama base (opened, synchronize, reopened, ready_for_review) y mantiene **un único comentario** con el resumen, que edita en cada push.
+[`skills/review-pr/assets/claude-review.yml`](../../skills/review-pr/assets/claude-review.yml) se copia a `.github/workflows/`. Ejecuta `review-pr` sobre la rama de cada PR contra su rama base (opened, synchronize, reopened, ready_for_review). Publica **cada hallazgo como comentario en su línea**, en una review de GitHub que nunca aprueba ni pide cambios (`event: COMMENT`), y mantiene **un único comentario de resumen**, que edita en cada push.
+
+- **El resumen** cabe en unas 15 líneas: veredicto y tier, recuento por gravedad y una línea por cada Critical y Required con enlace a su comentario. Los Optional, los Nits, lo bien hecho y la verificación van plegados.
+- **Los hallazgos fuera del diff** (GitHub solo deja comentar líneas que el diff muestra, y algunos no tienen una línea concreta) van enteros al resumen.
+- **Al repetirse tras un push,** los comentarios anteriores se quedan (GitHub marca como desactualizados los de líneas que cambiaron). Un hallazgo que ya tiene comentario del bot en la misma línea y con el mismo título no se repite: el resumen enlaza al que ya existe.
+- **Si el bloque JSON falta o no es válido,** se publica el informe en Markdown tal cual, como antes.
 
 Se divide en dos jobs:
 
 1. **`review`** ejecuta Claude sin token de GitHub (solo `contents: read` para el checkout, que no deja credenciales) y con `gh` bloqueado. Lee solo el diff y los ficheros con commit: ni issues, ni comentarios, ni la descripción de la PR, que puede escribir otra gente. Por eso en CI la descripción no se revisa; hacen sus veces los mensajes de commit. Aunque lo intentara, no puede comentar, aprobar ni hacer merge.
-2. **`publish`** no usa Claude: coge el informe y crea o actualiza el comentario.
+2. **`publish`** no usa Claude: lee el bloque JSON del informe como datos, comprueba cada `fichero:línea` contra el diff de la PR, publica los comentarios y crea o actualiza el resumen. Su script va escrito en el propio workflow; no viene del artefacto del job `review`, que el modelo podría haber escrito.
 
 Configuración:
 

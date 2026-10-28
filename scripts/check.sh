@@ -284,6 +284,113 @@ job=$(awk '/^  review:$/ { on=1; next } on && /^  [a-z]/ { exit } on' "$wf")
 printf '%s\n' "$job" | grep -q 'persist-credentials: false' || { echo "the review job of claude-review.yml leaves the checkout token in .git/config" >&2; exit 1; }
 ! printf '%s\n' "$job" | grep -Eq 'GH_TOKEN|GITHUB_TOKEN|github\.token|secrets\.GITHUB' || { echo "the review job of claude-review.yml gets a GitHub token" >&2; exit 1; }
 
+echo "▶ review: the publish job comments each finding on its line and keeps one summary comment"
+grep -q -- '--inline' "$wf" || { echo "claude-review.yml does not ask /review-pr for the findings block (--inline)" >&2; exit 1; }
+! grep -Eq 'APPROVE"|REQUEST_CHANGES"' "$wf" || { echo "claude-review.yml can approve or request changes" >&2; exit 1; }
+pub="$tmp/pub"; mkdir -p "$pub"
+awk "/<<'PY'\$/ { on=1; next } on && /^ +PY\$/ { exit } on" "$wf" | sed 's/^          //' > "$pub/publish.py"
+cat > "$pub/gh" <<'EOF'
+#!/usr/bin/env python3
+# Fake gh: serves the PR from $FAKE/*.json and logs every write to $FAKE/log.
+import json, os, re, sys
+d = os.environ["FAKE"]; args = sys.argv[1:]
+method, path = args[args.index("-X") + 1], args[args.index("-X") + 2]
+path, _, query = path.partition("?")
+data = json.load(sys.stdin) if "--input" in args else None
+if method != "GET":
+    with open(f"{d}/log", "a") as f: f.write(json.dumps({"method": method, "path": path, "data": data}) + "\n")
+def load(name): return json.load(open(f"{d}/{name}")) if os.path.exists(f"{d}/{name}") else []
+if method == "GET" and "page=1" not in query: print("[]")
+elif re.search(r"/pulls/\d+/files$", path): print(json.dumps(load("files.json")))
+elif re.search(r"/pulls/\d+/comments$", path): print(json.dumps(load("comments.json")))
+elif re.search(r"/issues/\d+/comments$", path) and method == "GET": print(json.dumps(load("issue.json")))
+elif re.search(r"/pulls/\d+/reviews$", path):
+    if os.environ.get("FAIL_REVIEW"): sys.exit("HTTP 422: line must be part of the diff")
+    json.dump(data["comments"], open(f"{d}/review.json", "w")); print('{"id": 7}')
+elif path.endswith("/reviews/7/comments"):
+    print(json.dumps([dict(c, html_url=f"u/{c['path']}:{c['line']}") for c in load("review.json")]))
+else: print("{}")
+EOF
+chmod +x "$pub/gh"
+publish() {  # publish <report | -> [fail the review POST]: runs the publish script in $pub, with $pub/{files,comments,issue}.json
+  rm -f "$pub/log" "$pub/review.json"; if [ "$1" = - ]; then rm -f "$pub/report.md"; else printf '%s\n' "$1" > "$pub/report.md"; fi
+  (cd "$pub" && FAKE="$pub" GH="$pub/gh" REPO=o/r PR=5 HEAD_SHA=abc RUN_URL=run FAIL_REVIEW="${2:-}" python3 publish.py) >"$pub/out" 2>&1 \
+    || { cat "$pub/out" >&2; echo "the publish script of claude-review.yml failed" >&2; exit 1; }
+}
+pfail() { echo "publish: $1" >&2; cat "$pub/log" >&2 2>/dev/null; exit 1; }
+written() {  # written <method> <path suffix>: the body of that write in the last run
+  python3 -c 'import json, sys
+for l in open(sys.argv[1]):
+    w = json.loads(l)
+    if w["method"] == sys.argv[2] and w["path"].endswith(sys.argv[3]): print(json.dumps(w["data"]))' "$pub/log" "$@"
+}
+body_is() {  # body_is <method> <path suffix> <python assertion on b, the comment body>
+  python3 -c "import json, sys; b = json.loads(sys.argv[1])['body']; assert $3, b" "$(written "$1" "$2")"
+}
+printf '%s' '[{"filename": "a.py", "patch": "@@ -1,2 +1,4 @@\n x = 1\n+y = 2\n+z = 3\n-w = 0\n w2 = 4"},
+  {"filename": "b.py", "patch": "@@ -0,0 +1,3 @@\n+a\n+b\n+c\n@@ -10,2 +12,2 @@\n k\n+m"}, {"filename": "img.png"}]' > "$pub/files.json"
+echo '[]' > "$pub/comments.json"
+echo '[{"id": 1, "body": "<!-- review-kit:review-pr --> by a person", "user": {"login": "someone"}}]' > "$pub/issue.json"
+report='Preamble
+<!-- review-kit:review-pr -->
+## Summary and verdict
+Markdown report.
+```json review-kit
+{"verdict": "CHANGES NEEDED", "tier": 1, "summary": "Adds z.", "done_well": ["a.py:3 is clear"], "verification": ["pytest: 3 passed"],
+ "findings": [
+  {"id": "O1", "title": "Range", "path": "b.py", "start_line": 2, "line": 3, "body": "- **Problem:** o"},
+  {"id": "C1", "title": "Breaks\nz", "path": "a.py", "line": 3, "body": "- **Problem:** c"},
+  {"id": "R1", "title": "Far away", "path": "a.py", "line": 50, "body": "- **Problem:** r"},
+  {"id": "R2", "title": "Deleted line", "path": "a.py", "line": 5, "body": "- **Problem:** deleted"},
+  {"id": "N1", "title": "Whole file", "path": null, "body": "- **Problem:** n"},
+  {"id": "N2", "title": "Range across hunks", "path": "b.py", "start_line": 3, "line": 13, "body": "- **Problem:** n2"}]}
+```
+REVIEW_RESULT: CHANGES tier=1 critical=1 required=2 uncertain=0'
+publish "$report"
+[ -z "$(written PATCH /issues/comments/1)" ] && [ -n "$(written POST /issues/5/comments)" ] || pfail "edited a summary comment that a person wrote"
+python3 - "$(written POST /pulls/5/reviews)" "$(written POST /issues/5/comments)" <<'EOF' || pfail "wrong review or summary on the first run"
+import json, sys
+rev, body = json.loads(sys.argv[1]), json.loads(sys.argv[2])["body"]
+assert rev["event"] == "COMMENT" and rev["commit_id"] == "abc", rev
+got = {(c["path"], c.get("start_line"), c["line"]) for c in rev["comments"]}
+assert got == {("a.py", None, 3), ("b.py", 2, 3), ("b.py", None, 13)}, got   # R1 outside the diff, R2 on a deleted line, N1 without a line
+c1 = next(c for c in rev["comments"] if c["path"] == "a.py")
+assert c1["body"].startswith("<!-- review-kit:finding -->\n**C1 · Critical** Breaks z\n"), c1["body"]
+assert body.startswith("<!-- review-kit:review-pr -->\n## review-kit: CHANGES NEEDED · tier 1\n"), body
+assert "Critical 1 · Required 2 · Optional 1 · Nits 2" in body, body
+assert "- [**C1** Breaks z](u/a.py:3) — `a.py:3`" in body, body
+assert "### Outside the diff" in body and "#### R1 Far away\n- **Location:** `a.py:50`\n- **Problem:** r" in body, body
+assert body.index("**C1**") < body.index("**R1**") < body.index("<details>"), body
+assert "- [**O1** Range](u/b.py:3) — `b.py:2-3`" in body and "#### N1 Whole file" in body, body
+assert "Markdown report." not in body and "Preamble" not in body and "- pytest: 3 passed" in body, body
+EOF
+python3 - "$pub" <<'EOF'  # second run: C1 already commented by the bot, a fake finding comment by a person, the summary posted by the bot
+import json, sys
+d = sys.argv[1]
+json.dump([{"path": "a.py", "line": 3, "html_url": "old/c1", "user": {"login": "github-actions[bot]"},
+            "body": "<!-- review-kit:finding -->\n**C1 · Critical** Breaks z\n\nold"},
+           {"path": "b.py", "line": 3, "html_url": "x", "user": {"login": "someone"},
+            "body": "<!-- review-kit:finding -->\n**O1 · Optional** Range\n\nfake"}], open(f"{d}/comments.json", "w"))
+issue = json.load(open(f"{d}/issue.json"))
+json.dump(issue + [{"id": 2, "body": "<!-- review-kit:review-pr -->\nold", "user": {"login": "github-actions[bot]"}}], open(f"{d}/issue.json", "w"))
+EOF
+publish "$report"
+python3 -c 'import json, sys; r = json.loads(sys.argv[1]); assert {(c["path"], c["line"]) for c in r["comments"]} == {("b.py", 3), ("b.py", 13)}, r' \
+  "$(written POST /pulls/5/reviews)" || pfail "repeated a finding the bot already commented on that line"
+body_is PATCH /issues/comments/2 '"[**C1** Breaks z](old/c1)" in b' && [ -z "$(written POST /issues/5/comments)" ] \
+  || pfail "did not update the bot's summary comment"
+publish "$report" 1
+body_is PATCH /issues/comments/2 '"could not be posted" in b and "#### O1 Range" in b and "[**C1** Breaks z](old/c1)" in b' \
+  || pfail "lost findings when the review could not be posted"
+publish "$(printf '%s\n' "$report" | sed 's/"findings": \[/"findings": [x/')"
+body_is PATCH /issues/comments/2 'b.startswith("<!-- review-kit:review-pr -->\n## Summary and verdict\nMarkdown report.")' \
+  && [ -z "$(written POST /pulls/5/reviews)" ] || pfail "did not post the report as it is when the findings block is not valid JSON"
+publish "$(printf '%s\n' "$report" | sed '/^```json/,/^```$/d')"
+body_is PATCH /issues/comments/2 'b.startswith("<!-- review-kit:review-pr -->\n## Summary and verdict\nMarkdown report.")' \
+  || pfail "did not post a report without a findings block"
+echo 'exit=1' > "$pub/status.txt"; publish -
+body_is PATCH /issues/comments/2 '"did not finish correctly (exit=1)" in b' || pfail "did not say that the review failed"
+
 echo "▶ record-decision"
 cd_=skills/record-decision/scripts/check_decisions.py
 dd="$tmp/decisions"; mkdir -p "$dd"; cp skills/record-decision/assets/en/README.md "$dd/"

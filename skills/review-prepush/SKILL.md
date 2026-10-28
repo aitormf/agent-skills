@@ -61,7 +61,7 @@ Keep only `CONFIRMED` and `UNCERTAIN` findings, with the verifier's final severi
 
 ## Step 5 — Report (main session)
 
-Produce the `review-report` §4 report. Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. If there is a change folder, add one line to the Summary: `Task: <task file path> (<status>)` on a task branch, or `Plan: <folder> — <N> tasks` on the plan branch, followed by `; audit: <ok | N problems | not checked>`. Under Verification, add the audit command and its exit status, and the reviewer's `Callers:` line. Verdict values:
+Produce the `review-report` §4 report in the full layout (§4.1). Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. If there is a change folder, add one line to the Summary: `Task: <task file path> (<status>)` on a task branch, or `Plan: <folder> — <N> tasks` on the plan branch, followed by `; audit: <ok | N problems | not checked>`. Under Verification, add the audit command and its exit status, and the reviewer's `Callers:` line. Verdict values:
 
 - **BLOCK** — at least one CONFIRMED Critical.
 - **FIX BEFORE PR** — no confirmed Critical, but Required findings (or uncertain Critical).

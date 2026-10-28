@@ -1,6 +1,6 @@
 # Plan de la v3
 
-Fecha: 2026-10-28. Estado: **aprobado** (PR #25); fase 1 en curso.
+Fecha: 2026-10-28. Estado: **aprobado** (PR #25). Fase 1 hecha, versión 0.6.0 ([D-0040](decisions/0040-review-de-pr-en-linea.md)).
 
 Sale de usar la v2 (versión 0.5.0) y de repasar el [plan de mejoras](plan-de-mejoras.md). Tres mejoras pedidas y unas cuantas pequeñas que siguen pendientes.
 
