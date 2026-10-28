@@ -39,6 +39,9 @@ Look for:
 - **Principles and decisions:** every clash with a non-negotiable principle or with an accepted decision is **blocking**, unless the plan justifies it and proposes a new decision that supersedes it.
 - **Over-engineering and scope:** complexity the spec does not ask for, or a plan that does more than the spec says.
 - Undeclared **assumptions**.
+- In a plan, a plan that goes **below design level** (exact commands, code, line-level steps): one finding, a fix that removes them.
+
+**A plan is reviewed at design level.** Implementation details (a missing timezone, how a process is killed, a test helper) are not findings: they belong to `implement` and the code review. If one carries a real risk, note it in one line under the review's `Risks`, for `implement`: not a finding, neither a decision nor a fix.
 
 Do not report what the artifact already lists as an open question or an assumption, unless it is wrong or it is really a decision for the person that should not have been assumed (see below).
 

@@ -1,8 +1,12 @@
 ---
-status: draft      # draft | approved | obsolete. Only a person marks it approved.
+status: draft      # draft | approved | obsolete. Only a person marks it approved; task-done marks it obsolete when the change is done.
 ---
 
 # Plan: <feature name>
+
+<!-- Design level: what is built and how the pieces fit, not how each line is written. No exact commands,
+call arguments, code or test names unless the detail is a decision with consequences. About 150 lines at most:
+longer means the plan goes too low or the change should be split. -->
 
 ## Technical goal
 <!-- What has to be built to meet the spec, in two or three sentences. -->
@@ -11,7 +15,7 @@ status: draft      # draft | approved | obsolete. Only a person marks it approve
 <!-- Where it fits in the layers of docs/ARCHITECTURE.md. The minimum the spec requires. -->
 
 ## Components and responsibilities
-<!-- New or modified modules or files and what each one does. -->
+<!-- Existing components reused (modules, functions, installed libraries), then the new or modified ones and what each one does. -->
 
 ## Minimal data model
 
@@ -25,7 +29,7 @@ If a principle does not apply, say so. If the plan breaks it, justify it and pro
 |---|---|---|
 
 ## Tests
-<!-- Which tests prove each acceptance criterion of the spec, including the negative ones from the Security section. -->
+<!-- Which test (or kind of test) proves each acceptance criterion of the spec, including the negative ones from the Security section. -->
 
 ## Risks
 

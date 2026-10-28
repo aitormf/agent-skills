@@ -17,7 +17,8 @@ Warns on stderr if COMMAND does not contain the task's `verification`. Prints th
 tail of the output, then the command and its exit status; no log file is kept.
 Exit status: the command's. A failing command leaves the task file untouched; a
 passing one sets `status: done` in it, and in the change's README.md once every
-task is done here or in the base branch. Exit 2: wrong call, malformed task file,
+task is done here or in the base branch; then spec.md and plan.md, if any, get
+`status: obsolete` (D-0006). Exit 2: wrong call, malformed task file,
 or no change folder or task file where it was searched. Exit 2 also if the base
 branch already has the change's README.md with `status: done`: the folder is a
 finished change of an earlier branch with the same name.
@@ -494,6 +495,12 @@ def main(argv: list[str]) -> int:
         if (finished := set_status(text, "done")) != text:
             readme.write_text(finished, encoding="utf-8")
             print(f"✔ every task of the change is done: status: done in {readme}.")
+            # D-0006: spec and plan are working documents; their decisions are already in docs/decisions/.
+            for doc in (folder / "spec.md", folder / "plan.md"):
+                text = doc.read_text(encoding="utf-8") if doc.is_file() else ""
+                if (closed := set_status(text, "obsolete")) != text:
+                    doc.write_text(closed, encoding="utf-8")
+                    print(f"✔ status: obsolete in {doc}: a working document of a finished change.")
     return 0
 
 

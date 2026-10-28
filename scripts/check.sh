@@ -168,6 +168,7 @@ tdc() { rc=0; (cd "$c/tests" && python3 "$tda" "$@") >"$tmp/out" 2>&1 || rc=$?; 
 printf 'def test_E1_old(): pass\n' > "$c/tests/test_old.py"; gc add -A; gc commit -qm "test(T1): E1 red, an older change"
 cc="$c/docs/changes/7-cancel"; mkdir -p "$cc"
 printf -- '---\nstatus: open\nissue: 7\n---\n\n## Example map\n\n  E1: a\n  E2: b\n' > "$cc/README.md"
+printf -- '---\nstatus: approved   # draft | approved | obsolete\n---\n' | tee "$cc/spec.md" > "$cc/plan.md"
 task "$cc" T1 E1; task "$cc" T2 E2 todo T1
 gc add docs; gc commit -qm "docs: plan of 7-cancel"  # the plan PR, merged
 gc checkout -qb 7-cancel/plan
@@ -183,6 +184,7 @@ printf 'def test_E1_a(): pass\n' > "$c/tests/test_a.py"; gc add tests; gc commit
 echo 'x = 1' > "$c/src/a.py"; gc add src; gc commit -qm "feat(T1): a"
 tdc -- true && status_is "$cc/tasks/T1-t.md" done && status_is "$cc/tasks/T2-t.md" todo || fail "did not mark the task of the branch"
 grep -q '^status: open$' "$cc/README.md" || fail "set status: done in the README with tasks left"
+grep -q '^status: approved ' "$cc/spec.md" || fail "set the spec obsolete with tasks left"
 tdc --audit && grep -q "^T1 (done): ok" "$tmp/out" || fail "--audit did not check the task of the branch"
 gc commit -qam "feat(T1): done"
 gc checkout -qb feat/7-cancel/T2 main  # branched before T1 is merged: its T1 is still todo
@@ -197,6 +199,7 @@ printf 'def test_E2_b(): pass\n' > "$c/tests/test_b.py"; gc add tests; gc commit
 mkdir -p "$c/src"; echo 'y = 2' > "$c/src/b.py"; gc add src; gc commit -qm "feat(T2): b"
 tdc -- true && status_is "$cc/tasks/T2-t.md" done || fail "did not mark T2"
 grep -q '^status: done$' "$cc/README.md" && grep -q '^issue: 7$' "$cc/README.md" || fail "did not set status: done in the README when the last task was done (T1 done in the base branch)"
+grep -q '^status: obsolete   # draft' "$cc/spec.md" && grep -q '^status: obsolete ' "$cc/plan.md" || fail "did not set spec.md and plan.md obsolete when the change was done (D-0006)"
 gc commit -qam "feat(T2): done"; gc checkout -q main; gc merge -q --no-edit feat/7-cancel/T2
 gc checkout -qb fix/7-cancel/T1  # same name as a change already finished in main
 tdc -- true || true; [ $rc = 2 ] && grep -q "finished change" "$tmp/out" || fail "reused the folder of a finished change"

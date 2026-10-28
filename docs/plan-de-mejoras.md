@@ -118,7 +118,7 @@ Hay que decidirlas antes de implementar las piezas afectadas.
 - #2 propone `## Decisiones` en `tasks.md`.
 - #12 propone `shortcut:` en el código.
 
-**Propuesta:** las decisiones sobre la spec o el plan van en `tasks.md`. Un límite concreto en una línea de código va en `shortcut:`. `sdd-next` muestra ambos por trabajo.
+**Propuesta:** las decisiones sobre la spec o el plan van en `tasks.md`. Un límite concreto en una línea de código va en `shortcut:`. (Superado: las decisiones van a `docs/decisions/`, ver el [plan de la v2](plan-v2.md#5-el-registro-de-decisiones).)
 
 ### 3.4 ¿Cuánto pueden crecer las instrucciones de `implement`?
 Las tablas de excusas (#4), el orden de preferencia (#11) y el cierre obligatorio alargan el agente. Ponytail cabe en 52 líneas.

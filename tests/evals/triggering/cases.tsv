@@ -19,8 +19,7 @@ plan-to-tasks	el plan está aprobado, prepáralo para implementar
 task-done	marca la T3 de docs/changes/cancelaciones/tasks/T3-reembolso.md como hecha
 task-done	enséñame el tablero de tareas de cancelaciones: cuáles están listas y cuáles bloqueadas
 task-done	la T2 ya pasa su test, márcala como hecha
-sdd-next	¿en qué punto está el trabajo de cancelaciones?
-sdd-next	¿qué cambios hay abiertos en docs/changes?
+task-done	¿en qué punto está el cambio de cancelaciones? ¿qué tarea toca ahora?
 review-prepush	¿está lista la rama para hacer push?
 review-prepush	revisa mis cambios antes de subirlos
 review-pr	revisa la PR 42
