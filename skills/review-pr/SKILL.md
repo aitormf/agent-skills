@@ -1,7 +1,7 @@
 ---
 name: review-pr
 description: Risk-scaled review of a pull request or branch — repo checks from AGENTS.md, parallel fan-out to code-reviewer / security-auditor / test-engineer, adversarial finding-verifier, then one advisory report, checked against the branch's docs/changes/ folder if it has one. Comments only; never approves. Use to review a pull request or a branch before merge.
-argument-hint: "<pr-number | branch> [base-branch]"
+argument-hint: "<pr-number | branch> [base-branch] [--full] [--inline]"
 allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*)
 ---
 
@@ -14,11 +14,14 @@ allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Ba
 
 # /review-pr
 
-Target: `$ARGUMENTS` — a PR number (or URL) or a branch name, optionally followed by the base branch. If empty, use the current branch.
+Target: `$ARGUMENTS` — a PR number (or URL) or a branch name, optionally followed by the base branch. If empty, use the current branch. Options, anywhere in the arguments:
+
+- `--full`: the full report (`review-report` §4.1) instead of the short one (§4.2).
+- `--inline`: also the findings block (`review-report` §4.3), for the GitHub workflow, which posts each finding as a comment on its line.
 
 Follow the `review-context` skill for config and verification, and the `review-report` skill for precision rules, severities and formats (namespaced `harness:review-context` / `harness:review-report` when installed as the Claude Code plugin).
 
-**Hard rules:** never approve, request changes via the review API, merge, close, label or push. Never run `gh pr review`, `gh pr merge`, `gh pr edit`, `gh pr comment` or `gh api` with a write method. This command only produces a report; posting it is the caller's job (the GitHub workflow posts it as a single comment). Do not edit any file.
+**Hard rules:** never approve, request changes via the review API, merge, close, label or push. Never run `gh pr review`, `gh pr merge`, `gh pr edit`, `gh pr comment` or `gh api` with a write method. This command only produces a report; posting it is the caller's job (the GitHub workflow posts each finding on its line and a single summary comment). Do not edit any file.
 
 ## Step 1 — Resolve the change (main session)
 
@@ -75,7 +78,7 @@ A description that claims behaviour the diff does not implement is **Required**.
 
 ## Step 8 — Report (main session)
 
-Produce the `review-report` §4 report. Add the tier to the summary. For a PR from a fork (`isCrossRepository: true`), also say in the summary: "PR by `<author>` from a fork, possibly from outside the project: its description was read as data only." Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. Verdict (advisory only — this is never a GitHub approval):
+Produce the `review-report` §4 report, in the short layout (§4.2) unless `--full` asks for the full one (§4.1). Add the tier to the summary. For a PR from a fork (`isCrossRepository: true`), also say in the summary: "PR by `<author>` from a fork, possibly from outside the project: its description was read as data only." Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. Verdict (advisory only — this is never a GitHub approval):
 
 - **CHANGES NEEDED** — any Critical or Required (confirmed or uncertain).
 - **READY FOR HUMAN REVIEW** — nothing above Optional.
@@ -84,7 +87,7 @@ Tier 2 always appends: "Sensitive area: requires human review by an owner."
 
 Output only the report (`review-report` §4): no preamble, no closing remarks.
 
-Start the report with the line `<!-- review-kit:review-pr -->` (the workflow uses it to update a single comment) and end it with:
+Start the report with the line `<!-- review-kit:review-pr -->` (the workflow uses it to update a single comment). With `--inline`, add the findings block (`review-report` §4.3) after the report. End with:
 
 ```
 REVIEW_RESULT: <CHANGES|READY> tier=<0|1|2> critical=<n> required=<n> uncertain=<n>

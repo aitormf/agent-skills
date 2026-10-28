@@ -1,8 +1,9 @@
-# review-kit — runs /review-pr on every PR and keeps ONE summary comment up to date.
+# review-kit — runs /review-pr on every PR: one inline comment per finding and ONE summary comment kept up to date.
 #
 # Two jobs on purpose:
-#   review  — runs Claude with a READ-ONLY token (it cannot comment, approve or merge, whatever it tries)
-#   publish — no Claude; posts/updates the single comment with the report produced by `review`
+#   review  — runs Claude with no GitHub token (it cannot comment, approve or merge, whatever it tries)
+#   publish — no Claude; checks each finding's line against the diff, posts the inline comments as a review
+#             that never approves nor requests changes, and posts/updates the summary comment
 #
 # Setup (see README "GitHub Action"):
 #   1. Secret ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN).
@@ -79,7 +80,7 @@ jobs:
         run: |
           if [ -f .claude/skills/review-pr/SKILL.md ]; then cmd="/review-pr"; else cmd="/harness:review-pr"; fi
           set +e
-          claude -p "$cmd $HEAD_REF origin/$BASE_REF" \
+          claude -p "$cmd $HEAD_REF origin/$BASE_REF --inline" \
             --output-format text \
             --allowedTools "Read,Grep,Glob,Agent,Bash" \
             --disallowedTools "Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(gh:*)" \
@@ -107,27 +108,191 @@ jobs:
           name: review-report
         continue-on-error: true
 
-      - name: Post or update the single review comment
+      # No checkout: the script below comes from this workflow file, never from the review job's artifact,
+      # which the model could have written. It only reads report.md as data.
+      - name: Post the inline comments and update the summary comment
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          marker='<!-- review-kit:review-pr -->'
-          if [ -s report.md ] && grep -q '^REVIEW_RESULT:' report.md; then
-            # Keep everything from the marker on (drops any preamble the model printed).
-            body=$(awk -v m="$marker" 'found || index($0, m) { found=1; print }' report.md)
-            [ -z "$body" ] && body="$marker"$'\n'"$(cat report.md)"
-          else
-            body="$marker"$'\n'"**review-kit:** the review did not finish correctly ($(cat status.txt 2>/dev/null || echo 'no status')). Details in the [run]($RUN_URL)."
-          fi
-          body="$body"$'\n\n'"<sub>review-kit · [run]($RUN_URL) · advisory comment: it does not approve or block the PR.</sub>"
+          python3 - <<'PY'
+          """Publish the review: one GitHub review with a comment per finding on its line, always event COMMENT
+          (never APPROVE or REQUEST_CHANGES), and one summary comment, edited on every run.
+          Findings come from the ```json review-kit block of report.md; each path and line is checked against
+          the PR diff, and what is not in the diff goes to the summary. Without a valid block, the report is
+          posted as it is. Earlier comments stay; a finding already commented on the same line is not repeated."""
+          import json, os, re, subprocess
 
-          existing=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
-            --jq ".[] | select(.body | contains(\"$marker\")) | .id" | head -n 1)
-          if [ -n "$existing" ]; then
-            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -f body="$body" >/dev/null
-          else
-            gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$body" >/dev/null
-          fi
+          MARKER, FINDING = "<!-- review-kit:review-pr -->", "<!-- review-kit:finding -->"
+          SEVERITY = {"C": "Critical", "R": "Required", "O": "Optional", "N": "Nit"}
+          MAX_INLINE = 30
+          BOT = "github-actions[bot]"
+          REPO, PR, HEAD, RUN_URL = (os.environ[k] for k in ("REPO", "PR", "HEAD_SHA", "RUN_URL"))
+          GH = os.environ.get("GH", "gh")
+
+          def api(path, method="GET", data=None):
+              cmd = [GH, "api", "-X", method, path] + (["--input", "-"] if data is not None else [])
+              r = subprocess.run(cmd, input=json.dumps(data) if data is not None else None, capture_output=True, text=True)
+              if r.returncode:
+                  raise RuntimeError(f"gh api {method} {path}: {(r.stderr or r.stdout).strip()[:300]}")
+              return json.loads(r.stdout or "null")
+
+          def pages(path):
+              out, n = [], 1
+              while True:
+                  page = api(f"{path}?per_page=100&page={n}")
+                  out += page
+                  if len(page) < 100:
+                      return out
+                  n += 1
+
+          def read(path):
+              try:
+                  return open(path, encoding="utf-8").read()
+              except OSError:
+                  return ""
+
+          def one_line(s, n=200):
+              return " ".join(str(s).split())[:n]
+
+          def count(v):
+              return isinstance(v, int) and not isinstance(v, bool) and v > 0
+
+          def parse(report):
+              blocks = re.findall(r"^```json review-kit[ \t]*\n(.*?)^```[ \t]*$", report, re.M | re.S)
+              try:
+                  data = json.loads(blocks[-1]) if blocks else None
+              except ValueError:
+                  return None
+              if not isinstance(data, dict) or not isinstance(data.get("findings"), list):
+                  return None
+              findings = []
+              for f in data["findings"]:
+                  if not isinstance(f, dict) or not re.fullmatch(r"[CRON]\d{1,3}", str(f.get("id"))) or not isinstance(f.get("body"), str):
+                      return None
+                  line = f.get("line") if count(f.get("line")) else None
+                  start = f.get("start_line") if line and count(f.get("start_line")) and f["start_line"] < line else None
+                  findings.append({"id": f["id"], "severity": SEVERITY[f["id"][0]], "title": one_line(f.get("title", "")),
+                                   "path": f["path"] if isinstance(f.get("path"), str) and line else None,
+                                   "line": line, "start_line": start, "body": f["body"][:20000], "url": None})
+              return data, findings
+
+          def commentable(files):
+              """path -> hunks; each hunk, the set of lines of the head file that can take a comment."""
+              out = {}
+              for f in files:
+                  hunks, n = [], 0
+                  for l in (f.get("patch") or "").splitlines():
+                      m = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)", l)
+                      if m:
+                          n = int(m.group(1))
+                          hunks.append(set())
+                      elif hunks and not l.startswith(("-", "\\")):
+                          hunks[-1].add(n)
+                          n += 1
+                  out[f["filename"]] = hunks
+              return out
+
+          def place(f, hunks):
+              for h in hunks.get(f["path"], []):
+                  if f["line"] in h:
+                      c = {"path": f["path"], "line": f["line"], "side": "RIGHT"}
+                      if f["start_line"] in h:
+                          c.update(start_line=f["start_line"], start_side="RIGHT")
+                      return c
+              return None
+
+          def inline_body(f):
+              return f"{FINDING}\n**{f['id']} · {f['severity']}** {f['title']}\n\n{f['body']}"
+
+          def where(f):
+              if not f["path"]:
+                  return "no single location"
+              return f"`{f['path']}:{f['start_line']}-{f['line']}`" if f["start_line"] else f"`{f['path']}:{f['line']}`"
+
+          def item(f):
+              name = f"[**{f['id']}** {f['title']}]({f['url']})" if f["url"] else f"**{f['id']}** {f['title']}"
+              return f"- {name} — {where(f)}" + ("" if f["url"] else " · outside the diff, below")
+
+          def in_full(f):
+              return f"#### {f['id']} {f['title']}\n- **Location:** {where(f)}\n{f['body'].strip()}\n"
+
+          def publish_inline(findings):
+              """Comments each finding on its line; returns a note for the summary if it could not."""
+              hunks = commentable(pages(f"repos/{REPO}/pulls/{PR}/files"))
+              seen = {}
+              for c in pages(f"repos/{REPO}/pulls/{PR}/comments"):
+                  m = re.match(re.escape(FINDING) + r"\n\*\*[CRON]\d+ · \w+\*\* (.*)", c.get("body") or "")
+                  if m and (c.get("user") or {}).get("login") == BOT:  # an outdated comment has line null: never matches
+                      seen[(c["path"], c["line"], m.group(1))] = c["html_url"]
+              new = []
+              for f in findings:
+                  c = f["path"] and place(f, hunks)
+                  if c and (f["path"], f["line"], f["title"]) in seen:
+                      f["url"] = seen[(f["path"], f["line"], f["title"])]
+                  elif c and len(new) < MAX_INLINE:
+                      new.append((f, dict(c, body=inline_body(f))))
+              if not new:
+                  return ""
+              try:
+                  review = api(f"repos/{REPO}/pulls/{PR}/reviews", "POST", {
+                      "commit_id": HEAD, "event": "COMMENT", "comments": [c for _, c in new],
+                      "body": "review-kit: advisory comments, one per finding. The verdict is in the summary comment."})
+                  posted = pages(f"repos/{REPO}/pulls/{PR}/reviews/{review['id']}/comments")
+              except RuntimeError as e:
+                  print(f"::warning::{e}")
+                  return "_The inline comments could not be posted; the findings are below._"
+              for f, c in new:
+                  match = [p for p in posted if p.get("body") == c["body"]] or [p for p in posted if (p.get("path"), p.get("line")) == (c["path"], c["line"])]
+                  f["url"] = match[0]["html_url"] if match else None
+              return ""
+
+          def summary(data, findings, note):
+              tier = data.get("tier") if data.get("tier") in (0, 1, 2) else "?"
+              n = {s: sum(f["severity"] == s for f in findings) for s in SEVERITY.values()}
+              must = [f for f in findings if f["severity"] in ("Critical", "Required")]
+              rest = [f for f in findings if f not in must]
+              out = [MARKER, f"## review-kit: {one_line(data.get('verdict', '?'), 60)} · tier {tier}", "",
+                     str(data.get("summary", "")).strip(), "",
+                     f"**Findings:** Critical {n['Critical']} · Required {n['Required']} · Optional {n['Optional']} · Nits {n['Nit']}", ""]
+              out += [item(f) for f in must] or ["No Critical or Required findings."]
+              if note:
+                  out += ["", note]
+              outside = [in_full(f) for f in must if not f["url"]]
+              if outside:
+                  out += ["", "### Outside the diff", ""] + outside
+              if rest:
+                  out += ["", f"<details><summary>Optional and Nits ({len(rest)})</summary>", ""]
+                  out += [item(f) for f in rest] + [""] + [in_full(f) for f in rest if not f["url"]] + ["", "</details>"]
+              lists = [(t, [one_line(x, 1000) for x in data.get(k, []) if isinstance(x, str)] if isinstance(data.get(k), list) else [])
+                       for t, k in (("What's done well", "done_well"), ("Verification", "verification"))]
+              if any(xs for _, xs in lists):
+                  out += ["", "<details><summary>What's done well and verification</summary>", ""]
+                  for t, xs in lists:
+                      out += [f"**{t}**", ""] + [f"- {x}" for x in xs] + [""]
+                  out += ["</details>"]
+              return "\n".join(out)
+
+          report = read("report.md")
+          parsed = parse(report) if re.search(r"^REVIEW_RESULT:", report, re.M) else None
+          if parsed:
+              data, findings = parsed
+              findings.sort(key=lambda f: "CRON".index(f["id"][0]))
+              body = summary(data, findings, publish_inline(findings))
+          elif re.search(r"^REVIEW_RESULT:", report, re.M):
+              body = report[report.find(MARKER):] if MARKER in report else f"{MARKER}\n{report}"
+          else:
+              status = read("status.txt").strip() or "no status"
+              body = f"{MARKER}\n**review-kit:** the review did not finish correctly ({status}). Details in the [run]({RUN_URL})."
+          body += f"\n\n<sub>review-kit · [run]({RUN_URL}) · advisory comment: it does not approve or block the PR.</sub>"
+
+          ids = [c["id"] for c in pages(f"repos/{REPO}/issues/{PR}/comments")
+                 if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("login") == BOT]
+          if ids:
+              api(f"repos/{REPO}/issues/comments/{ids[0]}", "PATCH", {"body": body})
+          else:
+              api(f"repos/{REPO}/issues/{PR}/comments", "POST", {"body": body})
+          PY
