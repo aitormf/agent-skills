@@ -50,7 +50,7 @@ No uses `pip install` ni edites `uv.lock` a mano.
 ## 3. Antes de empezar
 
 - **Cambios pequeños** (bug evidente, typo, refactor local): adelante, directamente con una PR.
-- **Cambios medianos o grandes** (funcionalidad nueva, varios módulos, API pública): crea una rama y describe el cambio en `docs/changes/<rama>/tasks.md` (problema, fuera de alcance, ejemplos y tareas con su verificación; con la skill `idea-to-change`), y añade `spec.md` y `plan.md` en esa carpeta si hay diseño que decidir. Puede partir de un issue: la PR lo cierra con `Closes #<n>`.
+- **Cambios medianos o grandes** (funcionalidad nueva, varios módulos, API pública): describe el cambio en `docs/changes/<cambio>/` (un `README.md` con el problema, lo que queda fuera y los ejemplos, y un fichero por tarea en `tasks/` con sus dependencias y su verificación; con la skill `idea-to-change`), y añade `spec.md` y `plan.md` en esa carpeta si hay diseño que decidir. El plan va en su propia PR, desde la rama `<cambio>/plan`; después cada tarea en su rama, `<cambio>/T<n>`, y su PR: un solo propósito, unas 150 líneas sin contar los tests y `main` desplegable tras cada una (lo que está a medias, detrás de un feature flag, ver `AGENTS.md`). Puede partir de un issue: la PR de la última tarea lo cierra con `Closes #<n>`.
 - **Cambios de arquitectura** (nueva capa, cambio de persistencia, nueva dependencia estructural, romper un principio): necesitan una **decisión** en `docs/decisions/`, aceptada antes de implementar (la redacta la skill `record-decision`).
 
 Antes de implementar, revisa tu plan contra los principios innegociables de `docs/ARCHITECTURE.md`.

@@ -120,13 +120,15 @@ Cuánto proceso lleva cada cambio lo dice la tabla de niveles que `generate-proj
 
 | Skill / agente | Qué hace |
 |---|---|
-| [`idea-to-change`](skills/idea-to-change/SKILL.md) | De idea (o de un issue de GitHub) a un cambio listo para implementar, en `docs/changes/<rama>/tasks.md` y en su propia rama: nota (problema, plazo máximo, fuera de alcance), mapa de ejemplos (reglas, ejemplos, preguntas) y tareas en rebanadas verticales que nombran sus tests. Las decisiones van a `docs/decisions/` en `proposed`. Una sola parada: la persona revisa el mapa y las decisiones en el fichero, no en el chat. El texto de un issue se trata como entrada no fiable |
-| agente [`implement`](agents/implement.md) | Implementa las tareas de `docs/changes/<rama>/tasks.md`: commit de tests en rojo, un test cada vez, `task-done` |
-| [`task-done`](skills/task-done/SKILL.md) | Marca la tarea en `tasks.md` solo si su verificación pasa y sus tests en rojo siguen intactos en los commits de la rama; con la última, pone `status: done` |
+| [`idea-to-change`](skills/idea-to-change/SKILL.md) | De idea (o de un issue de GitHub) a un cambio listo para implementar, en `docs/changes/<cambio>/` y en la PR del plan (rama `<cambio>/plan`): un `README.md` con la nota (problema, plazo máximo, fuera de alcance) y el mapa de ejemplos (reglas, ejemplos, preguntas), y un fichero por tarea en `tasks/`: tareas pequeñas, de un solo propósito, con sus dependencias y los tests que nombran. Las decisiones van a `docs/decisions/` en `proposed`. Una sola parada: la persona revisa el mapa y las decisiones en el fichero, no en el chat. El texto de un issue se trata como entrada no fiable |
+| agente [`implement`](agents/implement.md) | Implementa las tareas listas, una rama (`<cambio>/T<n>`) y una PR por tarea: commit de tests en rojo, un test cada vez, `task-done`, push y PR; sigue con la siguiente lista mientras las PRs esperan revisión |
+| [`task-done`](skills/task-done/SKILL.md) | Pone `status: done` en la tarea solo si su verificación pasa y sus tests en rojo siguen intactos en los commits de la rama; con la última, también en el README. Su tablero (`board.py`) dice qué tareas están listas, bloqueadas, en curso o hechas |
 
 ```
-idea-to-change → rama + docs/changes/<rama>/tasks.md → ★ persona: mapa de ejemplos y decisiones
-  → tareas y commit → implement → review-prepush → PR (Closes #<n> si partió de un issue) → review-pr
+idea-to-change → docs/changes/<cambio>/ → ★ persona: mapa de ejemplos y decisiones
+  → tareas en tasks/ y PR del plan (<cambio>/plan) → merge
+  → implement, por cada tarea lista: rama <cambio>/T<n> → review-prepush → PR → review-pr → merge
+    (la PR de la última tarea cierra el issue con Closes #<n>, si partió de uno)
 ```
 
 Si hay diseño de verdad que decidir, el nivel siguiente es el SDD (más abajo).
@@ -149,23 +151,23 @@ Cómo usarlo, paso a paso: **[guía de SDD](docs/sdd/README.md)**.
 | [`review-spec`](skills/review-spec/SKILL.md) · agente [`spec-reviewer`](agents/spec-reviewer.md) | Revisa la spec o el plan. Recomienda, nunca aprueba |
 | [`apply-review`](skills/apply-review/SKILL.md) | Pregunta las decisiones una a una y aplica los arreglos en bloque, salvo los que la persona excluya |
 | [`spec-to-plan`](skills/spec-to-plan/SKILL.md) | De spec aprobada a `plan.md`, con comprobación de principios |
-| [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a `tasks.md`, con la verificación de cada tarea |
-| agente [`implement`](agents/implement.md) | Implementa las tareas, marca `[x]` y termina con el comando de verificación en verde |
-| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y la marca `[x]` en `tasks.md` solo si pasa; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. La usa `implement` |
+| [`plan-to-tasks`](skills/plan-to-tasks/SKILL.md) | De plan aprobado a un fichero por tarea en `tasks/`, con sus dependencias y su verificación, y la PR del plan |
+| agente [`implement`](agents/implement.md) | Implementa las tareas listas, una rama y una PR por tarea, cada una con el comando de verificación en verde |
+| [`task-done`](skills/task-done/SKILL.md) | Ejecuta la verificación de una tarea y solo si pasa le pone `status: done`; si la tarea lista sus ejemplos, comprueba antes en git que sus tests están en un commit en rojo y no han cambiado. Su tablero dice qué tareas están listas. La usa `implement` |
 | [`sdd-next`](skills/sdd-next/SKILL.md) | ¿En qué punto está cada trabajo y qué toca ahora? Solo lectura |
 | [`sdd-decisions`](skills/sdd-decisions/SKILL.md) | Interna: qué es una decisión de la persona (se pregunta) y qué un supuesto o arreglo con respuesta por defecto (se propone por escrito) |
 
 ```
 idea-to-spec → [review-spec → apply-review] → persona: status: approved
   → spec-to-plan → [review-spec → apply-review] → persona: status: approved
-  → plan-to-tasks → implement → review-prepush → PR → review-pr
+  → plan-to-tasks → PR del plan → implement (una PR por tarea) → review-prepush → review-pr
 ```
 
 Convenciones de SDD:
 
-- Cada cambio vive en `docs/changes/<rama>/`, con el último tramo del nombre de la rama (`feat/42-cancelar-viaje` → `docs/changes/42-cancelar-viaje/`): `tasks.md` (el mismo formato que en el nivel B), `spec.md`, `plan.md` y las revisiones. Subir del nivel B al SDD es añadir ficheros a la carpeta.
+- Cada cambio vive en `docs/changes/<cambio>/` (`docs/changes/42-cancelar-viaje/`): `README.md` y `tasks/` (el mismo formato que en el nivel B), `spec.md`, `plan.md` y las revisiones. El plan va en la rama `<cambio>/plan` y cada tarea en `<cambio>/T<n>`, cada una con su PR. Subir del nivel B al SDD es añadir ficheros a la carpeta.
 - `spec.md` y `plan.md` llevan `status: draft | approved | obsolete` en el frontmatter. **Solo una persona pone `approved`.** Las skills avisan y preguntan si se intenta avanzar sin aprobación.
-- No hay backlog central: el tablero es la carpeta (`grep -l "status: open" docs/changes/*/tasks.md`). La prioridad y el responsable viven en el tracker; `tasks.md` enlaza su issue con `issue:`, y la PR lo cierra.
+- No hay backlog central: los cambios abiertos son las carpetas con `status: open` (`grep -l "status: open" docs/changes/*/README.md`), y el tablero de cada uno lo da `task-done` (`scripts/board.py`). La prioridad y el responsable viven en el tracker; el README enlaza su issue con `issue:`, y la PR de la última tarea lo cierra.
 - El contrato con los guardrails es el comando de verificación de la sección `Commands` (o `Comandos`) de `AGENTS.md`.
 
 ### Depuración
@@ -182,13 +184,13 @@ Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agen
 
 | Skill / agente | Qué hace |
 |---|---|
-| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. Comprueba además que cada ejemplo de `tasks.md` tiene su test y que los tests en rojo no cambiaron (`task-done --audit`), los choques con decisiones aceptadas y los llamadores fuera del diff. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
+| [`review-prepush`](skills/review-prepush/SKILL.md) | ¿Está la rama lista para push? Verificación, `code-reviewer` y `finding-verifier`. En la rama de una tarea, comprueba además que cada ejemplo de la tarea tiene su test, que los tests en rojo no cambiaron y que sus dependencias están mergeadas; en la del plan, el tablero y que cada ejemplo está en alguna tarea (`task-done --audit`), los choques con decisiones aceptadas y los llamadores fuera del diff. Bloquea solo con Critical confirmados. Incluye el hook `pre-push` |
 | [`review-pr`](skills/review-pr/SKILL.md) | Review de una PR según su riesgo: tres personas en paralelo, verificador y revisión de la descripción. Nunca aprueba. Incluye la GitHub Action |
 | [`code-review-and-quality`](skills/code-review-and-quality/SKILL.md) | Review de cinco ejes en la sesión actual (Addy) |
 | [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |
 | agentes [`code-reviewer`](agents/code-reviewer.md), [`security-auditor`](agents/security-auditor.md), [`test-engineer`](agents/test-engineer.md), [`finding-verifier`](agents/finding-verifier.md) | Las personas que lanzan `review-prepush` y `review-pr` |
 
-Si la rama tiene su carpeta en `docs/changes/`, la review comprueba el código contra ella: ejemplos y criterios de aceptación con test, nada fuera de alcance, tareas `[x]` hechas de verdad. Ni la review ni el hook ni la Action leen issues ni usan `gh` para las tareas.
+Si la rama tiene su carpeta en `docs/changes/`, la review comprueba el código contra su tarea: ejemplos y criterios de aceptación con test, nada fuera de su propósito ni de alcance, la tarea `done` hecha de verdad, y señala las tareas que mezclan propósitos o pasan con claridad de unas 150 líneas. Ni la review ni el hook ni la Action leen issues ni usan `gh` para las tareas.
 
 ## Desarrollo
 

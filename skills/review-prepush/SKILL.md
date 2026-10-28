@@ -24,20 +24,20 @@ Follow the `review-context` skill for config and verification, and the `review-r
 3. If there are no commits ahead of base, output the report with verdict OK and "No changes against `<base>`" and stop.
 4. If `git status --porcelain` shows uncommitted changes, note it under Verification ("uncommitted changes are neither reviewed nor pushed").
 5. **Task**, the first that applies:
-   - the branch has a change folder, `docs/changes/<last segment of the branch name>/` (`review-context` §4): its `tasks.md` (note, example map, checklist) and, if they exist, `spec.md` and `plan.md` are the task, and the checklist of `tasks.md` is the **task list**. Never read the GitHub issue its `issue:` names;
+   - the branch has a change folder (`review-context` §4): on a task branch, `<change>/T<n>`, that task's file, the README and, if they exist, `spec.md` and `plan.md` are the task; on a plan branch, `<change>/plan`, the plan itself (README and task files) is what is reviewed. Never read the GitHub issue its `issue:` names;
    - otherwise, infer what the change is supposed to do from the branch name and commit messages (and a linked ticket ID if any). If it is unclear, say so — do not invent a task.
 
 ## Step 2 — Verification (main session)
 
 Run the verification commands from AGENTS.md exactly as `review-context` §2 says (aggregate command if present, only read-only commands, nothing guessed; if none, say so and continue). Run Semgrep per `review-context` §2.6 if available. Keep the raw results for the report.
 
-**Test protection of the task list** (only if Step 1 found one whose tasks declare examples, `tests: E1, E2`): run the read-only audit of the `task-done` skill, from the repo root, with `<task-done-dir>` the directory of that skill (next to this one: `../task-done`):
+**Audit of the task or the plan** (only if Step 1 found a change folder): run the read-only audit of the `task-done` skill, from the repo root, with `<task-done-dir>` the directory of that skill (next to this one: `../task-done`):
 
 ```bash
-python3 <task-done-dir>/scripts/task_done.py --audit docs/changes/<change>/tasks.md
+python3 <task-done-dir>/scripts/task_done.py --audit docs/changes/<change> [T<n>]   # T<n> on a task branch; nothing on the plan branch
 ```
 
-It runs no verification, edits nothing and reads only git and the repo. Among the commits of the branch since the base branch, it checks that each example has a test named after it in the task's red commit (`test(T3): …`) and that no later commit changed or removed those tests, and lists unticked tasks without a red commit as `pending`. Keep its output as a verification result (exit 0: all protected; exit 3: `PROBLEM` lines). If the skill or `python3` is not available, if it exits 2, or if its only `PROBLEM` is that it cannot read the git history of the branch (no base branch found), write "Test protection: not checked (<reason>)" under Verification.
+It runs no verification, edits nothing and reads only git and the repo. Its scope follows the branch (D-0032). On a task branch, only that task: among the commits of the branch since the base branch, that each of its examples has a test named after it in the red commit (`test(T3): …`) and no later commit changed or removed those tests (a task not done without a red commit is `pending`), that its examples are in the README's example map, and that its `depends_on` are done in the base branch. On the plan branch: the task files (frontmatter, no dependency that does not exist, no cycle) and that every example of the map is in some task. Keep its output as a verification result (exit 0: nothing wrong; exit 3: `PROBLEM` lines). If the skill or `python3` is not available, if it exits 2, or if its only `PROBLEM` is that it cannot read the git history of the branch (no base branch found), write "Test protection: not checked (<reason>)" under Verification.
 
 ## Step 3 — Review (one subagent)
 
@@ -49,7 +49,7 @@ Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool l
 - the `Code review` section of AGENTS.md, if any, and the effective limits (`Max Optional`, `Max Nits`);
 - this brief:
 
-  > Pre-push review. Focus only on: (1) does the change fulfil the task (if there is a change folder, apply the checks you were given for it); (2) correctness bugs on realistic paths; (3) tests in the diff that would not fail if the logic were wrong, and quality lowered to pass (review-report §1); (4) debug leftovers, new TODO/FIXME without a ticket, commented-out or dead code; (5) obvious security holes in the changed lines; (6) the "Beyond the diff" checks of your instructions: callers outside the diff of symbols whose contract changed, and clashes with accepted decisions in `docs/decisions/`; (7) you are the only persona, so apply the test checks of review-report §5 (the test criterion, and one finding per `PROBLEM` line of the `task_done.py --audit` output). Skip architecture, naming and style unless they hide a bug. Apply review-report precision rules (§1). Report findings in review-report §3 format, plus one concrete "what's done well" item and your one-line `Callers:` summary. Do not modify files.
+  > Pre-push review. Focus only on: (1) does the change fulfil the task (if there is a change folder, apply the checks you were given for it); (2) correctness bugs on realistic paths; (3) tests in the diff that would not fail if the logic were wrong, and quality lowered to pass (review-report §1); (4) debug leftovers, new TODO/FIXME without a ticket, commented-out or dead code; (5) obvious security holes in the changed lines; (6) the "Beyond the diff" checks of your instructions: callers outside the diff of symbols whose contract changed, and clashes with accepted decisions in `docs/decisions/`; (7) you are the only persona, so apply the test checks of review-report §5 (the test criterion, and one finding per `PROBLEM` line of the `task_done.py --audit` output); (8) on a task branch, the size and purpose check of your instructions (D-0033). Skip architecture, naming and style unless they hide a bug. Apply review-report precision rules (§1). Report findings in review-report §3 format, plus one concrete "what's done well" item and your one-line `Callers:` summary. Do not modify files.
 
 **Without subagents** (a tool that cannot spawn them, e.g. pi): run each persona's role yourself, one after another, using the same brief and keeping its output separate; then verify the findings yourself with the `finding-verifier` procedure. Say so under Verification ("personas run in the main session, not in a fresh context").
 
@@ -61,7 +61,7 @@ Keep only `CONFIRMED` and `UNCERTAIN` findings, with the verifier's final severi
 
 ## Step 5 — Report (main session)
 
-Produce the `review-report` §4 report. Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. If there is a task list, add one line to the Summary: `Tasks: <tasks.md path> — <ticked>/<total> ticked; test protection: <ok | N problems | not checked>`. Under Verification, add the audit command and its exit status, and the reviewer's `Callers:` line. Verdict values:
+Produce the `review-report` §4 report. Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. If there is a change folder, add one line to the Summary: `Task: <task file path> (<status>)` on a task branch, or `Plan: <folder> — <N> tasks` on the plan branch, followed by `; audit: <ok | N problems | not checked>`. Under Verification, add the audit command and its exit status, and the reviewer's `Callers:` line. Verdict values:
 
 - **BLOCK** — at least one CONFIRMED Critical.
 - **FIX BEFORE PR** — no confirmed Critical, but Required findings (or uncertain Critical).

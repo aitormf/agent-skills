@@ -1,44 +1,53 @@
 #!/usr/bin/env python3
-"""Run a task's verification and tick it in tasks.md only if it passes.
+"""Run a task's verification and mark it done only if it passes.
 
 Usage:
-  task_done.py [TASKS_FILE] TASK_ID -- COMMAND [ARGS...]
-  task_done.py --audit [TASKS_FILE]
+  task_done.py [CHANGE_DIR | TASK_FILE] [TASK_ID] -- COMMAND [ARGS...]
+  task_done.py --audit [CHANGE_DIR | TASK_FILE] [TASK_ID]
 
-  TASK_ID is the label at the start of the task line (T3, W2...).
-  COMMAND runs without a shell; for pipes or &&, pass `bash -c "..."`.
-  Without TASKS_FILE, it is docs/changes/<last segment of the current branch>/tasks.md
-  (`feat/42-cancel-trip` -> docs/changes/42-cancel-trip/tasks.md), from the repo root.
+  The task is the file CHANGE_DIR/tasks/<TASK_ID>-<slug>.md (TASK_ID: T3); its
+  frontmatter has id, title, status (todo | doing | done), depends_on, examples and
+  verification. What is not given comes from the current branch, <...>/<change>/T<n>:
+  the change folder is docs/changes/<change>/ (the second-to-last segment), from the
+  repo root, and the task is T<n> (the last one). <...>/<change>/plan is the plan
+  branch: it has no task to mark. COMMAND runs without a shell; for pipes or &&,
+  pass `bash -c "..."`.
 
-Warns on stderr if COMMAND does not contain the verification declared in the
-task. Prints the tail of the output, then the command and its exit status; no
-log file is kept. Exit status: the command's. A failing command leaves the
-checklist untouched. Exit 2: wrong call, or no tasks.md where it was searched.
-When the last task is ticked, `status: open` in the frontmatter becomes `status: done`.
-Exit 2 also if the base branch already has this tasks.md with `status: done`: the
-folder is a finished change of an earlier branch with the same last segment.
+Warns on stderr if COMMAND does not contain the task's `verification`. Prints the
+tail of the output, then the command and its exit status; no log file is kept.
+Exit status: the command's. A failing command leaves the task file untouched; a
+passing one sets `status: done` in it, and in the change's README.md once every
+task is done here or in the base branch. Exit 2: wrong call, malformed task file,
+or no change folder or task file where it was searched. Exit 2 also if the base
+branch already has the change's README.md with `status: done`: the folder is a
+finished change of an earlier branch with the same name.
 
-Test protection: if the task declares its examples (`tests: E1, E2`), before
+Test protection: if the task declares its examples (`examples: [E1, E2]`), before
 running COMMAND it checks in git, among the commits of the current branch that
 are not in the base branch (origin/HEAD, else origin/main, origin/master, main
 or master), that
   - there is a red commit `test(T3): ...`,
   - the red commits add a line naming each example (E1, E2...),
+  - the task file still declares the examples it declared at the red commits,
   - no later commit (red commits of other tasks and merges included) nor the
     uncommitted changes remove or change a non-blank line the red commits added.
     Lines are followed by identity (git blame), not by text: other lines of those
     files may change, even with the same text, and new tests may be added.
     Renaming the whole file keeps the protection; moving lines elsewhere does not.
-If any of these fails, or no base branch is found, COMMAND is not run, the
-checklist is untouched and the exit status is 3.
+If any of these fails, or no base branch is found, COMMAND is not run, the task
+file is untouched and the exit status is 3.
 
---audit (read-only, for the review): runs no command and edits nothing. It
-checks the test protection of every task with examples that is ticked or has
-a red commit (committed history only), and that every example of the example
-map (`E1: ...` lines) is in some task's `tests:`. Unticked tasks without a red
-commit are reported as pending. Exit status: 0 if nothing is wrong, 3 if
-something is (PROBLEM lines, also when no base branch is found), 2 if the call
-is wrong or the checklist cannot be read.
+--audit (read-only, for the review): runs no command and edits nothing.
+  - On a task (a <change>/T<n> branch, or TASK_ID given): the test protection of
+    the task if it is done or has a red commit (committed history only), that its
+    examples are in the example map of README.md (`E1: ...` lines), and that its
+    depends_on are done in the base branch. A task not done without a red commit
+    is reported as pending.
+  - On the plan (a <change>/plan branch, or CHANGE_DIR without TASK_ID): the task
+    files (frontmatter, ids, no dependency that does not exist, no cycle) and that
+    every example of the map is in some task's examples.
+Exit status: 0 if nothing is wrong, 3 if something is (PROBLEM lines, also when
+no base branch is found), 2 if the call is wrong or the folder or task cannot be found.
 """
 
 import re
@@ -47,119 +56,111 @@ import subprocess
 import sys
 from pathlib import Path
 
+from board import (
+    TASK_FILE,
+    TASK_ID,
+    base_branch,
+    branch_change,
+    git,
+    graph_problems,
+    load_tasks,
+    map_examples,
+    number,
+    parse_frontmatter,
+    parse_task,
+    set_status,
+    statuses_at,
+)
+
 TAIL = 40
 RED_SUBJECT = re.compile(r"^test\(([A-Z]+\d+)\):")
-TASK_LINE = re.compile(r"^\s*- \[([ xX])\] ([A-Z]+\d+)\.")
-MAP_EXAMPLE = re.compile(r"^\s*(?:[-*]\s+)?(E\d+)\s*:")
 PROTECTION_FAILED = 3
-STATUS_LINE = re.compile(r"^status:[^\n]*", re.MULTILINE)
 BLAME_HEADER = re.compile(r"^([0-9a-f]{40,64}) (\d+) \d+(?: \d+)?$")
 
 
 def usage(msg: str) -> None:
     print(f"task_done: {msg}", file=sys.stderr)
-    print("usage: task_done.py [TASKS_FILE] TASK_ID -- COMMAND [ARGS...]", file=sys.stderr)
-    print("       task_done.py --audit [TASKS_FILE]", file=sys.stderr)
+    print("usage: task_done.py [CHANGE_DIR | TASK_FILE] [TASK_ID] -- COMMAND [ARGS...]", file=sys.stderr)
+    print("       task_done.py --audit [CHANGE_DIR | TASK_FILE] [TASK_ID]", file=sys.stderr)
     sys.exit(2)
 
 
-def task_block(lines: list[str], index: int) -> str:
-    """The task line and its indented continuation lines, joined."""
-    block = [lines[index]]
-    for line in lines[index + 1 :]:
-        if not line[:1].isspace() or not line.strip() or re.match(r"\s*- \[", line):
-            break
-        block.append(line)
-    return " ".join(" ".join(block).split())
-
-
-def declared_verification(block: str) -> str:
-    """Text after 'verification:' (or 'verificación:') in the task block, without backticks if quoted."""
-    match = re.search(r"(?:verification|verificación):\s*(.+)", block)
-    if not match:
-        return ""
-    text = match.group(1).strip()
-    quoted = re.search(r"`([^`]+)`", text)
-    # Unquoted, it ends at the next '—' field (`— level: A`).
-    return " ".join((quoted.group(1) if quoted else text.split("—")[0]).split())
-
-
-def declared_examples(block: str) -> list[str]:
-    """Example IDs after 'tests:' (E1, E2...), up to the next '—' field."""
-    match = re.search(r"tests:\s*([^—]+)", block)
-    if not match:
-        return []
-    return re.findall(r"(?<![A-Za-z0-9_])([A-Z]+\d+)(?![A-Za-z0-9])", match.group(1).replace("`", " "))
-
-
-def git(root: Path, *args: str) -> str:
-    # core.quotePath=false: paths with non-ASCII characters (test_canción.py) come out as they are.
-    # log.showSignature=false: signature checks must not mix into the output that is parsed.
-    result = subprocess.run(
-        ["git", "-c", "core.quotePath=false", "-c", "log.showSignature=false", "-C", str(root), *args],
-        capture_output=True,
-        encoding="utf-8",
-        errors="surrogateescape",
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"git {' '.join(args)}: {result.stderr.strip()}")
-    return result.stdout
-
-
-def branch_tasks_file() -> Path:
-    """docs/changes/<last segment of the current branch>/tasks.md, or exit 2 naming the path searched."""
-    try:
-        root = Path(git(Path.cwd(), "rev-parse", "--show-toplevel").strip())
-        branch = git(root, "rev-parse", "--abbrev-ref", "HEAD").strip()
-    except (OSError, RuntimeError) as error:
-        usage(f"no TASKS_FILE given and cannot read the current branch: {error}")
-    if branch == "HEAD":
-        usage("no TASKS_FILE given and HEAD is detached (no branch name): pass the path of tasks.md")
-    path = root / "docs" / "changes" / branch.rsplit("/", 1)[-1] / "tasks.md"
-    if not path.is_file():
-        usage(f"no TASKS_FILE given and {path} does not exist (from branch '{branch}'): pass the path of tasks.md")
-    return path
-
-
-def base_branch(root: Path) -> str:
-    """The remote default branch if known, else origin/main, origin/master, main or master."""
-    try:
-        candidates = [git(root, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD").strip()]
-    except RuntimeError:
-        candidates = []
-    for ref in [*candidates, "origin/main", "origin/master", "main", "master"]:
+def locate(args: list[str], need_task: bool) -> tuple[Path, str | None]:
+    """(change folder, task id or None for the plan) from the arguments, the rest from the branch; or exit 2."""
+    ids = [a for a in args if TASK_ID.fullmatch(a)]
+    paths = [Path(a) for a in args if not TASK_ID.fullmatch(a)]
+    if len(ids) > 1 or len(paths) > 1:
+        usage("pass at most one change folder (or task file) and one TASK_ID")
+    folder, task_id = (paths[0] if paths else None), (ids[0] if ids else None)
+    if folder is not None and folder.is_file():
+        match = TASK_FILE.fullmatch(folder.name)
+        if not match or folder.parent.name != "tasks":
+            usage(f"{folder} is not a task file (<change>/tasks/T<n>-<slug>.md) nor a change folder")
+        folder, task_id = folder.parent.parent, task_id or match.group(1)
+    if folder is None or (need_task and task_id is None):
         try:
-            git(root, "rev-parse", "--verify", "-q", f"{ref}^{{commit}}")
-            return ref
-        except RuntimeError:
-            continue
-    raise RuntimeError("no base branch found (origin/HEAD, origin/main, origin/master, main or master)")
+            branch_folder, last, branch = branch_change()
+        except ValueError as error:
+            usage(f"no change folder or task given and {error}: pass them")
+        if folder is None:
+            folder = branch_folder
+            if not folder.is_dir():
+                usage(f"{folder} does not exist (from branch '{branch}'): pass the change folder")
+        if task_id is None and last != "plan":
+            task_id = last
+        if need_task and task_id is None:
+            usage(f"'{branch}' is the plan branch: it has no task to mark; pass TASK_ID")
+    if not folder.is_dir():
+        usage(f"{folder} does not exist")
+    return folder, task_id
 
 
-def refuse_finished(path: Path) -> None:
-    """Exit 2 if the base branch already has this tasks.md with `status: done` (a finished, merged change)."""
+def task_file(folder: Path, task_id: str) -> Path:
+    """The only folder/tasks/<task_id>-<slug>.md, or exit 2 naming what was searched."""
+    found = [p for p in sorted((folder / "tasks").glob(f"{task_id}*.md")) if TASK_FILE.fullmatch(p.name)]
+    found = [p for p in found if TASK_FILE.fullmatch(p.name).group(1) == task_id]
+    if len(found) != 1:
+        usage(f"expected one {folder / 'tasks' / f'{task_id}-*.md'}, found {len(found)}")
+    return found[0]
+
+
+def read_task(path: Path) -> tuple[str, dict]:
+    """(text, fields) of a task file, or exit 2 if it is malformed."""
     try:
-        folder = path.resolve().parent
-        base = base_branch(folder)
-        text = git(folder, "show", f"{base}:./{path.name}")
+        text = path.read_text(encoding="utf-8")
+    except (OSError, ValueError) as error:
+        usage(f"cannot read {path}: {error}")
+    fields, problems = parse_task(text, path.name)
+    if problems:
+        usage(f"{path}: malformed task file: {'; '.join(problems)}")
+    return text, fields
+
+
+def refuse_finished(folder: Path) -> None:
+    """Exit 2 if the base branch already has this change's README.md with `status: done` (a finished change)."""
+    try:
+        base = base_branch(folder.resolve())
+        text = git(folder.resolve(), "show", f"{base}:./README.md")
     except (OSError, RuntimeError):
         return  # not in git, no base branch or not in the base branch: not a finished change
-    match = re.match(r"---\r?\n(.*?)\r?\n---\r?\n", text, re.DOTALL)
-    if match and re.search(r"^status:\s*done\b", match.group(1), re.MULTILINE):
+    try:
+        fields = parse_frontmatter(text) or {}
+    except ValueError:
+        return
+    if fields.get("status") == "done":
         usage(
-            f"{path} is a finished change already in {base} (status: done): "
-            "this branch reuses its folder; rename the branch (git branch -m <type>/<other-name>)"
+            f"{folder} is a finished change already in {base} (status: done in its README.md): "
+            "this branch reuses its folder; rename the branch (git branch -m <other-change>/T<n>)"
         )
 
 
-def branch_commits(path: Path) -> tuple[Path, str, list[tuple[str, list[str], str]]]:
+def branch_commits(folder: Path) -> tuple[Path, str, list[tuple[str, list[str], str]]]:
     """(repo root, base branch, (sha, parents, subject) of the branch's commits not in the base branch).
 
-    Parents come before their children. One branch, one change: T<n> and E<n> IDs repeat across
+    Parents come before their children. One branch, one task: T<n> and E<n> IDs repeat across
     changes, so only these commits count.
     """
-    root = Path(git(path.resolve().parent, "rev-parse", "--show-toplevel").strip())
+    root = Path(git(folder.resolve(), "rev-parse", "--show-toplevel").strip())
     base = base_branch(root)
     lines = git(root, "log", "--reverse", "--topo-order", "--format=%H%x00%P%x00%s", f"{base}..HEAD").split("\n")
     commits = []
@@ -173,33 +174,35 @@ def has_red(commits: list[tuple[str, list[str], str]], task_id: str) -> bool:
     return any((m := RED_SUBJECT.match(subject)) and m.group(1) == task_id for _, _, subject in commits)
 
 
-def check_protection(path: Path, task_id: str, examples: list[str]) -> list[str]:
+def check_protection(folder: Path, task_id: str, examples: list[str]) -> list[str]:
     """Problems with the red commit of task_id; an empty list if its tests are protected.
 
     A task with no examples and no red commit has nothing to protect. One with a red commit is
-    always checked, even if its examples were removed from tasks.md afterwards.
+    always checked, even if its examples were removed from its task file afterwards.
     """
     try:
-        root, base, commits = branch_commits(path)
+        root, base, commits = branch_commits(folder)
         if not examples and not has_red(commits, task_id):
             return []
-        return protection_problems(root, base, commits, task_id, examples, tasks=path)
+        return protection_problems(root, base, commits, task_id, examples, folder=folder)
     except (OSError, RuntimeError, ValueError) as error:
         if not examples:
             return []
         return [f"PROBLEM: cannot read the git history of the branch: {error}"]
 
 
-def examples_at(root: Path, sha: str, tasks: Path, task_id: str) -> list[str]:
-    """The examples task_id declared in tasks.md as it was at commit sha; [] if it was not there."""
+def examples_at(root: Path, sha: str, folder: Path, task_id: str) -> list[str]:
+    """The examples task_id declared in its task file as it was at commit sha; [] if it was not there."""
     try:
-        rel = tasks.resolve().relative_to(root).as_posix()
-        lines = git(root, "show", f"{sha}:{rel}").splitlines()
+        rel = folder.resolve().relative_to(root.resolve()).as_posix()
+        paths = git(root, "ls-tree", "-z", "--name-only", sha, "--", f"{rel}/tasks/").split("\0")
+        found = [p for p in paths if (m := TASK_FILE.fullmatch(p.rsplit("/", 1)[-1])) and m.group(1) == task_id]
+        if len(found) != 1:
+            return []
+        examples = (parse_frontmatter(git(root, "show", f"{sha}:{found[0]}")) or {}).get("examples", [])
     except (RuntimeError, ValueError):
         return []
-    pattern = task_pattern(task_id)
-    found = [i for i, line in enumerate(lines) if pattern.match(line)]
-    return declared_examples(task_block(lines, found[0])) if len(found) == 1 else []
+    return examples if isinstance(examples, list) else []
 
 
 def blamed(root: Path, rev: str | None, path: str, red: str) -> dict[int, str]:
@@ -258,12 +261,12 @@ def protection_problems(
     task_id: str,
     examples: list[str],
     worktree: bool = True,
-    tasks: Path | None = None,
+    folder: Path | None = None,
 ) -> list[str]:
     """commits: (sha, parents, subject) of the branch, parents first. worktree: also check the uncommitted changes.
 
-    tasks: the tasks.md file; the examples the task declared there at its red commits stay protected
-    even if tasks.md no longer declares them.
+    folder: the change folder; the examples the task file declared at the red commits stay protected
+    even if it no longer declares them.
     """
     red = [sha for sha, _, subject in commits if (m := RED_SUBJECT.match(subject)) and m.group(1) == task_id]
     if not red:
@@ -275,12 +278,12 @@ def protection_problems(
         ]
 
     problems: list[str] = []
-    if tasks is not None:
-        earlier = list(dict.fromkeys(e for sha in red for e in examples_at(root, sha, tasks, task_id)))
+    if folder is not None:
+        earlier = list(dict.fromkeys(e for sha in red for e in examples_at(root, sha, folder, task_id)))
         dropped = [e for e in earlier if e not in examples]
         if dropped:
             problems.append(
-                f"tasks.md no longer declares {', '.join(dropped)} for {task_id}, but it did at the red commit: "
+                f"the task file of {task_id} no longer declares {', '.join(dropped)}, but it did at the red commit: "
                 "removing an example is a change of behaviour for the person to decide"
             )
         examples = list(dict.fromkeys(examples + earlier))
@@ -348,118 +351,104 @@ def protection_problems(
     return problems
 
 
-def task_pattern(task_id: str) -> re.Pattern[str]:
-    return re.compile(rf"^(\s*- )\[([ xX])\]( {re.escape(task_id)}\.)")
-
-
-def find_task(lines: list[str], task_id: str, label: str) -> int:
-    """Index of the only '- [ ] <task_id>.' line, or exit 2."""
-    pattern = task_pattern(task_id)
-    matches = [i for i, line in enumerate(lines) if pattern.match(line)]
-    if len(matches) != 1:
-        usage(f"expected one '- [ ] {task_id}.' line in {label}, found {len(matches)}")
-    return matches[0]
-
-
-def set_done(text: str) -> str:
-    """text with `status: done` in its frontmatter if every task is ticked; unchanged otherwise or without a status."""
-    lines = text.splitlines()
-    if any(m.group(1) == " " for line in lines if (m := TASK_LINE.match(line))):
-        return text
-    match = re.match(r"---\r?\n(.*?)\r?\n---\r?\n", text, re.DOTALL)
-    if not match:
-        return text
-    frontmatter = STATUS_LINE.sub("status: done", match.group(1), count=1)
-    return text[: match.start(1)] + frontmatter + text[match.end(1) :]
-
-
-def audit(path: Path) -> int:
-    """Read-only check of every task of the checklist, for the review. Runs no command, edits nothing."""
-    refuse_finished(path)
+def all_done(folder: Path) -> bool:
+    """Every task of the change is done, in the working tree or in the base branch."""
+    tasks, problems = load_tasks(folder)
+    if problems or not tasks:
+        return False
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        merged = statuses_at(base_branch(folder.resolve()), folder)
+    except (OSError, RuntimeError, ValueError):
+        merged = {}
+    return all(t["status"] == "done" or merged.get(tid) == "done" for tid, t in tasks.items())
+
+
+def audit_task(folder: Path, task_id: str) -> int:
+    """Read-only check of one task, for the review of its branch. Runs no command, edits nothing."""
+    path = task_file(folder, task_id)
+    try:
+        fields, problems = parse_task(path.read_text(encoding="utf-8"), path.name)
     except (OSError, ValueError) as error:
         usage(f"cannot read {path}: {error}")
-    tasks = [(i, m) for i, line in enumerate(lines) if (m := TASK_LINE.match(line))]
-    if not tasks:
-        usage(f"no '- [ ] T1.' checklist in {path}")
+    status = fields.get("status", "?")
+    label = f"{task_id} ({status})"
+    found = [f"malformed task file: {problem}" for problem in problems]
+    examples = fields["examples"] if isinstance(fields.get("examples"), list) else []
     try:
-        root, base, commits = branch_commits(path)
+        root, base, commits = branch_commits(folder)
     except (OSError, RuntimeError, ValueError) as error:
         print(f"PROBLEM: cannot read the git history of the branch: {error}")
         print(f"--- audit of {path}: not checked; 1 problem(s)")
         return PROTECTION_FAILED
-    with_red = {m.group(1) for _, _, subject in commits if (m := RED_SUBJECT.match(subject))}
 
-    problems, assigned, done = 0, set(), 0
-    for i, m in tasks:
-        task_id, ticked = m.group(2), m.group(1) != " "
-        done += ticked
-        examples = declared_examples(task_block(lines, i))
-        assigned.update(examples)
-        mark = "[x]" if ticked else "[ ]"
-        if not examples and task_id not in with_red:
-            print(f"{task_id} {mark}: no examples declared")
-            continue
-        if not ticked and task_id not in with_red:
-            print(f"{task_id} {mark}: pending, no red commit yet ({', '.join(examples)})")
-            continue
+    mapped = map_examples(folder)
+    if mapped is None:
+        found.append(f"no README.md in {folder}: the examples cannot be checked against the example map")
+    elif missing := [e for e in examples if e not in mapped]:
+        found.append(f"{', '.join(missing)} not in the example map of README.md")
+    try:
+        merged = statuses_at(base, folder)
+    except (OSError, RuntimeError, ValueError) as error:
+        merged, found = {}, found + [f"cannot read the tasks in {base}: {error}"]
+    deps = fields.get("depends_on", []) if isinstance(fields.get("depends_on"), list) else []
+    if waiting := [d for d in deps if merged.get(d) != "done"]:
+        found.append(f"depends on {', '.join(waiting)}, not done in {base}: merge those first")
+
+    if not examples and not has_red(commits, task_id):
+        print(f"{label}: no examples declared")
+    elif status != "done" and not has_red(commits, task_id):
+        print(f"{label}: pending, no red commit yet ({', '.join(examples)})")
+    else:
         try:
-            found = protection_problems(root, base, commits, task_id, examples, worktree=False, tasks=path)
+            protection = protection_problems(root, base, commits, task_id, examples, worktree=False, folder=folder)
         except (OSError, RuntimeError, ValueError) as error:
-            found = [f"cannot read the git history: {error}"]
-        for problem in found:
-            print(f"{task_id} {mark}: PROBLEM: {problem}")
-        if not found:
+            protection = [f"cannot read the git history: {error}"]
+        if not protection:
             tested = f"tests {', '.join(examples)}" if examples else "declares no examples"
-            print(f"{task_id} {mark}: ok, the red commit {tested}, untouched since")
-        problems += len(found)
+            print(f"{label}: ok, the red commit {tested}, untouched since")
+        found += protection
+    for problem in found:
+        print(f"{label}: PROBLEM: {problem}")
+    print(f"--- audit of {path} (branch since {base}): {len(found)} problem(s)")
+    return PROTECTION_FAILED if found else 0
 
-    task_lines = {i for i, _ in tasks}
-    mapped = [m.group(1) for i, line in enumerate(lines) if i not in task_lines and (m := MAP_EXAMPLE.match(line))]
-    for example in dict.fromkeys(mapped):
+
+def audit_plan(folder: Path) -> int:
+    """Read-only check of the plan of a change, for the review of the plan branch: the task files and the map."""
+    tasks, found = load_tasks(folder)
+    found += graph_problems(tasks)
+    mapped = map_examples(folder)
+    if mapped is None:
+        found.append(f"no README.md in {folder}")
+    assigned = {e for t in tasks.values() if isinstance(t.get("examples"), list) for e in t["examples"]}
+    for example in mapped or []:
         if example not in assigned:
-            print(f"{example}: PROBLEM: in the example map but in no task's tests:")
-            problems += 1
-
-    print(f"--- audit of {path} (branch since {base}): {len(tasks)} tasks, {done} ticked; {problems} problem(s)")
-    return PROTECTION_FAILED if problems else 0
+            found.append(f"{example} is in the example map but in no task's examples")
+    for problem in found:
+        print(f"PROBLEM: {problem}")
+    ids = ", ".join(sorted(tasks, key=number)) or "none"
+    print(f"--- audit of the plan in {folder}: tasks {ids}; {len(found)} problem(s)")
+    return PROTECTION_FAILED if found else 0
 
 
 def main(argv: list[str]) -> int:
     rest = list(argv)
-    audit_only = rest[:1] == ["--audit"]
-    if audit_only:
-        rest.pop(0)
-        if len(rest) > 1:
-            usage("--audit takes only the path of tasks.md")
-        return audit(Path(rest[0]) if rest else branch_tasks_file())
-    # TASK_ID -- COMMAND, or TASKS_FILE TASK_ID -- COMMAND.
-    if len(rest) >= 3 and rest[1] == "--":
-        path = branch_tasks_file()
-    elif len(rest) >= 4 and rest[2] == "--":
-        path = Path(rest.pop(0))
-    else:
+    if rest[:1] == ["--audit"]:
+        folder, task_id = locate(rest[1:], need_task=False)
+        refuse_finished(folder)
+        return audit_task(folder, task_id) if task_id else audit_plan(folder)
+    if "--" not in rest or not rest[rest.index("--") + 1 :]:
         usage("wrong arguments")
-    if not path.is_file():
-        usage(f"{path} does not exist")
-    refuse_finished(path)
-    task_id, command = rest[0], rest[2:]
-    if not re.fullmatch(r"[A-Z]+\d+", task_id):
-        usage(f"TASK_ID must look like T3 or W2, got '{task_id}'")
+    split = rest.index("--")
+    folder, task_id = locate(rest[:split], need_task=True)
+    command = rest[split + 1 :]
+    refuse_finished(folder)
+    path = task_file(folder, task_id)
+    _, fields = read_task(path)
+    already_done = fields["status"] == "done"
 
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, ValueError) as error:
-        usage(f"cannot read {path}: {error}")
-    lines = text.splitlines(keepends=True)
-    index = find_task(lines, task_id, str(path))
-    pattern = task_pattern(task_id)
-    already_done = pattern.match(lines[index]).group(2) != " "
-
-    block = task_block(lines, index)
-    examples = declared_examples(block)
-    problems = check_protection(path, task_id, examples)
+    examples = fields["examples"]
+    problems = check_protection(folder, task_id, examples)
     for problem in problems:
         print(f"task_done: {problem}")
     if problems:
@@ -469,11 +458,10 @@ def main(argv: list[str]) -> int:
         print(f"--- red commit of {task_id} found; {', '.join(examples)} have tests and they are untouched")
 
     shown = shlex.join(command)
-    declared = declared_verification(block)
-    if not declared or declared not in " ".join(" ".join(command).split()):
+    declared = " ".join(fields["verification"].strip("`").split())
+    if declared not in " ".join(" ".join(command).split()):
         print(
-            f"task_done: warning: {task_id} declares verification '{declared or '(none)'}', "
-            f"but the command run is '{shown}'",
+            f"task_done: warning: {task_id} declares verification '{declared}', but the command run is '{shown}'",
             file=sys.stderr,
         )
 
@@ -494,19 +482,18 @@ def main(argv: list[str]) -> int:
         print(f"✘ {task_id} NOT marked: the verification failed.")
         return result.returncode
     if already_done:
-        print(f"✔ {task_id} was already marked [x]; verification still green.")
-        return 0
-
-    # Read it again: the person may have edited the file while the verification ran.
-    fresh = path.read_text(encoding="utf-8").splitlines(keepends=True)
-    i = find_task(fresh, task_id, str(path))
-    fresh[i] = pattern.sub(r"\1[x]\3", fresh[i], count=1)
-    ticked = "".join(fresh)
-    finished = set_done(ticked)
-    path.write_text(finished, encoding="utf-8")
-    print(f"✔ {task_id} marked [x] in {path}.")
-    if finished != ticked:
-        print(f"✔ every task is ticked: status: done in {path}.")
+        print(f"✔ {task_id} was already done; verification still green.")
+    else:
+        # Read it again: the person may have edited the file while the verification ran.
+        text, _ = read_task(path)
+        path.write_text(set_status(text, "done"), encoding="utf-8")
+        print(f"✔ {task_id} marked status: done in {path}.")
+    readme = folder / "README.md"
+    if readme.is_file() and all_done(folder):
+        text = readme.read_text(encoding="utf-8")
+        if (finished := set_status(text, "done")) != text:
+            readme.write_text(finished, encoding="utf-8")
+            print(f"✔ every task of the change is done: status: done in {readme}.")
     return 0
 
 

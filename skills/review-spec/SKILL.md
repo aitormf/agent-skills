@@ -11,7 +11,7 @@ To review with a clean context, delegate to the `spec-reviewer` subagent, which 
 
 ## Artifacts and status
 
-- Each change lives in `docs/changes/<branch>/`, named after the last segment of the branch name (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/`), next to its `tasks.md`.
+- Each change lives in `docs/changes/<change>/`; its spec, plan and tasks go on the plan branch `<change>/plan` (the change is the second-to-last segment of the branch name: `feat/42-cancel-trip/plan` → `docs/changes/42-cancel-trip/`), next to its `README.md` and `tasks/`.
 - `spec.md` and `plan.md` carry `status: draft | approved | obsolete` in their frontmatter. **Only a person sets `approved`. You never change `status`.**
 
 ## What to review
@@ -19,7 +19,7 @@ To review with a clean context, delegate to the `spec-reviewer` subagent, which 
 Identify the work item (ask if it is not clear) and what is to be reviewed:
 
 - **Spec** (`spec.md`).
-- **Plan** (`spec.md` + `plan.md`, and `tasks.md` if it exists).
+- **Plan** (`spec.md` + `plan.md`, and the task files in `tasks/` if they exist).
 
 Also read, if they exist:
 

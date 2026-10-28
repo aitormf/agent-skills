@@ -22,7 +22,7 @@ Three types:
 - **rule:** a business rule and its edge ("full refund when cancelling more than 1 h ahead; exactly 1 h counts as late").
 - **discarded:** "we tried X and it did not work, because Y". The type that saves the most work later.
 
-Not recorded: assumptions with a clear default (they stay in `tasks.md`, the spec or the plan), naming and layout details, anything the code or a test already makes obvious, and decisions that only matter until the current work item is closed. Most trivial tasks and bug fixes leave no record. If in doubt, propose it and let the person drop it.
+Not recorded: assumptions with a clear default (they stay in the change's `README.md`, the spec or the plan), naming and layout details, anything the code or a test already makes obvious, and decisions that only matter until the current work item is closed. Most trivial tasks and bug fixes leave no record. If in doubt, propose it and let the person drop it.
 
 ## Process
 

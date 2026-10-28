@@ -11,7 +11,7 @@ Help the person decide on the findings and apply only what they have seen and no
 
 ## Artifacts and status
 
-- Each change lives in `docs/changes/<branch>/`, named after the last segment of the branch name (`feat/42-cancel-trip` → `docs/changes/42-cancel-trip/`), next to its `tasks.md`.
+- Each change lives in `docs/changes/<change>/`; its spec, plan and tasks go on the plan branch `<change>/plan` (the change is the second-to-last segment of the branch name: `feat/42-cancel-trip/plan` → `docs/changes/42-cancel-trip/`), next to its `README.md` and `tasks/`.
 - `spec.md` and `plan.md` carry `status: draft | approved | obsolete` in their frontmatter. Only a person sets `approved`.
 - If you change an artifact that was `approved`, set it back to `draft` and say so.
 

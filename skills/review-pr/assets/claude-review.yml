@@ -17,7 +17,7 @@
 # The review job reads only the diff and committed files: no GitHub token, no `gh` (issues, PR
 # comments and the PR body can be written by anyone else). It reviews the head branch against the
 # base branch with git, so the PR description is not checked here; the commit messages stand in for it.
-# The task comes from the branch's docs/changes/<branch>/ folder, committed like the code.
+# The task comes from the branch name, <change>/T<n> or <change>/plan: docs/changes/<change>/, committed like the code.
 
 name: claude-review
 
@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 0                                   # base branch needed for the diff
           persist-credentials: false                       # no token left in .git/config for the agent
 
-      # A local branch with the head's name (the change folder is docs/changes/<its last segment>/)
+      # A local branch with the head's name (<change>/T<n>: the change folder and the task task-done --audit reads)
       # and origin/HEAD on the PR's base (the base task-done --audit compares against).
       - name: Name the head and the base
         env:

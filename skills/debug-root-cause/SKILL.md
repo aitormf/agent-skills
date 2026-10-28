@@ -40,7 +40,7 @@ Follow the phases in order. Do not move on until the current one is done.
 
 - **Three failed fixes:** stop. Each fix revealing a new problem somewhere else usually means a design problem, not a bug. Explain what you tried and what you learned, and ask the person before trying a fourth.
 - **The bug comes from the spec:** if the behaviour follows the spec of a change in `docs/changes/` but the spec is wrong or incomplete, the spec gets fixed first. Say so; do not change behaviour against an approved spec on your own.
-- **The fix is large:** if the root cause needs a change beyond a few files, propose following the "complex bug" path of SDD (`spec.md` + `tasks.md`) instead of fixing it on the spot.
+- **The fix is large:** if the root cause needs a change beyond a few files, propose following the "complex bug" path of SDD (`spec.md` + `tasks/`) instead of fixing it on the spot.
 - **The cause is outside the repository** (a dependency, the platform, an external service): document what you found, propose a workaround if there is one, and leave the decision to the person.
 
 ## Never

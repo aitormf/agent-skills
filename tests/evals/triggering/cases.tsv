@@ -16,7 +16,8 @@ spec-to-plan	la spec de cancelaciones está aprobada, haz el plan técnico
 spec-to-plan	¿cómo implementarías la spec de docs/changes/cancelaciones/spec.md? diseña la solución
 plan-to-tasks	parte el plan de cancelaciones en tareas
 plan-to-tasks	el plan está aprobado, prepáralo para implementar
-task-done	marca la T3 de docs/changes/cancelaciones/tasks.md como hecha
+task-done	marca la T3 de docs/changes/cancelaciones/tasks/T3-reembolso.md como hecha
+task-done	enséñame el tablero de tareas de cancelaciones: cuáles están listas y cuáles bloqueadas
 task-done	la T2 ya pasa su test, márcala como hecha
 sdd-next	¿en qué punto está el trabajo de cancelaciones?
 sdd-next	¿qué cambios hay abiertos en docs/changes?

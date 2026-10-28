@@ -8,7 +8,7 @@ Borra las secciones que no apliquen; no dejes casillas marcadas sin haberlas com
 
 <!-- 2-5 frases. El "por qué" importa más que el "qué": el diff ya muestra el qué. -->
 
-Closes #<issue> · Cambio: `docs/changes/<rama>/` · Decisión: `docs/decisions/<NNNN>-<titulo>.md`
+Closes #<issue> (última tarea; si no, Refs #<issue>) · Cambio: `docs/changes/<cambio>/` · Tarea: `T<n>` · Decisión: `docs/decisions/<NNNN>-<titulo>.md`
 
 ## Tipo de cambio
 
