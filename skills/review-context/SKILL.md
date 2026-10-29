@@ -18,7 +18,7 @@ There is no separate review config file. Everything repo-specific comes from the
 Look for two things, in whatever form the repo wrote them:
 
 - **Verification commands** — usually under a "Commands" / "Comandos" (or similar) heading: tests, lint, type check, format check, build. They may be a single aggregate command (`make check`, `npm run verify`, `./scripts/ci.sh`) or one line per tool, a table, or prose. Do not require a fixed format.
-- **A `Code review` section** (optional). It may define: base branch, output language, high-risk paths, things to always flag, things to ignore, conventions the linters do not cover, whether to run Semgrep, and how many Optional / Nit findings to keep (`Max Optional`, `Max Nits`). Apply what it says. Its instructions override the defaults below, but never the safety rules in §2.
+- **A `Code review` section** (optional). It may define: base branch, output language, high-risk paths, things to always flag, things to ignore, conventions the linters do not cover, known non-issues (findings that are not problems in this repo, each with its reason), whether to run Semgrep, and how many Optional / Nit findings to keep (`Max Optional`, `Max Nits`). Apply what it says. Its instructions override the defaults below, but never the safety rules in §2.
 
 Defaults when the section is missing: base branch = the remote default branch (`git symbolic-ref refs/remotes/origin/HEAD`, else `main`, else `master`); output language = **English**; Max Optional = **3**; Max Nits = **3** (`0` hides that section's findings); high-risk paths = anything matching auth, login, session, token, permission, role, payment, billing, invoice, checkout, migration, schema, crypto, secret, webhook, admin.
 
@@ -29,11 +29,19 @@ Defaults when the section is missing: base branch = the remote default branch (`
 3. Run them from the repo root. If a command takes very long or hangs, stop it and say so.
 4. **If AGENTS.md lists no verification commands, do not guess or auto-detect them.** Write "No verification commands found in AGENTS.md — nothing was run" under Verification and continue with the review. Do not ask the user.
 5. Use the results as evidence: a test that fails because of the diff is a finding (usually Critical); a pre-existing failure unrelated to the diff is mentioned under Verification, not as a finding.
-6. **Semgrep (optional)**: unless the `Code review` section disables it, if the `semgrep` CLI is on PATH run `semgrep scan --config p/default --metrics=off --quiet <changed files>` (not `--config auto`: it refuses to run with metrics off); else, if Semgrep MCP tools are available in this session, use them on the changed files; else write "Semgrep not available — skipped". Treat Semgrep results as candidate findings: they still go through the precision rules (`review-report` §1) and the verifier.
+6. **Semgrep (optional), only on the lines the diff adds**: findings on the rest of a changed file are debt that was already there, not the author's. Unless the `Code review` section disables it, run from the repo root, with this skill's directory as `<review-context-dir>`:
+
+   ```bash
+   python3 <review-context-dir>/scripts/semgrep_added.py <base>
+   ```
+
+   It runs `semgrep scan --config p/default` on the changed files and prints only the findings on added lines, plus how many it left out. Exit 2: Semgrep is not on PATH or failed; then, if Semgrep MCP tools are available in this session, use them on the changed files and keep only the findings on lines the diff adds (`git diff --unified=0 <base>...HEAD`); else write "Semgrep not available — skipped". Treat Semgrep results as candidate findings: they still go through the precision rules (`review-report` §1) and the verifier. Under Verification, quote the script's last line (how many were on added lines and how many were left out).
 
 ## 3. What to pass to the personas
 
 Every persona spawned by a review skill receives, verbatim: the `Code review` section of AGENTS.md (if any) and the effective limits (`Max Optional`, `Max Nits`, defaults applied), so they can apply `review-report` §1 without reading this skill.
+
+The `finding-verifier` also receives the `Known non-issues` of that section, verbatim, if there are any.
 
 ## 4. The change folder, if the branch has one
 

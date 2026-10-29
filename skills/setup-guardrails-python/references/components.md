@@ -6,6 +6,7 @@ Summary to decide what to include. The full explanation is in `docs/arnes/` of t
 |---|---|---|---|
 | `scripts/check.sh` | `files/scripts/check.sh` | "Done" meaning different things to the person, the agent and CI | Always. It is the contract with the other skills |
 | ruff (`S`, `PLE`) | `snippets/pyproject.toml` | Typical insecure code (`shell=True`, SQL built from strings, `verify=False`), bidirectional Unicode | Always. Replaces bandit |
+| ruff (`C90`, `PLR0912`, `PLR0915`) | `snippets/pyproject.toml` | Functions the agent keeps growing until nobody can review them (complexity, branches, statements) | Always. Brownfield: `--add-noqa` marks the existing ones. Replaces SonarQube's complexity checks |
 | mypy `--strict` | `snippets/pyproject.toml` | Type errors the agent does not see | Always. Brownfield with a ratchet |
 | pytest + coverage | `snippets/pyproject.toml` | The agent accepting untested code | Always. Brownfield: threshold = current coverage |
 | uv cooldown | `snippets/pyproject.toml` (`[tool.uv]`) | Freshly published malicious versions | Always, before the first `uv add` |

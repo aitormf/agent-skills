@@ -67,7 +67,7 @@ Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool l
 
 ## Step 4 — Verify findings (one subagent)
 
-If the reviewer reported zero findings, skip this step. Otherwise spawn **one** subagent `finding-verifier` (`harness:finding-verifier` as a plugin) with: the base ref and diff command, the verification results, and **all** findings verbatim (Optional and Nits included — it verifies and ranks them). Do not filter or rephrase them first.
+If the reviewer reported zero findings, skip this step. Otherwise spawn **one** subagent `finding-verifier` (`harness:finding-verifier` as a plugin) with: the base ref and diff command, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3), and **all** findings verbatim (Optional and Nits included — it verifies and ranks them). Do not filter or rephrase them first.
 
 Keep only `CONFIRMED` and `UNCERTAIN` findings, with the verifier's final severity. Label uncertain ones `(unverified)` in their title. Debug leftovers stay Required (`review-report` §1) — tell the verifier so. Record refuted ones (ID + one-line reason) for the Verification section.
 

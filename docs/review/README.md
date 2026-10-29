@@ -59,6 +59,7 @@ Plantilla comentada: [`skills/review-context/assets/AGENTS-code-review.md`](../.
 | Idioma del texto libre (`Output language`) | Inglés. Títulos, etiquetas y veredictos van siempre en inglés |
 | Rutas de alto riesgo (fuerzan el tier 2 en `review-pr`) | Rutas que contengan auth, session, token, payment, billing, migration, secret, webhook, admin… |
 | Marcar siempre / ignorar / convenciones que no cubre el linter | — |
+| Falsos positivos conocidos (`Known non-issues`), cada uno con su motivo | — |
 | Semgrep | Se usa si está disponible |
 | `Max Optional` / `Max Nits` | 3 / 3 (`0` los oculta) |
 
@@ -66,8 +67,9 @@ Plantilla comentada: [`skills/review-context/assets/AGENTS-code-review.md`](../.
 
 ### Semgrep (opcional)
 
-- Si el CLI `semgrep` está en el PATH, se ejecuta sobre los ficheros cambiados con `--config p/default --metrics=off`.
-- Si no, pero la sesión tiene las herramientas MCP de Semgrep, usa esas.
+- Si el CLI `semgrep` está en el PATH, `review-context/scripts/semgrep_added.py` lo ejecuta sobre los ficheros cambiados con `--config p/default --metrics=off`.
+- **Solo cuentan los hallazgos en líneas que añade el diff.** Los del resto de un fichero cambiado son deuda que ya estaba, no del autor. En Verification se dice cuántos se dejaron fuera.
+- Si no, pero la sesión tiene las herramientas MCP de Semgrep, usa esas, con el mismo filtro.
 - Si no hay ninguna de las dos, se salta y lo dice.
 - Pon `Semgrep: no` si tu comando de verificación o tu CI ya lo ejecutan. Con `setup-guardrails-python`, lo ejecuta `security.yml`.
 
@@ -112,6 +114,8 @@ Ante la duda entre dos tiers, se elige el más alto.
 ### `finding-verifier`
 
 Parte de que **cada hallazgo es un falso positivo** e intenta refutarlo leyendo el código real: llamadas, guardas, tipos, config y tests. Solo sobrevive lo que tiene evidencia: fichero:línea, por qué falla y un escenario alcanzable. Cada hallazgo sale como `CONFIRMED`, `REFUTED` (con su motivo) o `UNCERTAIN`. También ordena los Optional y Nits confirmados por impacto y coste, para que el límite se quede con los más útiles.
+
+**Falsos positivos conocidos:** recibe la lista `Known non-issues` de la sección `Code review` y refuta los hallazgos que estén en ella, siempre que el motivo siga siendo cierto después del diff. Si el diff rompe el motivo (por ejemplo, el script de desarrollo ahora recibe entrada del usuario), verifica el hallazgo como cualquier otro y avisa de que esa entrada ya no vale.
 
 **Excepción:** los hallazgos de seguridad, auth, secretos, pagos o integridad de datos solo se pueden refutar con evidencia comprobada. No valen suposiciones como "seguramente se valida en otro sitio". Si no se puede comprobar, quedan visibles como `(unverified)`.
 
@@ -161,6 +165,10 @@ cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 - **Solo bloquea si hay al menos un Critical confirmado.** Los Required se muestran pero no bloquean.
 - **Si falla la propia herramienta, el push sale (fail-open):** falta el CLI `claude`, hay un error o un timeout, o la salida no tiene la línea `REVIEW_RESULT`. Con `REVIEW_KIT_FAIL_CLOSED=1` se bloquea en esos casos.
 - El informe se imprime y se guarda en `.git/review-kit/last-prepush.md`.
+- **No repite la review de un diff ya revisado** (#7). Guarda el veredicto en `.git/review-kit/verdicts`, junto al sha256 de `git diff <base>...HEAD`, la base y la fecha. Si vuelves a hacer push del mismo diff (un reintento tras un error de red, otro remoto), lo reutiliza: bloquea si era un bloqueo, cuyo informe queda en `.git/review-kit/<hash>.md`, y deja pasar si no. Cualquier cambio en el diff lo invalida.
+  - La base es `REVIEW_KIT_BASE` o, si no, `origin/HEAD`, `origin/main`, `origin/master`, `main` o `master`. Sin base no se guarda nada.
+  - Si la review falla, no se guarda ningún veredicto.
+  - Para revisar de nuevo el mismo diff: `REVIEW_KIT_RERUN=1 git push`.
 - Para saltarlo: `SKIP_CLAUDE_REVIEW=1 git push` o `git push --no-verify`.
 - Otras variables: `REVIEW_KIT_TIMEOUT` (900 s por defecto), `REVIEW_KIT_MODEL`, `REVIEW_KIT_COMMAND` y `REVIEW_KIT_ALLOWED_TOOLS`.
 

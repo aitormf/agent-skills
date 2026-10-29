@@ -15,6 +15,14 @@
 #   REVIEW_KIT_FAIL_CLOSED=1    block the push when the review itself fails
 #   REVIEW_KIT_ALLOWED_TOOLS    override --allowedTools (see README "Permisos en modo headless")
 #   REVIEW_KIT_MODEL            pass --model to claude (e.g. a faster model for pre-push)
+#   REVIEW_KIT_BASE=...         base branch for the verdict cache (default: origin/HEAD, origin/main,
+#                               origin/master, main or master)
+#   REVIEW_KIT_RERUN=1          ignore a saved verdict and review again
+#
+# Verdict cache: the result is saved in .git/review-kit/verdicts with the sha256 of
+# `git diff <base>...HEAD`. A later push of the same diff (a retry after a network error,
+# another remote) reuses it instead of paying for the review again; any change to the
+# diff invalidates it. Without a base branch nothing is cached.
 
 set -u
 
@@ -64,6 +72,43 @@ denied="Edit,Write,NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(git res
 out_dir="$(git rev-parse --git-dir)/review-kit"
 mkdir -p "$out_dir"
 report="$out_dir/last-prepush.md"
+verdicts="$out_dir/verdicts"
+
+# The diff the review sees (review-prepush compares <base>...HEAD), hashed.
+base="${REVIEW_KIT_BASE:-}"
+if [ -z "$base" ]; then
+  base=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)
+  for b in origin/main origin/master main master; do
+    [ -n "$base" ] && break
+    git rev-parse -q --verify "$b^{commit}" >/dev/null 2>&1 && base=$b
+  done
+fi
+key=""
+if [ -n "$base" ] && git merge-base "$base" HEAD >/dev/null 2>&1; then   # no common history: no diff to key on
+  for h in sha256sum "shasum -a 256"; do
+    command -v "${h%% *}" >/dev/null 2>&1 || continue
+    key=$(git diff --binary "$base...HEAD" 2>/dev/null | $h | cut -d' ' -f1) && break
+  done
+fi
+
+if [ -n "$key" ] && [ "${REVIEW_KIT_RERUN:-0}" != "1" ] && [ -f "$verdicts" ]; then
+  saved=$(grep "^$key " "$verdicts" | tail -n 1)
+  case "$saved" in
+    *" BLOCK "*)
+      echo "review-kit: ✋ push blocked — this diff was already reviewed with confirmed Critical findings (${saved#* BLOCK })." >&2
+      echo "review-kit: report: $out_dir/$key.md. Change the diff, set REVIEW_KIT_RERUN=1 to review again, or 'git push --no-verify'." >&2
+      exit 1 ;;
+    *" PASS "*)
+      echo "review-kit: ✅ this diff was already reviewed with no confirmed Critical findings (${saved#* PASS }); REVIEW_KIT_RERUN=1 to review again." >&2
+      exit 0 ;;
+  esac
+fi
+remember() {  # remember PASS|BLOCK: the verdict for this diff, with its base and date, and its report
+  [ -n "$key" ] || return 0
+  echo "$key $1 $base $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$verdicts"
+  [ "$1" = BLOCK ] && cp "$report" "$out_dir/$key.md"
+  return 0
+}
 
 echo "review-kit: running $cmd (Ctrl+C or SKIP_CLAUDE_REVIEW=1 to skip)…" >&2
 
@@ -95,10 +140,12 @@ result=$(grep -E '^REVIEW_RESULT:' "$report" | tail -n 1)
 
 case "$result" in
   *"REVIEW_RESULT: BLOCK"*)
+    remember BLOCK
     echo "review-kit: ✋ push blocked — confirmed Critical findings." >&2
     echo "review-kit: fix them, or force with 'git push --no-verify' if you know what you are doing." >&2
     exit 1 ;;
   *"REVIEW_RESULT: PASS"*)
+    remember PASS
     echo "review-kit: ✅ no confirmed Critical findings ($result)." >&2
     exit 0 ;;
   *)

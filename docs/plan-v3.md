@@ -1,6 +1,6 @@
 # Plan de la v3
 
-Fecha: 2026-10-28. Estado: **aprobado** (PR #25). Fase 1 hecha, versión 0.6.0 ([D-0040](decisions/0040-review-de-pr-en-linea.md)). Fase 2 hecha, versión 0.7.0 ([D-0041](decisions/0041-restricciones-de-agentes-para-rulesync.md)), probada de punta a punta (§3.5).
+Fecha: 2026-10-28. Estado: **aprobado** (PR #25). Fase 1 hecha, versión 0.6.0 ([D-0040](decisions/0040-review-de-pr-en-linea.md)). Fase 2 hecha, versión 0.7.0 ([D-0041](decisions/0041-restricciones-de-agentes-para-rulesync.md)), probada de punta a punta (§3.5). Fase 3 hecha, versión 0.8.0 ([D-0042](decisions/0042-veredicto-del-pre-push-ligado-al-diff.md), [D-0043](decisions/0043-semgrep-solo-en-lineas-anadidas.md)).
 
 Sale de usar la v2 (versión 0.5.0) y de repasar el [plan de mejoras](plan-de-mejoras.md). Tres mejoras pedidas y unas cuantas pequeñas que siguen pendientes.
 
@@ -111,5 +111,14 @@ Del [plan de mejoras](plan-de-mejoras.md), lo que sigue siendo útil:
 4. Semgrep solo en las líneas añadidas (idea 18).
 5. Reglas de complejidad de ruff en `setup-guardrails-python` (idea 20).
 6. Tabla de qué se garantiza en cada herramienta (idea 7).
+
+Hecho (2026-10-29):
+
+1. `check.sh` limita las descripciones a 1.024 caracteres y cada `SKILL.md` o agente a 12.500 (22.000 los copiados de addyosmani, que no crecen). Subir un tope es una decisión explícita en el propio `check.sh`.
+2. El hook pre-push guarda el veredicto con el sha256 del diff y lo reutiliza; `REVIEW_KIT_RERUN=1` repite la review (D-0042).
+3. `Known non-issues` en la sección `Code review` de AGENTS.md, cada uno con su motivo. Llega al `finding-verifier`, que los refuta mientras el motivo siga siendo cierto.
+4. `review-context/scripts/semgrep_added.py`: Semgrep solo cuenta los hallazgos en líneas añadidas (D-0043).
+5. `C90`, `PLR0912` y `PLR0915` en el `pyproject.toml` de `setup-guardrails-python`, probados con ruff.
+6. La tabla está en el README, «Qué se garantiza en cada herramienta».
 
 Al aprobarse este plan, `plan-de-mejoras.md` pasó a ser histórico, con una nota que remite aquí, y #2 se cerró (cubierto por la fase 5 de la v2).
