@@ -53,11 +53,28 @@ Hay dos cosas distintas:
 |---|---|---|---|
 | Claude Code | Lo usa (aprobación previa) | `tools:` en el agente | rulesync **quita** `tools` y `skills` si van arriba; los **conserva** dentro de un bloque `claudecode:` (probado) |
 | Codex | No lo usa: los permisos son de la sesión (sandbox y política de aprobación) | Hoy ninguna: `build-agents.py` asume que el agente hereda el sandbox de la sesión | rulesync escribe `sandbox_mode` en el `.toml` del agente si va en un bloque `codexcli:` (probado). Falta comprobar si Codex lo respeta por agente |
-| OpenCode | No lo usa: los permisos son del agente | `permission:` en el agente (edit, bash, webfetch) | rulesync traduce un bloque `opencode:` a una lista `permissions:` con otro esquema que nuestro adaptador (probado). Falta comprobar qué esquema lee la versión actual |
+| OpenCode | No lo usa: los permisos son del agente | `permission:` en el agente (edit, bash, webfetch, task) | rulesync traduce un bloque `opencode:` a la lista `permissions:`, que es el formato propio de OpenCode 2. Los dos restringen en OpenCode 2.2.0 (probado, §3.3) |
 
 Conclusión: la pérdida de `allowed-tools` solo existe en Claude Code y es fricción. En Codex y OpenCode ya no se usa hoy, con o sin atril. Lo que importa son las restricciones de los agentes, y rulesync las conserva si cada agente las declara en el bloque de cada herramienta.
 
-### 3.3 Qué cambia en el kit
+### 3.3 Prueba de OpenCode (2026-10-28)
+
+Con OpenCode 2.2.0 y `opencode run --auto` (aprueba todo lo que no está denegado), un agente al que se pide escribir un fichero y ejecutar `touch`:
+
+| Agente | Escribir | Shell |
+|---|---|---|
+| Sin restricciones | sí | sí |
+| `permission:` (v1, nuestro adaptador) | no | no |
+| `permissions:` (v2, el de rulesync) | no | no |
+| v1 con `kind` y `uses` de atril | no | no |
+| v1 con un campo de v2 (`disabled: false`) | **sí** | **sí** |
+
+- OpenCode 2 lee el formato v1 con su capa de compatibilidad, e ignora las claves que no conoce. El adaptador sigue en v1, que también entiende OpenCode 1.
+- **Mezclar** `permission:` con un campo de v2 (`permissions`, `request`, `system`, `disabled`) hace que OpenCode ignore `permission:` sin avisar. `check.sh` lo prohíbe en los adaptadores.
+- **Agujero encontrado:** el adaptador no denegaba `task`, y `code-reviewer` creó un fichero delegando en el subagente `general`, que no tiene restricciones. Ahora `task` solo se permite a un agente con `Agent` en `tools:`, y `check.sh` lo comprueba.
+- `bash: ask` se aprueba solo con `--auto`: igual que en Claude Code sin nadie delante, la barrera es la lista de lo denegado, no un sandbox (`docs/review/README.md`).
+
+### 3.4 Qué cambia en el kit
 
 1. `kind: skill` o `kind: agent` en todo el frontmatter.
 2. `uses` y `delegates` donde hay dependencia real (las reviews, `implement`, `idea-to-change`, el SDD).

@@ -6,6 +6,7 @@ permission:
   bash: deny
   webfetch: deny
   skill: allow
+  task: deny
 ---
 <!-- Generado por scripts/build-agents.py desde agents/spec-reviewer.md. No editar a mano. -->
 

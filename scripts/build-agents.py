@@ -63,6 +63,8 @@ def opencode(fm: dict[str, str], body: str, src: str) -> str:
     t = tools(fm)
     edit = "allow" if t & {"Write", "Edit"} else "deny"
     bash = "ask" if "Bash" in t else "deny"
+    # Sin `Agent` en tools, ningún subagente: si no, delegaría en `general`, que puede escribir (probado en OpenCode 2.2.0).
+    task = "allow" if "Agent" in t else "deny"
     return (
         "---\n"
         f"description: {json.dumps(fm['description'], ensure_ascii=False)}\n"
@@ -72,6 +74,7 @@ def opencode(fm: dict[str, str], body: str, src: str) -> str:
         f"  bash: {bash}\n"
         "  webfetch: deny\n"
         "  skill: allow\n"
+        f"  task: {task}\n"
         "---\n"
         f"<!-- {HEADER.format(src=src)} -->\n\n"
         f"{body}"

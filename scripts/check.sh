@@ -8,6 +8,24 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 echo "▶ agentes generados al día"
 scripts/build-agents.py --check
 
+echo "▶ agentes de OpenCode: sin subagentes salvo con Agent, y sin mezclar el formato v1 con campos de v2"
+python3 - <<'EOF'
+import re, sys
+from pathlib import Path
+V2 = ("permissions", "request", "system", "disabled")  # con uno de estos, OpenCode 2 ignora `permission:` (probado en 2.2.0)
+bad = []
+for src in sorted(Path("agents").glob("*.md")):
+    tools = re.search(r"^tools:(.*)$", src.read_text(encoding="utf-8"), re.M).group(1)
+    fm = Path("adapters/opencode/agents", src.name).read_text(encoding="utf-8").split("\n---\n", 1)[0]
+    want = "allow" if "Agent" in {t.strip() for t in tools.split(",")} else "deny"
+    if f"\n  task: {want}\n" not in fm + "\n":
+        bad.append(f"{src.name}: el adaptador de OpenCode debe tener 'task: {want}' (un subagente puede delegar en general, que escribe)")
+    bad += [f"{src.name}: el adaptador de OpenCode mezcla 'permission:' con '{k}:'" for k in V2 if re.search(rf"^{k}:", fm, re.M)]
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF
+
 echo "▶ frontmatter de skills y agentes"
 python3 - <<'EOF'
 import re, sys
