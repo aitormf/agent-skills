@@ -67,8 +67,9 @@ Plantilla comentada: [`skills/review-context/assets/AGENTS-code-review.md`](../.
 
 ### Semgrep (opcional)
 
-- Si el CLI `semgrep` está en el PATH, se ejecuta sobre los ficheros cambiados con `--config p/default --metrics=off`.
-- Si no, pero la sesión tiene las herramientas MCP de Semgrep, usa esas.
+- Si el CLI `semgrep` está en el PATH, `review-context/scripts/semgrep_added.py` lo ejecuta sobre los ficheros cambiados con `--config p/default --metrics=off`.
+- **Solo cuentan los hallazgos en líneas que añade el diff.** Los del resto de un fichero cambiado son deuda que ya estaba, no del autor. En Verification se dice cuántos se dejaron fuera.
+- Si no, pero la sesión tiene las herramientas MCP de Semgrep, usa esas, con el mismo filtro.
 - Si no hay ninguna de las dos, se salta y lo dice.
 - Pon `Semgrep: no` si tu comando de verificación o tu CI ya lo ejecutan. Con `setup-guardrails-python`, lo ejecuta `security.yml`.
 

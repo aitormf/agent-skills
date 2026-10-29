@@ -29,7 +29,13 @@ Defaults when the section is missing: base branch = the remote default branch (`
 3. Run them from the repo root. If a command takes very long or hangs, stop it and say so.
 4. **If AGENTS.md lists no verification commands, do not guess or auto-detect them.** Write "No verification commands found in AGENTS.md — nothing was run" under Verification and continue with the review. Do not ask the user.
 5. Use the results as evidence: a test that fails because of the diff is a finding (usually Critical); a pre-existing failure unrelated to the diff is mentioned under Verification, not as a finding.
-6. **Semgrep (optional)**: unless the `Code review` section disables it, if the `semgrep` CLI is on PATH run `semgrep scan --config p/default --metrics=off --quiet <changed files>` (not `--config auto`: it refuses to run with metrics off); else, if Semgrep MCP tools are available in this session, use them on the changed files; else write "Semgrep not available — skipped". Treat Semgrep results as candidate findings: they still go through the precision rules (`review-report` §1) and the verifier.
+6. **Semgrep (optional), only on the lines the diff adds**: findings on the rest of a changed file are debt that was already there, not the author's. Unless the `Code review` section disables it, run from the repo root, with this skill's directory as `<review-context-dir>`:
+
+   ```bash
+   python3 <review-context-dir>/scripts/semgrep_added.py <base>
+   ```
+
+   It runs `semgrep scan --config p/default` on the changed files and prints only the findings on added lines, plus how many it left out. Exit 2: Semgrep is not on PATH or failed; then, if Semgrep MCP tools are available in this session, use them on the changed files and keep only the findings on lines the diff adds (`git diff --unified=0 <base>...HEAD`); else write "Semgrep not available — skipped". Treat Semgrep results as candidate findings: they still go through the precision rules (`review-report` §1) and the verifier. Under Verification, quote the script's last line (how many were on added lines and how many were left out).
 
 ## 3. What to pass to the personas
 

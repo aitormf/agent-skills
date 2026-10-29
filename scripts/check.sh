@@ -394,6 +394,29 @@ push fail;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a changed diff did not run
 push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a failed review was saved as a verdict"
 push PASS REVIEW_KIT_BASE=nope; push PASS REVIEW_KIT_BASE=nope; [ "$calls" = 1 ] || vfail "a push without a base branch reused a verdict"
 
+echo "▶ review: Semgrep only reports findings on the lines the diff adds"
+s="$tmp/semgrep"; mkdir -p "$s/bin"; git -C "$s" init -q -b main
+gs() { git -C "$s" -c user.name=t -c user.email=t@t "$@"; }
+printf 'a\nb\nc\nd\n' > "$s/old.py"; printf 'x\n' > "$s/gone.py"; gs add .; gs commit -qm base; gs checkout -qb feat
+printf 'a\nB\nc\nd\nE\n' > "$s/old.py"; printf 'n\nm\n' > "$s/new.py"; gs rm -q gone.py; gs add .; gs commit -qm change
+cat > "$s/bin/semgrep" <<'FAKE'
+#!/usr/bin/env python3
+import json, sys
+print(" ".join(sys.argv[1:]), file=open(sys.argv[0] + ".args", "w"))
+r = lambda path, a, b: {"path": path, "start": {"line": a}, "end": {"line": b}, "check_id": f"rule{a}", "extra": {"severity": "ERROR", "message": "bad\n thing"}}
+print(json.dumps({"results": [r("old.py", 1, 1), r("old.py", 2, 2), r("old.py", 3, 5), r("old.py", 4, 4), r("new.py", 1, 1)]}))
+FAKE
+chmod +x "$s/bin/semgrep"
+sa="$PWD/skills/review-context/scripts/semgrep_added.py"
+(cd "$s" && PATH="$s/bin:$PATH" python3 "$sa" main) > "$s/out" 2>&1 || { cat "$s/out" >&2; echo "semgrep_added.py failed" >&2; exit 1; }
+printf '%s\n' 'old.py:2 ERROR rule2 — bad thing' 'old.py:3 ERROR rule3 — bad thing' 'new.py:1 ERROR rule1 — bad thing' \
+  'Semgrep: 3 finding(s) on added lines; 2 on lines the diff did not touch (not reported)' | diff - "$s/out" >&2 \
+  || { echo "semgrep_added.py did not keep exactly the findings on added lines" >&2; exit 1; }
+grep -q -- '--metrics=off' "$s/bin/semgrep.args" && grep -q 'new.py old.py$' "$s/bin/semgrep.args" \
+  || { echo "semgrep_added.py did not scan exactly the added and changed files" >&2; cat "$s/bin/semgrep.args" >&2; exit 1; }
+(cd "$s" && PATH="/usr/bin:/bin" python3 "$sa" main) >/dev/null 2>&1 && rc=0 || rc=$?
+[ $rc = 2 ] || { echo "semgrep_added.py did not exit 2 without semgrep" >&2; exit 1; }
+
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
 ! grep -Eq '^ +(issues|pull-requests): read' "$wf" || { echo "the review job of claude-review.yml can read issues or PRs" >&2; exit 1; }
