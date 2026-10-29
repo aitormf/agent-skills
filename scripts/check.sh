@@ -44,6 +44,30 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF
 
+echo "▶ tamaño de skills y agentes"
+python3 - <<'EOF'
+# Las descripciones se cargan en cada sesión y los cuerpos en cada uso: lo que crece se paga siempre.
+# Subir un tope es una decisión, no un efecto secundario: se cambia aquí, en la misma PR que lo necesita.
+import re, sys
+from pathlib import Path
+DESCRIPTION = 1024   # máximo de la especificación de Agent Skills; Claude Code y Codex rechazan más
+OWN = 12_500         # caracteres de un SKILL.md o agente propio (el mayor, review-report, ronda los 12.000)
+UPSTREAM = 22_000    # copiados de addyosmani/agent-skills ("Origin:" en la cabecera): su tamaño, sin crecer
+bad = []
+for f in sorted(Path("skills").glob("*/SKILL.md")) + sorted(Path("agents").glob("*.md")):
+    text = f.read_text(encoding="utf-8")
+    fm = text[4:].split("\n---\n", 1)[0]
+    desc = re.search(r"^description:\s*(.*?)(?=^\S|\Z)", fm, re.S | re.M).group(1)
+    if len(" ".join(desc.split())) > DESCRIPTION:
+        bad.append(f"{f}: la descripción tiene {len(' '.join(desc.split()))} caracteres (máximo {DESCRIPTION})")
+    cap = UPSTREAM if "\n  Origin: " in text[:2000] else OWN
+    if len(text) > cap:
+        bad.append(f"{f}: {len(text)} caracteres (máximo {cap}); recorta, o mueve el detalle a references/ y léelo bajo demanda")
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF
+
 echo "▶ atril: kind, nombre y relaciones de skills y agentes"
 python3 - <<'EOF'
 import re, sys
