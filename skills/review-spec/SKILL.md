@@ -1,6 +1,12 @@
 ---
 name: review-spec
 description: Reviews a spec or a plan before implementation, looking for ambiguities, gaps, contradictions, over-engineering and clashes with the principles in ARCHITECTURE.md and the recorded decisions. Writes a recommendation, never approves. Use it when asked to review or audit a spec, a plan or a task list.
+kind: skill
+uses:
+  - skill:sdd-decisions
+related:
+  - agent:spec-reviewer
+  - skill:apply-review
 ---
 
 # Review a spec or plan

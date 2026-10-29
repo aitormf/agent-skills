@@ -1,6 +1,12 @@
 ---
 name: idea-to-spec
 description: Turns an idea into a spec.md (problem, users, user stories, requirements, edge cases and acceptance criteria), asking only the decisions that are the person's and writing it straight to the file as a draft — the SDD level, for big features or delicate rules with real design to decide. Use it when someone asks for a spec, or to write or clarify the requirements of a feature in a spec. For a normal feature or idea with no spec asked for, idea-to-change is the default entry point.
+kind: skill
+uses:
+  - skill:sdd-decisions
+  - skill:record-decision
+related:
+  - skill:spec-to-plan
 ---
 
 # From idea to spec

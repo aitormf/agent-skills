@@ -2,6 +2,9 @@
 name: sdd-decisions
 description: Shared criterion of idea-to-change, of the SDD skills (idea-to-spec, spec-to-plan, plan-to-tasks, review-spec, apply-review) and of record-decision — what is a decision for the person, to be asked, and what is a fix or an assumption with a clear default, to be proposed and written down; and which decisions are recorded in docs/decisions/. Also the question format with a recommended option. Load it whenever one of those skills asks the person something or classifies a review finding.
 user-invocable: false
+kind: skill
+related:
+  - skill:record-decision
 ---
 
 # Decisions for the person

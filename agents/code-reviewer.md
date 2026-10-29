@@ -5,6 +5,24 @@ tools: Read, Grep, Glob, Bash
 skills:
   - code-review-and-quality
   - review-report
+kind: agent
+uses:
+  - skill:code-review-and-quality
+  - skill:review-report
+# Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
+claudecode:
+  tools: Read, Grep, Glob, Bash
+  skills:
+    - code-review-and-quality
+    - review-report
+opencode:
+  mode: subagent
+  permission:
+    edit: deny
+    bash: ask
+    webfetch: deny
+    skill: allow
+    task: deny
 ---
 
 <!--

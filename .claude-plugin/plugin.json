@@ -1,6 +1,6 @@
 {
   "name": "harness",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Arnés para trabajar con agentes de IA: contexto del proyecto, guardrails de Python y Spec-Driven Development (spec, plan, tareas, implementación) con aprobación humana.",
   "author": { "name": "Aitor Martínez", "url": "https://github.com/aitormf" },
   "repository": "https://github.com/aitormf/agent-skills",

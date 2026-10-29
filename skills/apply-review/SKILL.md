@@ -1,6 +1,9 @@
 ---
 name: apply-review
 description: Walks through the findings of a spec or plan review with the person — asks the decisions one by one, applies the fixes in a block the person can see and trim — and applies nothing they have not seen. Then looks for other draft specs affected by the decisions. Use it when there is a review-spec.md or review-plan.md and they want to apply or discard its findings.
+kind: skill
+uses:
+  - skill:sdd-decisions
 ---
 
 # Apply a review

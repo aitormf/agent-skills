@@ -2,6 +2,7 @@
 name: review-report
 description: Output side of every review (review-prepush, review-pr) — precision rules (what is worth reporting), the severity scale and mapping, the per-finding format and the common report format. Load it whenever a review skill (review-prepush, review-pr) or persona (code-reviewer, security-auditor, test-engineer, finding-verifier) produces, verifies or merges review findings.
 user-invocable: false
+kind: skill
 ---
 
 <!-- review-kit (original). Not part of addyosmani/agent-skills. -->

@@ -3,6 +3,21 @@ name: review-pr
 description: Risk-scaled review of a pull request or branch — repo checks from AGENTS.md, parallel fan-out to code-reviewer / security-auditor / test-engineer, adversarial finding-verifier, then one advisory report, checked against the branch's docs/changes/ folder if it has one. Comments only; never approves. Use to review a pull request or a branch before merge.
 argument-hint: "<pr-number | branch> [base-branch] [--full] [--inline]"
 allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*)
+kind: skill
+uses:
+  - skill:review-context
+  - skill:review-report
+  - skill:review-prepush
+  - skill:task-done
+delegates:
+  - agent:code-reviewer
+  - agent:security-auditor
+  - agent:test-engineer
+  - agent:finding-verifier
+# Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
+claudecode:
+  argument-hint: "<pr-number | branch> [base-branch] [--full] [--inline]"
+  allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*)
 ---
 
 <!--

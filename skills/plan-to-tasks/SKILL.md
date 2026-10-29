@@ -1,6 +1,12 @@
 ---
 name: plan-to-tasks
 description: Splits an approved technical plan into small, single-purpose tasks, one file each in docs/changes/<change>/tasks/, with their dependencies, the examples their tests cover and a runnable verification, and opens the plan PR. Use it when there is a plan and someone asks to break it down into tasks or get it ready for implementation.
+kind: skill
+uses:
+  - skill:sdd-decisions
+  - skill:task-done
+related:
+  - agent:implement
 ---
 
 # From plan to tasks

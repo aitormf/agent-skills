@@ -1,6 +1,13 @@
 ---
 name: idea-to-change
 description: Turns an idea for a feature or change (or a GitHub issue) into a change ready to implement, in docs/changes/<change>/ on a plan branch with its own PR — a README with a short note (problem, appetite, out of scope) and an example map (rules, concrete examples, questions), and one file per task in tasks/ (small, single-purpose, with dependencies and the tests they name) — with the decisions drafted as proposed in docs/decisions/. The default entry point for normal work, with a single human stop at the example map. Use it when someone has an idea, feature, improvement or change to build, wants to prepare an issue for implementation, or asks for an example map. For a full spec.md, use idea-to-spec.
+kind: skill
+uses:
+  - skill:sdd-decisions
+  - skill:record-decision
+  - skill:task-done
+related:
+  - agent:implement
 ---
 
 # From idea to change

@@ -1,6 +1,7 @@
 ---
 name: task-done
 description: Runs a task's verification command and sets the task to status done only if the command passes, so no task is done without evidence; when the task lists its examples, it first checks in git that their tests were committed red on the branch and left untouched. Also shows the board of a change (ready, blocked, doing, done tasks). Use it whenever a task in docs/changes/<change>/tasks/ (from idea-to-change or plan-to-tasks) is to be marked as done, or to see where a change stands and which tasks are ready; the implement agent uses it for each task.
+kind: skill
 ---
 
 # Mark a task as done

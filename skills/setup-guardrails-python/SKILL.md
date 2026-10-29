@@ -1,6 +1,7 @@
 ---
 name: setup-guardrails-python
 description: Installs or completes the deterministic guardrails of a Python repository (uv, ruff, mypy, pytest, scripts/check.sh, pre-commit, gitleaks, CI, security workflow, Dependabot, CODEOWNERS and Claude Code permissions/hooks), in new or existing projects. Use it when asked to prepare the harness, set up the guardrails, configure CI or pre-commit, or harden the security of a Python repo.
+kind: skill
 ---
 
 # Guardrails for a Python repository
