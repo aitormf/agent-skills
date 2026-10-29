@@ -4,9 +4,8 @@ description: Reviews a spec or a plan before implementation, looking for ambigui
 kind: skill
 uses:
   - skill:sdd-decisions
-delegates:
-  - agent:spec-reviewer
 related:
+  - agent:spec-reviewer
   - skill:apply-review
 ---
 

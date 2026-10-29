@@ -4,7 +4,7 @@ title: Las restricciones de cada agente van también en un bloque por herramient
 type: architecture
 status: accepted
 date: 2026-10-28
-affects: [agents/, scripts/build-agents.py]
+affects: [agents/, skills/, scripts/build-agents.py]
 supersedes: null
 superseded_by: null
 issue: null
@@ -20,8 +20,9 @@ Con atril, lo que se fija de forma permanente llega a cada herramienta con rules
 
 - `scripts/build-agents.py` escribe al final del frontmatter de cada `agents/*.md` un bloque `claudecode:` (`tools`, `skills`, `model`) y uno `opencode:` (`mode` y el mapa `permission`, el mismo del adaptador), desde los campos de primer nivel. `--check` falla si no están al día.
 - El primer nivel no cambia: es lo que lee Claude Code al cargar el plugin.
+- Lo mismo en las skills con campos que solo lee Claude Code (`allowed-tools`, `argument-hint`…): un bloque `claudecode:` con una copia, que rulesync conserva (probado con rulesync 43.2.0).
 - No hay bloque `codexcli:`: Codex no aplica `sandbox_mode` por agente, y el bloque prometería una restricción que no existe.
-- Cada skill y cada agente declara `kind` y sus relaciones (`uses`, `delegates`, `related`), y un agente lleva en `uses` las skills que precarga.
+- Cada skill y cada agente declara `kind` y sus relaciones (`uses`, `delegates`, `related`), y un agente lleva en `uses` las skills que precarga. Sin ciclos en `uses` y `delegates`: uno solo hace fallar `atril route` para cualquier tarea.
 
 ## Alternativas descartadas
 

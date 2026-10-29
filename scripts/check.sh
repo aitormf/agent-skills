@@ -77,6 +77,16 @@ for (kind, name), f in sorted(items.items()):
     missing = set(fm.get("skills", [])) - {i.partition(":")[2] for i in fm.get("uses", [])}
     if kind == "agent" and missing:
         bad.append(f"{f}: las skills precargadas {sorted(missing)} deben estar en uses, para que atril route las cargue")
+# Un ciclo en uses/delegates hace fallar atril route, graph y enrich para cualquier tarea (probado con atril 1.2.0).
+edges = {k: [tuple(i.split(":", 1)) for r in ("uses", "delegates") for i in front(f).get(r, [])] for k, f in items.items()}
+def cycle(node, path):
+    if node in path:
+        return path[path.index(node):] + [node]
+    return next((c for n in edges.get(node, []) if (c := cycle(n, path + [node]))), None)
+for k in sorted(edges):
+    if c := cycle(k, []):
+        bad.append("ciclo en uses/delegates: " + " -> ".join(":".join(n) for n in c))
+        break
 for b in bad:
     print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)

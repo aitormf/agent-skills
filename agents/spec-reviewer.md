@@ -10,7 +10,7 @@ kind: agent
 uses:
   - skill:review-spec
   - skill:sdd-decisions
-# Bloques para rulesync: los genera scripts/build-agents.py desde tools, skills, model y mode. No editar a mano.
+# Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
 claudecode:
   tools: Read, Grep, Glob, Write
   skills:

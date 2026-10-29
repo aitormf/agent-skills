@@ -6,6 +6,8 @@ La fuente única es agents/*.md. Este script escribe:
   adapters/opencode/agents/<name>.md    -> se copian a .opencode/agents/ del proyecto
   los bloques claudecode: y opencode: al final del frontmatter de agents/*.md, para rulesync (atril sync):
   rulesync quita tools, skills y model si no van en el bloque de cada herramienta.
+  un bloque claudecode: en las skills/*/SKILL.md con campos que solo lee Claude Code (allowed-tools,
+  argument-hint…), que rulesync también quita del primer nivel.
 
 Uso:
   scripts/build-agents.py          regenera los adaptadores
@@ -20,7 +22,12 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "agents"
 OUT = ROOT / "adapters"
 HEADER = "Generado por scripts/build-agents.py desde agents/{src}. No editar a mano."
-BLOCKS = "# Bloques para rulesync: los genera scripts/build-agents.py desde tools, skills, model y mode. No editar a mano."
+BLOCKS = "# Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano."
+
+
+def own_part(fm_text: str) -> str:
+    """El frontmatter escrito a mano: todo lo anterior a los bloques generados."""
+    return fm_text.split("\n# Bloques para rulesync", 1)[0]
 
 
 def parse(path: Path) -> tuple[dict[str, str], str]:
@@ -28,7 +35,7 @@ def parse(path: Path) -> tuple[dict[str, str], str]:
     if not text.startswith("---\n"):
         raise SystemExit(f"{path}: falta el frontmatter")
     fm_text, body = text[4:].split("\n---\n", 1)
-    fm: dict[str, str] = {"_own": fm_text.split(f"\n{BLOCKS}\n", 1)[0]}
+    fm: dict[str, str] = {"_own": own_part(fm_text)}
     key = ""
     for line in fm["_own"].splitlines():
         if line.startswith("  - ") and key:  # lista YAML: se guarda como "a, b"
@@ -99,8 +106,25 @@ def opencode(fm: dict[str, str], body: str, src: str) -> str:
     )
 
 
+CLAUDE_SKILL_KEYS = ("allowed-tools", "disallowed-tools", "argument-hint", "arguments", "when_to_use", "model", "effort", "context", "agent")
+
+
+def skill_source(path: Path) -> str | None:
+    """El SKILL.md con su bloque claudecode: al día, o None si no tiene campos solo de Claude Code."""
+    text = path.read_text(encoding="utf-8")
+    fm_text, body = text[4:].split("\n---\n", 1)
+    own = own_part(fm_text)
+    claude = [line for line in own.splitlines() if line.partition(":")[0] in CLAUDE_SKILL_KEYS]
+    if not claude:
+        return f"---\n{own}\n---\n{body}" if own != fm_text else None  # quita un bloque que ya no hace falta
+    return f"---\n{own}\n{BLOCKS}\nclaudecode:\n" + "".join(f"  {line}\n" for line in claude) + f"---\n{body}"
+
+
 def build() -> dict[Path, str]:
     files = {}
+    for path in sorted((ROOT / "skills").glob("*/SKILL.md")):
+        if (content := skill_source(path)) is not None:
+            files[path] = content
     for path in sorted(SRC.glob("*.md")):
         fm, body = parse(path)
         files[OUT / "codex" / "agents" / f"{fm['name']}.toml"] = codex(fm, body, path.name)

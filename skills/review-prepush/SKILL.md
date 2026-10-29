@@ -11,6 +11,10 @@ uses:
 delegates:
   - agent:code-reviewer
   - agent:finding-verifier
+# Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
+claudecode:
+  argument-hint: "[base-branch]"
+  allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*)
 ---
 
 <!--
