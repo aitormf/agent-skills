@@ -59,6 +59,7 @@ Plantilla comentada: [`skills/review-context/assets/AGENTS-code-review.md`](../.
 | Idioma del texto libre (`Output language`) | Inglés. Títulos, etiquetas y veredictos van siempre en inglés |
 | Rutas de alto riesgo (fuerzan el tier 2 en `review-pr`) | Rutas que contengan auth, session, token, payment, billing, migration, secret, webhook, admin… |
 | Marcar siempre / ignorar / convenciones que no cubre el linter | — |
+| Falsos positivos conocidos (`Known non-issues`), cada uno con su motivo | — |
 | Semgrep | Se usa si está disponible |
 | `Max Optional` / `Max Nits` | 3 / 3 (`0` los oculta) |
 
@@ -112,6 +113,8 @@ Ante la duda entre dos tiers, se elige el más alto.
 ### `finding-verifier`
 
 Parte de que **cada hallazgo es un falso positivo** e intenta refutarlo leyendo el código real: llamadas, guardas, tipos, config y tests. Solo sobrevive lo que tiene evidencia: fichero:línea, por qué falla y un escenario alcanzable. Cada hallazgo sale como `CONFIRMED`, `REFUTED` (con su motivo) o `UNCERTAIN`. También ordena los Optional y Nits confirmados por impacto y coste, para que el límite se quede con los más útiles.
+
+**Falsos positivos conocidos:** recibe la lista `Known non-issues` de la sección `Code review` y refuta los hallazgos que estén en ella, siempre que el motivo siga siendo cierto después del diff. Si el diff rompe el motivo (por ejemplo, el script de desarrollo ahora recibe entrada del usuario), verifica el hallazgo como cualquier otro y avisa de que esa entrada ya no vale.
 
 **Excepción:** los hallazgos de seguridad, auth, secretos, pagos o integridad de datos solo se pueden refutar con evidencia comprobada. No valen suposiciones como "seguramente se valida en otro sitio". Si no se puede comprobar, quedan visibles como `(unverified)`.
 

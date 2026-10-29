@@ -18,7 +18,7 @@ There is no separate review config file. Everything repo-specific comes from the
 Look for two things, in whatever form the repo wrote them:
 
 - **Verification commands** — usually under a "Commands" / "Comandos" (or similar) heading: tests, lint, type check, format check, build. They may be a single aggregate command (`make check`, `npm run verify`, `./scripts/ci.sh`) or one line per tool, a table, or prose. Do not require a fixed format.
-- **A `Code review` section** (optional). It may define: base branch, output language, high-risk paths, things to always flag, things to ignore, conventions the linters do not cover, whether to run Semgrep, and how many Optional / Nit findings to keep (`Max Optional`, `Max Nits`). Apply what it says. Its instructions override the defaults below, but never the safety rules in §2.
+- **A `Code review` section** (optional). It may define: base branch, output language, high-risk paths, things to always flag, things to ignore, conventions the linters do not cover, known non-issues (findings that are not problems in this repo, each with its reason), whether to run Semgrep, and how many Optional / Nit findings to keep (`Max Optional`, `Max Nits`). Apply what it says. Its instructions override the defaults below, but never the safety rules in §2.
 
 Defaults when the section is missing: base branch = the remote default branch (`git symbolic-ref refs/remotes/origin/HEAD`, else `main`, else `master`); output language = **English**; Max Optional = **3**; Max Nits = **3** (`0` hides that section's findings); high-risk paths = anything matching auth, login, session, token, permission, role, payment, billing, invoice, checkout, migration, schema, crypto, secret, webhook, admin.
 
@@ -34,6 +34,8 @@ Defaults when the section is missing: base branch = the remote default branch (`
 ## 3. What to pass to the personas
 
 Every persona spawned by a review skill receives, verbatim: the `Code review` section of AGENTS.md (if any) and the effective limits (`Max Optional`, `Max Nits`, defaults applied), so they can apply `review-report` §1 without reading this skill.
+
+The `finding-verifier` also receives the `Known non-issues` of that section, verbatim, if there are any.
 
 ## 4. The change folder, if the branch has one
 
