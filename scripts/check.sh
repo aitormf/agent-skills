@@ -364,6 +364,36 @@ grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "
 gh_dir=$(sed -n 2p "$tmp/env")
 [ "$(sed -n 1p "$tmp/env")" = "tokens=" ] && [ -n "$gh_dir" ] && [ "$(wc -l < "$tmp/env")" -eq 2 ] && [ ! -e "$gh_dir" ] \
   || { echo "the pre-push hook gives claude GitHub credentials (a token, or a gh config directory that is not empty and temporary)" >&2; cat "$tmp/env" >&2; exit 1; }
+echo "▶ review: the pre-push hook reuses the verdict of a diff it already reviewed (#7)"
+v="$tmp/verdict"; mkdir -p "$v/bin"; git -C "$v" init -q -b main
+gv() { git -C "$v" -c user.name=t -c user.email=t@t "$@"; }
+echo a > "$v/f"; gv add f; gv commit -qm base; gv checkout -qb feat; echo b >> "$v/f"; gv commit -qam change
+cat > "$v/bin/claude" <<'FAKE'
+#!/usr/bin/env bash
+echo run >> "$CLAUDE_CALLS"
+[ "$FAKE_RESULT" = fail ] && exit 1
+echo "REVIEW_RESULT: $FAKE_RESULT critical=0 required=0 uncertain=0"
+FAKE
+chmod +x "$v/bin/claude"
+push() {  # push <PASS|BLOCK|fail> [env…]: runs the hook; sets rc and calls (how many times claude ran)
+  local result=$1; shift; rm -f "$v/calls"
+  (cd "$v" && echo "refs/heads/feat $(git rev-parse HEAD) refs/heads/feat 0000000000000000000000000000000000000000" \
+    | env "$@" FAKE_RESULT="$result" CLAUDE_CALLS="$v/calls" PATH="$v/bin:$PATH" bash "$hook") >"$v/out" 2>&1 && rc=0 || rc=$?
+  calls=$(cat "$v/calls" 2>/dev/null || true); calls=$(printf %s "$calls" | grep -c run || true)
+}
+vfail() { echo "pre-push verdict cache: $1" >&2; cat "$v/out" >&2; exit 1; }
+push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "the first push did not run the review"
+grep -Eq "^[0-9a-f]{64} PASS main [0-9TZ:-]+$" "$v/.git/review-kit/verdicts" || vfail "the verdict was not saved with its hash, base and date"
+push BLOCK; [ $rc = 0 ] && [ "$calls" = 0 ] || vfail "a second push of the same diff ran the review again"
+push BLOCK REVIEW_KIT_RERUN=1; [ $rc = 1 ] && [ "$calls" = 1 ] || vfail "REVIEW_KIT_RERUN=1 did not review again"
+push PASS;  [ $rc = 1 ] && [ "$calls" = 0 ] || vfail "a blocked diff was let through without a review"
+grep -q "report: .*/[0-9a-f]\{64\}\.md" "$v/out" && [ -n "$(find "$v/.git/review-kit" -name '????????????????????????????????????????????????????????????????.md')" ] \
+  || vfail "a reused block does not point to the report of its review"
+echo c >> "$v/f"; gv commit -qam more
+push fail;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a changed diff did not run the review"
+push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a failed review was saved as a verdict"
+push PASS REVIEW_KIT_BASE=nope; push PASS REVIEW_KIT_BASE=nope; [ "$calls" = 1 ] || vfail "a push without a base branch reused a verdict"
+
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
 ! grep -Eq '^ +(issues|pull-requests): read' "$wf" || { echo "the review job of claude-review.yml can read issues or PRs" >&2; exit 1; }

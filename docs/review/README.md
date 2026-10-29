@@ -161,6 +161,10 @@ cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 - **Solo bloquea si hay al menos un Critical confirmado.** Los Required se muestran pero no bloquean.
 - **Si falla la propia herramienta, el push sale (fail-open):** falta el CLI `claude`, hay un error o un timeout, o la salida no tiene la línea `REVIEW_RESULT`. Con `REVIEW_KIT_FAIL_CLOSED=1` se bloquea en esos casos.
 - El informe se imprime y se guarda en `.git/review-kit/last-prepush.md`.
+- **No repite la review de un diff ya revisado** (#7). Guarda el veredicto en `.git/review-kit/verdicts`, junto al sha256 de `git diff <base>...HEAD`, la base y la fecha. Si vuelves a hacer push del mismo diff (un reintento tras un error de red, otro remoto), lo reutiliza: bloquea si era un bloqueo, cuyo informe queda en `.git/review-kit/<hash>.md`, y deja pasar si no. Cualquier cambio en el diff lo invalida.
+  - La base es `REVIEW_KIT_BASE` o, si no, `origin/HEAD`, `origin/main`, `origin/master`, `main` o `master`. Sin base no se guarda nada.
+  - Si la review falla, no se guarda ningún veredicto.
+  - Para revisar de nuevo el mismo diff: `REVIEW_KIT_RERUN=1 git push`.
 - Para saltarlo: `SKIP_CLAUDE_REVIEW=1 git push` o `git push --no-verify`.
 - Otras variables: `REVIEW_KIT_TIMEOUT` (900 s por defecto), `REVIEW_KIT_MODEL`, `REVIEW_KIT_COMMAND` y `REVIEW_KIT_ALLOWED_TOOLS`.
 
