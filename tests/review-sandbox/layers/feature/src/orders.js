@@ -1,5 +1,7 @@
 'use strict';
 
+const { orderLabel } = require('./labels');
+
 const ORDERS = Array.from({ length: 25 }, (_, i) => ({
   id: i + 1,
   customer: `customer-${(i % 5) + 1}`,
@@ -43,4 +45,4 @@ function latestFirst(orders) {
   return [...orders].reverse();
 }
 
-module.exports = { listOrders, latestFirst, pageOrders, parsePositiveInt, ORDERS, DEFAULT_PAGE_SIZE };
+module.exports = { listOrders, latestFirst, orderLabel, pageOrders, parsePositiveInt, ORDERS, DEFAULT_PAGE_SIZE };

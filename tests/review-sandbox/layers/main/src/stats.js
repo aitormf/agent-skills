@@ -1,6 +1,6 @@
 'use strict';
 
-const { listOrders } = require('./orders');
+const { listOrders, orderLabel } = require('./orders');
 
 // First order ever placed (the oldest one): the customer dashboard shows it as "customer since".
 function firstOrder() {
@@ -15,4 +15,13 @@ function revenue() {
   return sumTotals(listOrders());
 }
 
-module.exports = { firstOrder, revenue, sumTotals };
+function labelCounts() {
+  const counts = {};
+  for (const order of listOrders()) {
+    const label = orderLabel(order);
+    counts[label] = (counts[label] || 0) + 1;
+  }
+  return counts;
+}
+
+module.exports = { firstOrder, revenue, sumTotals, labelCounts };
