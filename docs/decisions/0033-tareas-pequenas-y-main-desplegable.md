@@ -2,11 +2,11 @@
 id: D-0033
 title: Cada tarea tiene un solo propósito y deja la rama base desplegable; lo que está a medias va detrás de un flag que retira la última tarea
 type: rule
-status: accepted
+status: superseded
 date: 2026-10-27
 affects: [skills/idea-to-change/, skills/plan-to-tasks/, agents/implement.md, agents/code-reviewer.md]
 supersedes: null
-superseded_by: null
+superseded_by: D-0044
 issue: null
 ---
 
