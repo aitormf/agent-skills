@@ -10,4 +10,8 @@ function listOrders() {
   return ORDERS;
 }
 
-module.exports = { listOrders, ORDERS };
+function latestFirst(orders) {
+  return [...orders].reverse();
+}
+
+module.exports = { listOrders, latestFirst, ORDERS };

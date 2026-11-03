@@ -1,7 +1,7 @@
 ---
 id: T14
 title: Casos plantados en el sandbox para el criterio de code-review-and-quality
-status: todo
+status: done
 depends_on: []
 examples: []
 verification: scripts/check.sh

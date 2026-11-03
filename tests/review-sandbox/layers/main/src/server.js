@@ -1,13 +1,17 @@
 'use strict';
 
 const http = require('node:http');
-const { listOrders } = require('./orders');
+const { listOrders, latestFirst } = require('./orders');
 
 function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
+  if (url.pathname === '/health') {
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({ status: 'ok' }));
+  }
   if (url.pathname === '/orders') {
     res.setHeader('content-type', 'application/json');
-    return res.end(JSON.stringify(listOrders()));
+    return res.end(JSON.stringify(latestFirst(listOrders())));
   }
   res.statusCode = 404;
   res.end('not found');

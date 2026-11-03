@@ -2,10 +2,13 @@
 
 const http = require('node:http');
 const { listOrders, pageOrders, parsePositiveInt, DEFAULT_PAGE_SIZE } = require('./orders');
+const { healthRoute } = require('./health');
 const { readInvoice } = require('./invoices');
 
 function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
+
+  if (url.pathname === '/health') return healthRoute(res);
 
   if (url.pathname === '/orders') {
     const page = parsePositiveInt(url.searchParams.get('page'), 1);

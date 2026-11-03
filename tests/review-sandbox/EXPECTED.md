@@ -16,6 +16,9 @@ Tarea declarada en el commit de la rama `feature/orders-pagination-invoices`:
 | B4 | Restos | `src/orders.js` | `console.log('DEBUG pageOrders', …)` en cada petición. | Required (o Optional) |
 | B5 | Restos | `src/invoices.js` | `// TODO: cache invoices in memory` sin ticket. | Nit / Optional |
 | B6 | Llamador fuera del diff | `src/stats.js` (`firstOrder`), fichero que la rama no toca | `listOrders()` pasa a devolver los pedidos más recientes primero; `firstOrder()` sigue tomando `listOrders()[0]` como el pedido más antiguo y ahora devuelve el más reciente (el panel muestra mal «cliente desde»). Solo se ve buscando los llamadores de `listOrders`. Corrección: ordenar en `pageOrders`/el endpoint, o que `firstOrder` no dependa del orden. | Critical o Required |
+| B7 | Duplicación | `src/orders.js` (`pageTotal`) | Helper nuevo casi idéntico a `sumTotals` de `src/stats.js` (que ya existe en main y hace el mismo `reduce` sobre `total`). Corrección: reutilizar `sumTotals` (o moverlo a un módulo común; `stats.js` importa `orders.js`, así que importarlo desde `orders.js` crearía un ciclo). | Optional |
+| B8 | Refactor sin pérdida | `src/server.js` + `src/health.js` | La rama `/health` pasa de `server.js` a `health.js` (`healthRoute`) con el mismo comportamiento; ninguna rama se pierde. Es un caso de criterio: el revisor puede comprobarlo (todas las rutas de main siguen) y no debe dar hallazgos de «comportamiento perdido». | Ninguno (a lo sumo Nit) |
+| B9 | Código muerto | `src/orders.js` (`latestFirst`) | La rama deja `latestFirst` sin llamadores: `server.js` ya no la usa porque `listOrders` invierte el orden por su cuenta. Sigue definida y exportada. Corrección: borrarla. | Optional |
 
 ## Señuelos (NO deberían sobrevivir como hallazgos)
 
