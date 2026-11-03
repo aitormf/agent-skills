@@ -1,0 +1,56 @@
+{
+ "root_thread": "01a1a37f-c1be-7690-ad3f-e8f1ee16a6a3",
+ "turn_completed_usage": {
+  "input_tokens": 283694,
+  "cached_input_tokens": 253952,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 3294,
+  "reasoning_output_tokens": 9
+ },
+ "agents": {
+  "01a1a37f-c1be-7690-ad3f-e8f1ee16a6a3": {
+   "role": "main",
+   "api_calls": 9,
+   "input_tokens": 283694,
+   "cached_input_tokens": 253952,
+   "output_tokens": 3294,
+   "reasoning_output_tokens": 9,
+   "models": [
+    "gpt-6.1-terra"
+   ]
+  },
+  "01a1a380-188d-75f3-bebc-237f8f7c6b36": {
+   "role": "code-reviewer",
+   "api_calls": 4,
+   "input_tokens": 104046,
+   "cached_input_tokens": 74368,
+   "output_tokens": 1382,
+   "reasoning_output_tokens": 0,
+   "models": [
+    "gpt-6.1-terra (effort low)"
+   ]
+  },
+  "01a1a380-d9ad-70f2-8ff3-da21362f334f": {
+   "role": "finding-verifier",
+   "api_calls": 3,
+   "input_tokens": 81056,
+   "cached_input_tokens": 63744,
+   "output_tokens": 1544,
+   "reasoning_output_tokens": 44,
+   "models": [
+    "gpt-6.1-terra (effort low)"
+   ]
+  }
+ },
+ "problems": [],
+ "total": {
+  "input_tokens": 468796,
+  "cached_input_tokens": 392064,
+  "output_tokens": 6220,
+  "reasoning_output_tokens": 53
+ },
+ "subagents": 2,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}
