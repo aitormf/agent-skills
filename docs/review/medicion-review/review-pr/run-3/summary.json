@@ -1,0 +1,82 @@
+{
+ "root_thread": "01a1a382-e19e-7720-9d55-381a058cdd8c",
+ "turn_completed_usage": {
+  "input_tokens": 570105,
+  "cached_input_tokens": 525952,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 3093,
+  "reasoning_output_tokens": 134
+ },
+ "agents": {
+  "01a1a382-e19e-7720-9d55-381a058cdd8c": {
+   "role": "main",
+   "api_calls": 15,
+   "input_tokens": 570105,
+   "cached_input_tokens": 525952,
+   "output_tokens": 3093,
+   "reasoning_output_tokens": 134,
+   "models": [
+    "gpt-6.1-terra"
+   ]
+  },
+  "01a1a383-3700-7f93-810a-03c62390ed3d": {
+   "role": "code-reviewer",
+   "api_calls": 3,
+   "input_tokens": 127130,
+   "cached_input_tokens": 122112,
+   "output_tokens": 737,
+   "reasoning_output_tokens": 7,
+   "models": [
+    "gpt-6.1-terra",
+    "gpt-6.1-terra (effort low)"
+   ]
+  },
+  "01a1a383-48b2-7c12-9ebb-904ad25202c9": {
+   "role": "security-auditor",
+   "api_calls": 2,
+   "input_tokens": 86636,
+   "cached_input_tokens": 80000,
+   "output_tokens": 286,
+   "reasoning_output_tokens": 23,
+   "models": [
+    "gpt-6.1-terra",
+    "gpt-6.1-terra (effort low)"
+   ]
+  },
+  "01a1a383-5b7d-7600-a22c-fc5db3361d7b": {
+   "role": "test-engineer",
+   "api_calls": 3,
+   "input_tokens": 135469,
+   "cached_input_tokens": 127360,
+   "output_tokens": 593,
+   "reasoning_output_tokens": 44,
+   "models": [
+    "gpt-6.1-terra",
+    "gpt-6.1-terra (effort low)"
+   ]
+  },
+  "01a1a383-b1be-79a3-8357-d42dc6b35b86": {
+   "role": "finding-verifier",
+   "api_calls": 3,
+   "input_tokens": 141014,
+   "cached_input_tokens": 136064,
+   "output_tokens": 428,
+   "reasoning_output_tokens": 43,
+   "models": [
+    "gpt-6.1-terra",
+    "gpt-6.1-terra (effort low)"
+   ]
+  }
+ },
+ "problems": [],
+ "total": {
+  "input_tokens": 1060354,
+  "cached_input_tokens": 991488,
+  "output_tokens": 5137,
+  "reasoning_output_tokens": 251
+ },
+ "subagents": 4,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}

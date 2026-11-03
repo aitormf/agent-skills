@@ -1,7 +1,7 @@
 ---
 id: T1
 title: Medición base de la review en el sandbox con Codex
-status: todo
+status: done
 depends_on: [T14]
 examples: []
 verification: scripts/check.sh
