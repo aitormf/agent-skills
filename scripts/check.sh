@@ -44,6 +44,30 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF
 
+echo "▶ tamaño de skills y agentes"
+python3 - <<'EOF'
+# Las descripciones se cargan en cada sesión y los cuerpos en cada uso: lo que crece se paga siempre.
+# Subir un tope es una decisión, no un efecto secundario: se cambia aquí, en la misma PR que lo necesita.
+import re, sys
+from pathlib import Path
+DESCRIPTION = 1024   # máximo de la especificación de Agent Skills; Claude Code y Codex rechazan más
+OWN = 12_500         # caracteres de un SKILL.md o agente propio (el mayor, review-report, ronda los 12.000)
+UPSTREAM = 22_000    # copiados de addyosmani/agent-skills ("Origin:" en la cabecera): su tamaño, sin crecer
+bad = []
+for f in sorted(Path("skills").glob("*/SKILL.md")) + sorted(Path("agents").glob("*.md")):
+    text = f.read_text(encoding="utf-8")
+    fm = text[4:].split("\n---\n", 1)[0]
+    desc = re.search(r"^description:\s*(.*?)(?=^\S|\Z)", fm, re.S | re.M).group(1)
+    if len(" ".join(desc.split())) > DESCRIPTION:
+        bad.append(f"{f}: la descripción tiene {len(' '.join(desc.split()))} caracteres (máximo {DESCRIPTION})")
+    cap = UPSTREAM if "\n  Origin: " in text[:2000] else OWN
+    if len(text) > cap:
+        bad.append(f"{f}: {len(text)} caracteres (máximo {cap}); recorta, o mueve el detalle a references/ y léelo bajo demanda")
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF
+
 echo "▶ atril: kind, nombre y relaciones de skills y agentes"
 python3 - <<'EOF'
 import re, sys
@@ -340,6 +364,59 @@ grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "
 gh_dir=$(sed -n 2p "$tmp/env")
 [ "$(sed -n 1p "$tmp/env")" = "tokens=" ] && [ -n "$gh_dir" ] && [ "$(wc -l < "$tmp/env")" -eq 2 ] && [ ! -e "$gh_dir" ] \
   || { echo "the pre-push hook gives claude GitHub credentials (a token, or a gh config directory that is not empty and temporary)" >&2; cat "$tmp/env" >&2; exit 1; }
+echo "▶ review: the pre-push hook reuses the verdict of a diff it already reviewed (#7)"
+v="$tmp/verdict"; mkdir -p "$v/bin"; git -C "$v" init -q -b main
+gv() { git -C "$v" -c user.name=t -c user.email=t@t "$@"; }
+echo a > "$v/f"; gv add f; gv commit -qm base; gv checkout -qb feat; echo b >> "$v/f"; gv commit -qam change
+cat > "$v/bin/claude" <<'FAKE'
+#!/usr/bin/env bash
+echo run >> "$CLAUDE_CALLS"
+[ "$FAKE_RESULT" = fail ] && exit 1
+echo "REVIEW_RESULT: $FAKE_RESULT critical=0 required=0 uncertain=0"
+FAKE
+chmod +x "$v/bin/claude"
+push() {  # push <PASS|BLOCK|fail> [env…]: runs the hook; sets rc and calls (how many times claude ran)
+  local result=$1; shift; rm -f "$v/calls"
+  (cd "$v" && echo "refs/heads/feat $(git rev-parse HEAD) refs/heads/feat 0000000000000000000000000000000000000000" \
+    | env "$@" FAKE_RESULT="$result" CLAUDE_CALLS="$v/calls" PATH="$v/bin:$PATH" bash "$hook") >"$v/out" 2>&1 && rc=0 || rc=$?
+  calls=$(cat "$v/calls" 2>/dev/null || true); calls=$(printf %s "$calls" | grep -c run || true)
+}
+vfail() { echo "pre-push verdict cache: $1" >&2; cat "$v/out" >&2; exit 1; }
+push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "the first push did not run the review"
+grep -Eq "^[0-9a-f]{64} PASS main [0-9TZ:-]+$" "$v/.git/review-kit/verdicts" || vfail "the verdict was not saved with its hash, base and date"
+push BLOCK; [ $rc = 0 ] && [ "$calls" = 0 ] || vfail "a second push of the same diff ran the review again"
+push BLOCK REVIEW_KIT_RERUN=1; [ $rc = 1 ] && [ "$calls" = 1 ] || vfail "REVIEW_KIT_RERUN=1 did not review again"
+push PASS;  [ $rc = 1 ] && [ "$calls" = 0 ] || vfail "a blocked diff was let through without a review"
+grep -q "report: .*/[0-9a-f]\{64\}\.md" "$v/out" && [ -n "$(find "$v/.git/review-kit" -name '????????????????????????????????????????????????????????????????.md')" ] \
+  || vfail "a reused block does not point to the report of its review"
+echo c >> "$v/f"; gv commit -qam more
+push fail;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a changed diff did not run the review"
+push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a failed review was saved as a verdict"
+push PASS REVIEW_KIT_BASE=nope; push PASS REVIEW_KIT_BASE=nope; [ "$calls" = 1 ] || vfail "a push without a base branch reused a verdict"
+
+echo "▶ review: Semgrep only reports findings on the lines the diff adds"
+s="$tmp/semgrep"; mkdir -p "$s/bin"; git -C "$s" init -q -b main
+gs() { git -C "$s" -c user.name=t -c user.email=t@t "$@"; }
+printf 'a\nb\nc\nd\n' > "$s/old.py"; printf 'x\n' > "$s/gone.py"; gs add .; gs commit -qm base; gs checkout -qb feat
+printf 'a\nB\nc\nd\nE\n' > "$s/old.py"; printf 'n\nm\n' > "$s/new.py"; gs rm -q gone.py; gs add .; gs commit -qm change
+cat > "$s/bin/semgrep" <<'FAKE'
+#!/usr/bin/env python3
+import json, sys
+print(" ".join(sys.argv[1:]), file=open(sys.argv[0] + ".args", "w"))
+r = lambda path, a, b: {"path": path, "start": {"line": a}, "end": {"line": b}, "check_id": f"rule{a}", "extra": {"severity": "ERROR", "message": "bad\n thing"}}
+print(json.dumps({"results": [r("old.py", 1, 1), r("old.py", 2, 2), r("old.py", 3, 5), r("old.py", 4, 4), r("new.py", 1, 1)]}))
+FAKE
+chmod +x "$s/bin/semgrep"
+sa="$PWD/skills/review-context/scripts/semgrep_added.py"
+(cd "$s" && PATH="$s/bin:$PATH" python3 "$sa" main) > "$s/out" 2>&1 || { cat "$s/out" >&2; echo "semgrep_added.py failed" >&2; exit 1; }
+printf '%s\n' 'old.py:2 ERROR rule2 — bad thing' 'old.py:3 ERROR rule3 — bad thing' 'new.py:1 ERROR rule1 — bad thing' \
+  'Semgrep: 3 finding(s) on added lines; 2 on lines the diff did not touch (not reported)' | diff - "$s/out" >&2 \
+  || { echo "semgrep_added.py did not keep exactly the findings on added lines" >&2; exit 1; }
+grep -q -- '--metrics=off' "$s/bin/semgrep.args" && grep -q 'new.py old.py$' "$s/bin/semgrep.args" \
+  || { echo "semgrep_added.py did not scan exactly the added and changed files" >&2; cat "$s/bin/semgrep.args" >&2; exit 1; }
+(cd "$s" && PATH="/usr/bin:/bin" python3 "$sa" main) >/dev/null 2>&1 && rc=0 || rc=$?
+[ $rc = 2 ] || { echo "semgrep_added.py did not exit 2 without semgrep" >&2; exit 1; }
+
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
 ! grep -Eq '^ +(issues|pull-requests): read' "$wf" || { echo "the review job of claude-review.yml can read issues or PRs" >&2; exit 1; }

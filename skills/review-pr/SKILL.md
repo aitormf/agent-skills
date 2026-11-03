@@ -79,7 +79,7 @@ Combine the reports: map severities per `review-report` §2, merge duplicates (k
 
 ## Step 6 — Verify (one subagent)
 
-If there are findings, spawn **one** `finding-verifier` with the change access info, the tier, the verification results and **all** merged findings verbatim (Optional and Nits included — it verifies and ranks them). Keep `CONFIRMED` and `UNCERTAIN` (label the latter `(unverified)`); record refuted ones for the Verification section.
+If there are findings, spawn **one** `finding-verifier` with the change access info, the tier, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3) and **all** merged findings verbatim (Optional and Nits included — it verifies and ranks them). Keep `CONFIRMED` and `UNCERTAIN` (label the latter `(unverified)`); record refuted ones for the Verification section.
 
 ## Step 7 — PR description (main session)
 

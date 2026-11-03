@@ -7,9 +7,18 @@ line-length = 100
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "C4", "UP", "SIM", "RUF", "S", "PLE"]
+select = ["E", "F", "I", "B", "C4", "UP", "SIM", "RUF", "S", "PLE", "C90", "PLR0912", "PLR0915"]
 # S = flake8-bandit (security) · PLE includes PLE2502 (bidirectional Unicode, "Trojan Source")
+# C90, PLR0912, PLR0915 = complexity, branches and statements per function: what SonarQube adds
+# beyond security, with no server. Brownfield: `ruff check --add-noqa` marks the existing ones.
 ignore = ["E501"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-branches = 12
+max-statements = 50
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]   # assert and test passwords allowed ONLY in tests

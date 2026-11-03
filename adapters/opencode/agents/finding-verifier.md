@@ -39,7 +39,8 @@ For findings about **security, authentication, authorization, secrets, payments 
 2. Severity sanity check: a Critical needs a realistic path to broken functionality, data loss or exploitation. If the scenario is real but unlikely or low-impact, downgrade and say why.
 3. Debug leftovers (`console.log`, `print`, commented-out code): confirm or refute (refute only if the output is intentional, e.g. a real logger), but never downgrade below Required — see `review-report` §1.
 4. Linter territory: if the finding is something the repo's linters/type checker already catch (per the verification output), `REFUTED (covered by <tool>)`.
-5. Be brief. One to three sentences of evidence per finding.
+5. Known non-issues: if a finding is one of the repo's `Known non-issues` (AGENTS.md, `Code review` section), check that its reason still holds in the code after the diff. If it does → `REFUTED (known non-issue: <entry>)`. If the diff breaks the reason (the script now takes user input, the endpoint is no longer public) → verify the finding as usual, and say that the entry no longer holds. For a security finding, the reason counts as evidence only after you check it in the code (the security exception).
+6. Be brief. One to three sentences of evidence per finding.
 
 ## Ranking Optional and Nit findings
 
