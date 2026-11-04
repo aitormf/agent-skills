@@ -2,7 +2,7 @@
 id: T12
 title: El formato del informe final, fuera de lo que cargan las personas
 status: todo
-depends_on: []
+depends_on: [T17]
 examples: [E29]
 verification: scripts/check.sh
 ---

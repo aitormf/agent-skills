@@ -2,7 +2,7 @@
 id: T8
 title: Documentar la review por tamaño y las tareas atómicas
 status: todo
-depends_on: [T4, T5, T6, T7]
+depends_on: [T4, T5, T7]
 examples: []
 verification: scripts/check.sh
 ---

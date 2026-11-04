@@ -53,6 +53,14 @@ Rule R6: cada subagente carga solo lo que usa, sin perder criterio: code-reviewe
   E27: el diff deja una función sin llamadores (B9 del sandbox) → hallazgo de código muerto que nombra la función
   E28: review con --deep → code-reviewer lee además code-review-and-quality completa
   E29: una persona del fan-out → no carga los layouts §4 ni el JSON §4.3; la sesión principal sí
+
+Rule R7: los subagentes de la review arrancan sin el historial de la sesión principal; lo que necesitan va en su encargo (D-0046)
+  E30: review-prepush o review-pr en Codex lanza una persona → spawn_agent con fork_turns "none"
+  E31: el encargo de esa persona lleva cómo leer el cambio, los resultados de la verificación y los límites, sin dar por hecho que vio algo de la sesión principal
+
+Rule R8: la sesión principal solo lee lo que usa
+  E32: review-prepush o review-pr lanza una persona → no lee su definición en .codex/agents/ ni en agents/; la herramienta la carga
+  E33: review-pr sin carpeta de cambio → no lee task-done ni review-prepush
 ```
 
 **Pasos sin ejemplos:**
@@ -60,7 +68,8 @@ Rule R6: cada subagente carga solo lo que usa, sin perder criterio: code-reviewe
 - S1: medición base en `tests/review-sandbox/` con Codex: tokens por agente y hallazgos contra `EXPECTED.md` de `review-pr` y `review-prepush` actuales, 3 ejecuciones de cada → resultados en `docs/review/medicion-review.md`.
 - S2: documentar cómo elegir el modelo de los subagentes en Codex por llamada → `docs/review/README.md`.
 - S0: el sandbox gana tres casos plantados del criterio que hoy viene de code-review-and-quality (B7 helper duplicado, B8 refactor que solo mueve complejidad, B9 código muerto), con sus filas en `EXPECTED.md`, antes de la medición base.
-- S3: repetir la medición con el reviewer unificado y comparar → misma página; si pierde B2, B3 o alguno de B7–B9 de forma consistente, se dice y se refuerzan los disparadores antes de cerrar.
+- S4: repetir la medición base con las personas del sandbox, porque T1 midió las copias globales de `~/.codex/agents/` → `docs/review/medicion-review.md`; una ejecución cuyas personas no sean las del sandbox se marca como inválida.
+- S3: repetir la medición con el reviewer unificado y comparar con S4 → misma página; si detecta menos B1–B6 de forma consistente, se dice y se refuerzan los disparadores antes de cerrar. B7–B9 cuentan como posible mejora, porque la base casi nunca los detecta; por eso la medición no cubre el riesgo de T11.
 
 ## Supuestos
 
@@ -70,6 +79,7 @@ Rule R6: cada subagente carga solo lo que usa, sin perder criterio: code-reviewe
 - Los ejemplos de R2–R5 son comportamiento de prompts: su test en `check.sh` comprueba que el texto de la skill o el agente dice la regla (como el check "test criterion"). Lo que de verdad hacen se mide en S1/S3.
 - `review-report` ronda el tope de 12.500 caracteres: la salida compacta va en el texto de las personas y del verifier; si `review-report` crece, se recorta en la misma tarea.
 - El criterio condensado de `code-reviewer` sale de un inventario sección por sección de `code-review-and-quality`: cada sección va al agente, a `review-report`, a una pasada, o se descarta con su motivo; el inventario va en la PR de T11.
+- El ahorro se compara en entrada total y en entrada sin caché, porque no sabemos cómo cuenta el plan de Codex la entrada en caché.
 - Sin `AGENTS.md` en este repo, la verificación de cada tarea es `scripts/check.sh`, como en las fases de v3.
 
 ## Tareas

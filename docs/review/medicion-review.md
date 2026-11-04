@@ -1,5 +1,7 @@
 # Medición base de la review (T1)
 
+> **Corrección:** esta base no mide del todo la review del commit indicado. Al lanzar los subagentes, Codex usó las copias globales de `~/.codex/agents/` (del 2026-10-19), no las personas del sandbox: `code-reviewer` y `test-engineer` coinciden solo con la global en todos los subagentes medidos, y la `code-reviewer` global no tiene la sección "Beyond the diff". `security-auditor` es idéntica en ambos sitios, y `finding-verifier` no se pudo distinguir con la comprobación usada (los primeros 2.500 caracteres). Las skills sí eran las del sandbox. Los hallazgos y los tokens de los subagentes no sirven como base comparable: la base válida es la de T17.
+
 Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`, paso S1). Este documento no saca conclusiones sobre el reviewer unificado: aún no existe.
 
 ## Cómo se midió
@@ -153,3 +155,20 @@ Notas por ejecución:
 - **B8 y B9 no aparecen en ninguna de las seis ejecuciones; B7 solo en una.** Ningún señuelo (D1–D3) sobrevive en ninguna.
 - Fuera de `EXPECTED.md`, en todas las ejecuciones aparece «falta de test del endpoint `/invoices`» (lo que `EXPECTED.md` da por discutible/aceptable) y, en ninguna, «distinguir ENOENT» como Optional.
 - Los `.toml` de las personas y las skills se leyeron de `.codex/agents/` y `.agents/skills/` del sandbox.
+
+## Qué ocupa la entrada
+
+Análisis posterior de los registros de sesión de las mismas 6 ejecuciones. Las columnas "~" son estimaciones (caracteres / 4 × llamadas posteriores); el resto son cifras registradas.
+
+**Historial heredado.** `spawn_agent` hereda todo el historial por defecto. 16 de los 18 subagentes se lanzaron sin `fork_turns` y empezaron con entre 41.000 y 50.000 tokens de entrada en su primera llamada. Los 2 de `review-prepush` run-3 usaron `fork_turns: "none"` por decisión del modelo y empezaron con 20.627 y 21.358. Esa ejecución es la de menor entrada de `review-prepush` (468.796) y detectó B1–B6, pero es un solo caso.
+
+**Sesión principal.** Parte de unos 19.000 tokens en su primera llamada, antes de leer nada, y los reenvía en cada llamada:
+
+| Parte de lo reenviado en `review-pr` y `review-prepush` | ~ % |
+|---|---:|
+| Salidas de comandos | 32–42 |
+| Instrucciones de Codex, lista de skills y otros mensajes de sistema | 25–30 |
+| Definición de herramientas | 23–30 |
+| Mensajes de los subagentes | 1 |
+
+**Las salidas de comandos son casi todas instrucciones.** En `review-pr` run-2 suman 94.785 caracteres, y las tres lecturas de skills y personas ocupan 88.902. La principal leyó las definiciones de las personas en 5 de 6 ejecuciones, aunque la herramienta ya las carga.
