@@ -1,7 +1,7 @@
 ---
 id: T20
 title: Repetir la medición base con esfuerzo medium
-status: todo
+status: done
 depends_on: []
 examples: []
 verification: scripts/check.sh
