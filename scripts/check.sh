@@ -865,6 +865,23 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF2
 
+echo "▶ review: the personas have no output templates, they point to review-report §3 (R6, D-0045)"
+python3 - <<'EOF2'
+import sys
+from pathlib import Path
+bad = []
+for a in ("code-reviewer", "security-auditor", "test-engineer"):
+    t = Path(f"agents/{a}.md").read_text(encoding="utf-8")
+    bad += [f"agents/{a}.md: template '{h}' is back" for h in ("## Output Format", "## Review Output Template", "## Test Coverage Analysis", "## Security Audit Report") if h in t]
+    if "`review-report` §3" not in t:
+        bad.append(f"agents/{a}.md does not point to review-report §3")
+sa = Path("agents/security-auditor.md").read_text(encoding="utf-8")
+if "## Severity Classification" not in sa or "| **Critical** |" not in sa or "| **Info** |" not in sa:
+    bad.append("agents/security-auditor.md lost its severity scale (review-report §2 maps from it)")
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF2
 echo "▶ review: review-prepush picks the reviewers by the size of the diff (E7-E9, R2, D-0044, D-0045)"
 python3 - <<'EOF2'
 import re, sys

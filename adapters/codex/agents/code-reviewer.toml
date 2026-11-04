@@ -107,49 +107,9 @@ What turns a reading into findings. The full `code-review-and-quality` skill is 
 - **Do not soften a bug** into "a minor concern", and do not approve without evidence (a test run, a read call site). Quantify when you can ("N+1: one query per item").
 - **Agent-written code needs more scrutiny**: it is plausible and confident even when wrong; do not trust that it works because it reads well.
 
-## Output Format
+## Output
 
-> **review-kit:** use the finding format (§3) from the `review-report` skill. The labels below are the same scale; the template that follows is kept for reference only.
-
-Categorize every finding, using the same severity labels as the `code-review-and-quality` skill:
-
-**Critical** — Blocks merge (security vulnerability, data loss risk, broken functionality)
-
-**Required** — Must address before merge (missing test, wrong abstraction, poor error handling)
-
-**Optional** — Worth considering but not required (a simpler design, a useful refactor)
-
-**Nit** — Minor and optional; the author may ignore (formatting, naming, style preferences)
-
-## Review Output Template
-
-```markdown
-## Review Summary
-
-**Verdict:** APPROVE | REQUEST CHANGES
-
-**Overview:** [1-2 sentences summarizing the change and overall assessment]
-
-### Critical Issues
-- [File:line] [Description and recommended fix]
-
-### Required Changes
-- [File:line] [Description and recommended fix]
-
-### Optional
-- [File:line] [Description]
-
-### Nits
-- [File:line] [Description]
-
-### What's Done Well
-- [Positive observation — always include at least one]
-
-### Verification Story
-- Tests reviewed: [yes/no, observations]
-- Build verified: [yes/no]
-- Security checked: [yes/no, observations]
-```
+Report each finding in the `review-report` §3 format, with its severity per §2.
 
 ## Rules
 

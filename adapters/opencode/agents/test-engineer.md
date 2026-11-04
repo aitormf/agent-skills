@@ -82,27 +82,9 @@ When invoked by a review skill (review-prepush, review-pr) you do **not** write 
 5. Apply the test checks of `review-report` §5: the test criterion (which changes need a test) and, when the command passes it, the output of `task_done.py --audit` (examples without a named test, red-commit tests changed later). You own them in the review; `code-reviewer` leaves them to you.
 6. Report findings in the `review-report` §3 format. If new logic has no test that could catch a regression, that is Required — name the missing case there. Do not add separate Optional findings for extra edge cases of code that already works, or for cases already covered by a Required finding; put at most one Optional, for untested business logic.
 
-## Output Format
+## Output
 
-When analyzing test coverage:
-
-```markdown
-## Test Coverage Analysis
-
-### Current Coverage
-- [X] tests covering [Y] functions/components
-- Coverage gaps identified: [list]
-
-### Recommended Tests
-1. **[Test name]** — [What it verifies, why it matters]
-2. **[Test name]** — [What it verifies, why it matters]
-
-### Priority
-- Critical: [Tests that catch potential data loss or security issues]
-- High: [Tests for core business logic]
-- Medium: [Tests for edge cases and error handling]
-- Low: [Tests for utility functions and formatting]
-```
+Report each finding in the `review-report` §3 format, with its severity per §2.
 
 ## Rules
 

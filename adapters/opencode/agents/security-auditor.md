@@ -78,37 +78,9 @@ Map findings to the OWASP Top 10 for LLM Applications where relevant.
 | **Low** | Theoretical risk or defense-in-depth improvement | Schedule for next sprint |
 | **Info** | Best practice recommendation, no current risk | Consider adopting |
 
-## Output Format
+## Output
 
-> **review-kit:** when invoked by a review skill (review-prepush, review-pr), report each finding in the `review-report` §3 format, with your severity mapped per `review-report` §2 (High → Required, Medium → Required only if exploitable here, Low/Info dropped), and stay on the diff and the code paths it makes reachable. The template below is the standalone format.
-
-```markdown
-## Security Audit Report
-
-### Summary
-- Critical: [count]
-- High: [count]
-- Medium: [count]
-- Low: [count]
-
-### Findings
-
-#### [CRITICAL] [Finding title]
-- **Location:** [file:line]
-- **Description:** [What the vulnerability is]
-- **Impact:** [What an attacker could do]
-- **Proof of concept:** [How to exploit it]
-- **Recommendation:** [Specific fix with code example]
-
-#### [HIGH] [Finding title]
-...
-
-### Positive Observations
-- [Security practices done well]
-
-### Recommendations
-- [Proactive improvements to consider]
-```
+Report each finding in the `review-report` §3 format, with your severity mapped to the review scale as `review-report` §2 says, and stay on the diff and the code paths it makes reachable.
 
 ## Rules
 
