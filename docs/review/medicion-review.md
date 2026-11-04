@@ -2,9 +2,134 @@
 
 Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`). Este documento no saca conclusiones sobre el reviewer unificado: aún no existe.
 
-Hay dos mediciones. **La válida es la de T17** (esta sección). La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
+Hay tres mediciones, cada una válida para su esfuerzo. **La de T20** (`medium`, la primera sección) es la referencia para T10 en `review-prepush`; en `review-pr` no tiene ejecuciones válidas. **La de T17** (`low`) sigue siendo válida para ese esfuerzo. La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
 
-## Base válida (T17)
+## Base con esfuerzo `medium` (T20)
+
+Repite la medición de T17 fijando el esfuerzo de razonamiento en `medium`, el que se usa de verdad, y con la review de **antes de T15**. **T17 sigue siendo válida para esfuerzo `low`** (el que `gpt-6.1-terra` trae por defecto en el catálogo): sus cifras no se tocan y no son comparables a las de esta sección sin decir el esfuerzo. Este apartado no saca conclusiones sobre el reviewer unificado.
+
+**Resultado en una línea:** `review-prepush` tiene base válida con `medium` (3 ejecuciones). `review-pr` **no la tiene**: sus 8 ejecuciones completas son inválidas, porque con `medium` el modelo lanzó los subagentes sin `agent_type` y no cargaron ninguna persona (ver «Ejecuciones inválidas y fallidas»). Para T10, `review-pr` sigue sin referencia con `medium`.
+
+### Cómo se midió
+
+| | |
+|---|---|
+| Fecha | 2026-11-04 |
+| Codex | `codex-cli 0.165.0` |
+| Modelo y esfuerzo | `gpt-6.1-terra` con `-m`, y esfuerzo `medium` con `-c model_reasoning_effort="medium"`, ambos explícitos en toda ejecución y registrados en cada `meta.json` (`model`, `effort`) |
+| Commit del kit | `20c832c` (anterior a T15). Skills, personas y casos B1–B9 salen de un `git worktree` temporal en ese commit, borrado al terminar, con `KIT=<worktree> tests/review-sandbox/build.sh --codex` y `KIT=<worktree> tests/review-sandbox/measure.sh`. Se comprobó que `tests/review-sandbox/layers/` y `EXPECTED.md` de `20c832c` son idénticos a los de la rama, y que las skills y personas del sandbox son las de ese commit. `meta.json` registra `kit_commit: 20c832c` |
+| Scripts | los de esta rama (`measure.sh`, `summarize.py`), con la opción `EFFORT` (por defecto `medium`) y `KIT` |
+| Ejecución | `-s read-only`, sin `--dangerously-bypass-*`, sin ampliar permisos. No se tocó nada de `~/.codex` ni se copió ninguna credencial. Sin `fork_turns` en el prompt |
+| Prompts | los de T17, sin cambios |
+
+### Cómo se fijó el esfuerzo y prueba de que los subagentes lo usaron
+
+Con una llamada mínima (sin review) antes de medir: `codex exec -m gpt-6.1-terra -c model_reasoning_effort=medium -s read-only --json "Responde solo: ok"`. El `turn_context` del registro de sesión de la principal dice `model: gpt-6.1-terra`, `effort: medium` (T17 mostraba `low` en los subagentes y vacío en la principal). Después, una segunda llamada mínima donde la principal lanza un subagente con `spawn_agent` **sin indicar modelo ni esfuerzo**: el `turn_context` del subagente también dice `gpt-6.1-terra` y `medium`. Es decir, **el subagente hereda el esfuerzo de la sesión**, como dice la descripción de `spawn_agent` («Omit to inherit the parent effort»); no hizo falta tocar `~/.codex` ni el texto de las skills.
+
+`summarize.py` lo comprueba en cada ejecución, no solo en las pruebas: toma el modelo y el esfuerzo esperados de `meta.json` (o de los argumentos 3 y 4) y añade a `problems` cualquier agente, **sesión principal incluida**, cuyo `turn_context` tenga otro modelo u otro esfuerzo, o ninguno. Las 12 ejecuciones con registros pasan esa comprobación (las 9 inválidas lo son solo por las personas).
+
+La comprobación de personas no cambia: el cuerpo completo del `.toml` del sandbox (el de `20c832c`, que `build.sh` instaló en esa ejecución, no `adapters/` de la rama) debe estar en los mensajes `developer` del subagente. En los 6 subagentes de las ejecuciones válidas la persona cargada es la del sandbox. Ahora `code-reviewer` y `finding-verifier` del sandbox coinciden con las de `~/.codex/agents/` (en T17 diferían), así que esta comprobación **ya no distingue** la copia del sandbox de la global: prueba que se cargó la persona medida, no que no fuera la global.
+
+### Límites y condiciones
+
+- Semgrep sigue sin funcionar, por lo mismo que en T17 (sin red y sin directorio temporal escribible en `read-only`); las reviews lo anotan como omitido.
+- `fork_turns`: el prompt no lo indica. En `review-prepush` run-4 el modelo usó `none` (primera llamada de ~21.700 tokens de entrada) y en run-1 y run-3 no lo indicó (37.742 a 51.596). Es parte de lo medido.
+- La duración es de reloj, de principio a fin de `codex exec`.
+- Los registros crudos quedan en `tests/review-sandbox/results/` (ignorado por git). En el repo van `report.md`, `summary.json` y `meta.json` de **todas** las ejecuciones, válidas o no, en `docs/review/medicion-review/t20/<comando>/run-<n>/`, con la ruta del sandbox sustituida por `repo/`. No hay secretos.
+
+### Ejecuciones inválidas y fallidas
+
+Se registran todas; ninguna se omite.
+
+| Ejecución | Exit | Duración (s) | Subagentes | Roles de los subagentes | Entrada | Sin caché | Salida | Razonamiento | Motivo |
+|---|---:|---:|---:|---|---:|---:|---:|---:|---|
+| `review-prepush` run-2 | 0 | 99 | 2 | `default`, `default` | 643.468 | 70.924 | 5.980 | 221 | inválida: subagentes con `agent_type: default`, sin persona |
+| `review-pr` run-1 | 0 | 85 | 4 | sin rol ×4 | 1.214.461 | 67.069 | 5.370 | 244 | inválida: subagentes sin `agent_type`, sin persona |
+| `review-pr` run-2 | 0 | 94 | 4 | sin rol ×4 | 997.454 | 59.598 | 5.562 | 382 | ídem |
+| `review-pr` run-3 | 0 | 99 | 4 | sin rol ×4 | 1.338.621 | 100.861 | 6.189 | 517 | ídem |
+| `review-pr` run-4 | 0 | 90 | 4 | sin rol ×4 | 1.027.413 | 78.933 | 5.559 | 242 | ídem (repetición) |
+| `review-pr` run-5 | 0 | 84 | 4 | sin rol ×4 | 1.027.139 | 74.563 | 5.470 | 330 | ídem (repetición) |
+| `review-pr` run-6 | 1 | 3 | 0 | — | — | — | — | — | **fallida**: `Selected model is at capacity` (`turn.failed`), sin llamadas a la API |
+| `review-pr` run-7 | 0 | 98 | 4 | sin rol ×4 | 1.107.868 | 61.212 | 5.232 | 440 | ídem (repetición) |
+| `review-pr` run-8 | 0 | 118 | 4 | sin rol ×4 | 1.053.405 | 75.485 | 6.401 | 602 | ídem (repetición) |
+| `review-pr` run-9 | 0 | 86 | 4 | sin rol ×4 | 1.249.973 | 136.245 | 5.275 | 282 | ídem (repetición) |
+
+En las inválidas todos los agentes sí corren con `gpt-6.1-terra` y `medium`; lo que falla es la persona. En `review-pr` run-4 se comprobó que ningún subagente tiene el cuerpo de una persona del sandbox ni en sus mensajes `developer` ni en el prompt que recibió: son agentes genéricos, no personas mal etiquetadas. La skill es la misma en `20c832c` y en `6d9fd8a` (T17: sin diferencias en `skills/`, `agents/` ni `adapters/`), y con `low` los 18 subagentes de T17 cargaron la persona; con `medium` el modelo no pasó `agent_type` en ninguna de las 8 ejecuciones completas de `review-pr` (y en 1 de 4 de `review-prepush`). No se puntuaron a mano: sin persona no es la review que se mide.
+
+**Repeticiones** (todas anotadas): `review-prepush` run-4 repite la inválida run-2. `review-pr` run-4 a run-6 repiten las tres inválidas de run-1 a run-3 (run-6 falló por capacidad del modelo); run-7 a run-9 son un último intento acotado tras ver que 5 de 5 eran inválidas. Total: 9 ejecuciones de `review-pr` (1 fallida, 8 inválidas, 0 válidas) y 4 de `review-prepush` (1 inválida, 3 válidas). No se lanzaron más y los números no se reutilizan.
+
+### Tokens (ejecuciones válidas)
+
+#### `review-prepush`
+
+**run-1** (exit 0, 119 s, 2 subagentes, modelo y esfuerzo en todos los agentes: gpt-6.1-terra / medium, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 9 | 291.821 | 262.400 | 29.421 | 3.653 | 63 | — | — | — |
+| code-reviewer | 3 | 119.709 | 112.000 | 7.709 | 1.277 | 42 | no indicado | 37.742 | sandbox |
+| finding-verifier | 2 | 84.064 | 76.672 | 7.392 | 569 | 51 | no indicado | 40.112 | sandbox |
+| **Total** | 14 | **495.594** | **451.072** | **44.522** | **5.499** | **156** | | | |
+
+**run-3** (exit 0, 142 s, 2 subagentes, modelo y esfuerzo en todos los agentes: gpt-6.1-terra / medium, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 12 | 440.368 | 408.832 | 31.536 | 4.035 | 87 | — | — | — |
+| code-reviewer | 2 | 102.569 | 90.496 | 12.073 | 1.239 | 126 | no indicado | 49.391 | sandbox |
+| finding-verifier | 3 | 168.453 | 153.344 | 15.109 | 1.690 | 40 | no indicado | 51.596 | sandbox |
+| **Total** | 17 | **711.390** | **652.672** | **58.718** | **6.964** | **253** | | | |
+
+**run-4** (exit 0, 149 s, 2 subagentes, modelo y esfuerzo en todos los agentes: gpt-6.1-terra / medium, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 14 | 463.795 | 425.216 | 38.579 | 4.310 | 236 | — | — | — |
+| code-reviewer | 7 | 203.838 | 171.136 | 32.702 | 2.230 | 61 | `none` | 21.730 | sandbox |
+| finding-verifier | 3 | 78.187 | 60.544 | 17.643 | 488 | 50 | `none` | 21.789 | sandbox |
+| **Total** | 24 | **745.820** | **656.896** | **88.924** | **7.028** | **347** | | | |
+
+#### `review-pr`
+
+Sin ejecuciones válidas: no hay tabla ni media. Las cifras de las inválidas están arriba solo como registro.
+
+#### Medias (ejecuciones válidas)
+
+| Comando | Ejecuciones | Subagentes | Duración (s) | Entrada | Entrada en caché | Salida | Razonamiento | Entrada sin caché |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `review-prepush` | 3 | 2 | 137 | 650.935 | 586.880 | 6.497 | 252 | 64.055 |
+| `review-pr` | 0 | — | — | — | — | — | — | — |
+
+Las medias son aritméticas sobre 3 ejecuciones; la variación entre ellas es grande (entrada entre 495.594 y 745.820).
+
+### Qué encuentran
+
+Puntuado **a mano**, leyendo cada `report.md` contra `tests/review-sandbox/EXPECTED.md`, con el criterio de T17: un bug cuenta si un hallazgo (o el arreglo de otro) lo señala con su causa; B2 exige señalar que el test no comprueba el contenido de la página; B8 cuenta solo con un remedio con nombre; un señuelo aparece si sobrevive como hallazgo.
+
+| | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | D1 | D2 | D3 | Bugs detectados |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `review-prepush` run-1 | sí | sí | sí | sí | sí | sí | sí | no | no | no | no | no | 7/9 |
+| `review-prepush` run-3 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/9 |
+| `review-prepush` run-4 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/9 |
+| **`review-prepush`, de 3** | 3 | 3 | 3 | 3 | 3 | 3 | 1 | 0 | 0 | 0 | 0 | 0 | 6,3 de media |
+| `review-pr` | sin ejecuciones válidas | | | | | | | | | | | | |
+
+Notas: las tres terminan en BLOCK con 3 o 4 Critical. B2 aparece como hallazgo propio en las tres («el offset incorrecto pasa el test»). B5 sale como Nit en run-1 y run-3 y como Optional en run-4. B7 solo en run-1 (R4, `pageTotal` frente a `sumTotals`, «sin introducir una dependencia circular»). B8 y B9 no aparecen en ninguna. Ningún señuelo sobrevive. Fuera de `EXPECTED.md`: falta de test de `/invoices` (lo discutible, las tres); run-3 añade un Critical (C4, `data/invoices/2026-001.pdf` no es un PDF válido) y run-4 un Required (falta de test del orden de `listOrders`). El verifier refutó 0 hallazgos en las tres.
+
+### Medias, T17 frente a T20
+
+Solo datos. T17: esfuerzo `low`, kit `6d9fd8a`. T20: esfuerzo `medium`, kit `20c832c`.
+
+| Comando | Base | Ejecuciones válidas | Duración (s) | Entrada | Entrada en caché | Entrada sin caché | Salida | Razonamiento | Bugs detectados (de 9) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `review-prepush` | T17 (`low`) | 3 | 112 | 687.731 | 615.765 | 71.966 | 5.882 | 87 | 6,0 |
+| `review-prepush` | T20 (`medium`) | 3 | 137 | 650.935 | 586.880 | 64.055 | 6.497 | 252 | 6,3 |
+| `review-pr` | T17 (`low`) | 3 | 91 | 1.081.680 | 1.001.856 | 79.824 | 5.780 | 209 | 4,7 |
+| `review-pr` | T20 (`medium`) | 0 | — | — | — | — | — | — | — |
+
+## Base con esfuerzo `low` (T17)
+
+Válida para el esfuerzo `low`, el que `gpt-6.1-terra` trae por defecto; T20 la complementa con `medium`.
 
 ### Cómo se midió
 
@@ -51,7 +176,7 @@ Igual que en T1: `summarize.py` suma los `token_usage_record` de los registros d
 
 - **Semgrep no funciona, igual que en T1.** El motivo cambia al intentarlo. La falta de directorio temporal se resuelve con `-s workspace-write`, `TMPDIR` y las variables `SEMGREP_*` dentro del sandbox generado y sin `/tmp` escribible (comprobado con `codex sandbox`). Pero `semgrep scan --config p/default` descarga las reglas de `semgrep.dev` y falla con `Name or service not known`: hace falta red, y dársela sería ampliar los permisos fuera del sandbox. Fuera del sandbox de Codex el script sí corre. Se mantuvo `read-only`, así que las condiciones son las de T1: los informes dicen «Semgrep: skipped/failed».
 - **Variación del modelo:** con el mismo prompt, el modelo lanzó los subagentes con `fork_turns: "none"` en `review-prepush` run-1 y run-3 (primera llamada de ~21.500 tokens de entrada) y sin indicarlo en el resto (entre 35.570 y 50.017). Es parte de lo medido, pero explica gran parte de la diferencia entre ejecuciones.
-- **Esfuerzo:** los subagentes aparecen con `effort low` en su `turn_context`; la sesión principal no lo registra (campo vacío). Los `.toml` no lo declaran y no se ha investigado quién lo fija. Los hijos con historial heredado muestran además un primer `turn_context` del padre (sin esfuerzo), copiado del historial.
+- **Esfuerzo:** los subagentes aparecen con `effort low` en su `turn_context`; la sesión principal no lo registra (campo vacío). Los `.toml` no lo declaran. T20 lo investigó: `low` es el valor por defecto del catálogo para este modelo y los subagentes heredan el de la sesión. Los hijos con historial heredado muestran además un primer `turn_context` del padre (sin esfuerzo), copiado del historial.
 - **Idioma:** el prompt no lo fija y el informe salió en español en cinco ejecuciones y en inglés en `review-prepush` run-1.
 - **Repeticiones y fallos:** ninguna ejecución de Codex se repitió ni falló (todas `exit 0`). `review-prepush` run-1 fue la ejecución de prueba y es válida, así que cuenta. Con la primera versión de `summarize.py` cuatro ejecuciones salieron «inválidas» (las de subagentes con historial heredado): era un fallo del script (atribuía los mensajes `developer` de un hijo a su padre, porque el registro de un hijo trae al final la `session_meta` del padre). Se corrigió y se resumieron de nuevo los mismos registros; no se relanzó Codex. Aparte, seis sondeos pequeños de diagnóstico (arriba) y una ejecución de `codex sandbox` para Semgrep.
 - Los registros crudos (`events.jsonl`, `stderr.txt`) quedan en `tests/review-sandbox/results/` (ignorado por git). En el repo van `report.md`, `summary.json` y `meta.json` de cada ejecución en `docs/review/medicion-review/t17/<comando>/run-<n>/`, con la ruta absoluta del sandbox sustituida por `repo/`. No hay secretos.

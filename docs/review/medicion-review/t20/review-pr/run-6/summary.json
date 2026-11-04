@@ -1,0 +1,20 @@
+{
+ "expected_model": "gpt-6.1-terra",
+ "expected_effort": "medium",
+ "root_thread": "01a1a618-8e3b-7c83-88bc-fce15b14e215",
+ "turn_completed_usage": null,
+ "agents": {},
+ "problems": [
+  "sin registros de la sesión principal"
+ ],
+ "total": {
+  "input_tokens": 0,
+  "cached_input_tokens": 0,
+  "output_tokens": 0,
+  "reasoning_output_tokens": 0
+ },
+ "subagents": 0,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}

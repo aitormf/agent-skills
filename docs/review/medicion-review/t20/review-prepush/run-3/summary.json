@@ -1,0 +1,76 @@
+{
+ "expected_model": "gpt-6.1-terra",
+ "expected_effort": "medium",
+ "root_thread": "01a1a60e-caa3-79e2-87c5-53ae9e9ceb9e",
+ "turn_completed_usage": {
+  "input_tokens": 440368,
+  "cached_input_tokens": 408832,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 4035,
+  "reasoning_output_tokens": 87
+ },
+ "agents": {
+  "01a1a60e-caa3-79e2-87c5-53ae9e9ceb9e": {
+   "role": "main",
+   "api_calls": 12,
+   "input_tokens": 440368,
+   "cached_input_tokens": 408832,
+   "output_tokens": 4035,
+   "reasoning_output_tokens": 87,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ]
+  },
+  "01a1a60f-47ce-7a52-a4da-9935ec8cdb20": {
+   "role": "code-reviewer",
+   "api_calls": 2,
+   "input_tokens": 102569,
+   "cached_input_tokens": 90496,
+   "output_tokens": 1239,
+   "reasoning_output_tokens": 126,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": null,
+   "first_call_input_tokens": 49391,
+   "persona": {
+    "sandbox_match": true,
+    "global_match": true,
+    "distinguishable": false,
+    "detail": "cargó la del sandbox (idéntica a la global: no se puede distinguir)",
+    "body_chars": 9013
+   }
+  },
+  "01a1a60f-fd4e-75b1-bda7-e887cfa91baa": {
+   "role": "finding-verifier",
+   "api_calls": 3,
+   "input_tokens": 168453,
+   "cached_input_tokens": 153344,
+   "output_tokens": 1690,
+   "reasoning_output_tokens": 40,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": null,
+   "first_call_input_tokens": 51596,
+   "persona": {
+    "sandbox_match": true,
+    "global_match": true,
+    "distinguishable": false,
+    "detail": "cargó la del sandbox (idéntica a la global: no se puede distinguir)",
+    "body_chars": 6062
+   }
+  }
+ },
+ "problems": [],
+ "total": {
+  "input_tokens": 711390,
+  "cached_input_tokens": 652672,
+  "output_tokens": 6964,
+  "reasoning_output_tokens": 253
+ },
+ "subagents": 2,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}

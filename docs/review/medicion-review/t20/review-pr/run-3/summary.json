@@ -1,0 +1,117 @@
+{
+ "expected_model": "gpt-6.1-terra",
+ "expected_effort": "medium",
+ "root_thread": "01a1a613-c7f7-7022-bbd2-392da8f85722",
+ "turn_completed_usage": {
+  "input_tokens": 654139,
+  "cached_input_tokens": 615296,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 3726,
+  "reasoning_output_tokens": 320
+ },
+ "agents": {
+  "01a1a613-c7f7-7022-bbd2-392da8f85722": {
+   "role": "main",
+   "api_calls": 17,
+   "input_tokens": 654139,
+   "cached_input_tokens": 615296,
+   "output_tokens": 3726,
+   "reasoning_output_tokens": 320,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ]
+  },
+  "01a1a614-2080-7f23-8476-e984999135a6": {
+   "role": null,
+   "api_calls": 4,
+   "input_tokens": 207929,
+   "cached_input_tokens": 191616,
+   "output_tokens": 997,
+   "reasoning_output_tokens": 41,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": null,
+   "first_call_input_tokens": 44831,
+   "persona": {
+    "sandbox_match": false,
+    "global_match": null,
+    "distinguishable": null,
+    "detail": "el sandbox no tiene .toml para ese rol"
+   }
+  },
+  "01a1a614-365c-7040-a478-7a1b38f7f8bb": {
+   "role": null,
+   "api_calls": 3,
+   "input_tokens": 156761,
+   "cached_input_tokens": 139776,
+   "output_tokens": 466,
+   "reasoning_output_tokens": 61,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": null,
+   "first_call_input_tokens": 45022,
+   "persona": {
+    "sandbox_match": false,
+    "global_match": null,
+    "distinguishable": null,
+    "detail": "el sandbox no tiene .toml para ese rol"
+   }
+  },
+  "01a1a614-48bb-7593-93c6-a94241e1d709": {
+   "role": null,
+   "api_calls": 3,
+   "input_tokens": 152884,
+   "cached_input_tokens": 138368,
+   "output_tokens": 577,
+   "reasoning_output_tokens": 59,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": null,
+   "first_call_input_tokens": 45248,
+   "persona": {
+    "sandbox_match": false,
+    "global_match": null,
+    "distinguishable": null,
+    "detail": "el sandbox no tiene .toml para ese rol"
+   }
+  },
+  "01a1a614-b43b-7dc0-80e7-c60752c57a42": {
+   "role": null,
+   "api_calls": 3,
+   "input_tokens": 166908,
+   "cached_input_tokens": 152704,
+   "output_tokens": 423,
+   "reasoning_output_tokens": 36,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": null,
+   "first_call_input_tokens": 50368,
+   "persona": {
+    "sandbox_match": false,
+    "global_match": null,
+    "distinguishable": null,
+    "detail": "el sandbox no tiene .toml para ese rol"
+   }
+  }
+ },
+ "problems": [
+  "None (01a1a614-2080-7f23-8476-e984999135a6): la persona cargada no es la del sandbox (el sandbox no tiene .toml para ese rol)",
+  "None (01a1a614-365c-7040-a478-7a1b38f7f8bb): la persona cargada no es la del sandbox (el sandbox no tiene .toml para ese rol)",
+  "None (01a1a614-48bb-7593-93c6-a94241e1d709): la persona cargada no es la del sandbox (el sandbox no tiene .toml para ese rol)",
+  "None (01a1a614-b43b-7dc0-80e7-c60752c57a42): la persona cargada no es la del sandbox (el sandbox no tiene .toml para ese rol)"
+ ],
+ "total": {
+  "input_tokens": 1338621,
+  "cached_input_tokens": 1237760,
+  "output_tokens": 6189,
+  "reasoning_output_tokens": 517
+ },
+ "subagents": 4,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}

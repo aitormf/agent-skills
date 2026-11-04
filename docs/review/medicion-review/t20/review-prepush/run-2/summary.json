@@ -1,0 +1,77 @@
+{
+ "expected_model": "gpt-6.1-terra",
+ "expected_effort": "medium",
+ "root_thread": "01a1a60d-490d-7c72-88ca-f190867c6fe6",
+ "turn_completed_usage": {
+  "input_tokens": 411312,
+  "cached_input_tokens": 379776,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 3058,
+  "reasoning_output_tokens": 150
+ },
+ "agents": {
+  "01a1a60d-490d-7c72-88ca-f190867c6fe6": {
+   "role": "main",
+   "api_calls": 12,
+   "input_tokens": 411312,
+   "cached_input_tokens": 379776,
+   "output_tokens": 3058,
+   "reasoning_output_tokens": 150,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ]
+  },
+  "01a1a60d-b342-7192-b299-6776f9f102cc": {
+   "role": "default",
+   "api_calls": 5,
+   "input_tokens": 131782,
+   "cached_input_tokens": 102912,
+   "output_tokens": 1576,
+   "reasoning_output_tokens": 60,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": "none",
+   "first_call_input_tokens": 19595,
+   "persona": {
+    "sandbox_match": false,
+    "global_match": null,
+    "distinguishable": null,
+    "detail": "el sandbox no tiene .toml para ese rol"
+   }
+  },
+  "01a1a60e-3401-70e2-a511-dac187db1ddf": {
+   "role": "default",
+   "api_calls": 4,
+   "input_tokens": 100374,
+   "cached_input_tokens": 89856,
+   "output_tokens": 1346,
+   "reasoning_output_tokens": 11,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": "none",
+   "first_call_input_tokens": 19693,
+   "persona": {
+    "sandbox_match": false,
+    "global_match": null,
+    "distinguishable": null,
+    "detail": "el sandbox no tiene .toml para ese rol"
+   }
+  }
+ },
+ "problems": [
+  "default (01a1a60d-b342-7192-b299-6776f9f102cc): la persona cargada no es la del sandbox (el sandbox no tiene .toml para ese rol)",
+  "default (01a1a60e-3401-70e2-a511-dac187db1ddf): la persona cargada no es la del sandbox (el sandbox no tiene .toml para ese rol)"
+ ],
+ "total": {
+  "input_tokens": 643468,
+  "cached_input_tokens": 572544,
+  "output_tokens": 5980,
+  "reasoning_output_tokens": 221
+ },
+ "subagents": 2,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}

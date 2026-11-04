@@ -14,7 +14,7 @@ case "${1:-}" in
   *) echo "uso: build.sh [--codex]" >&2; exit 2 ;;
 esac
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KIT="$(cd "$HERE/../.." && pwd)"   # root of agent-skills
+KIT="${KIT:-$(cd "$HERE/../.." && pwd)}"   # root of agent-skills; KIT=<dir> copies skills, agents and adapters from another checkout (a worktree at the commit to measure)
 REPO="$HERE/repo"
 
 rm -rf "$REPO"; mkdir -p "$REPO"; cd "$REPO"
