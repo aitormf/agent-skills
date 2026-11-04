@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(./.gitattributes)",
+      "Edit(./.claude/settings.json)"
+    ]
+  }
+}

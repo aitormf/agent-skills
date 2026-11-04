@@ -23,6 +23,7 @@
       "Read(~/.config/gcloud/**)",
       "Edit(./.github/**)",
       "Edit(./.pre-commit-config.yaml)",
+      "Edit(./.gitattributes)",
       "Edit(./.claude/settings.json)"
     ]
   },
