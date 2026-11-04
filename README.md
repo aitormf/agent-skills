@@ -183,7 +183,7 @@ Todos los niveles con tareas terminan igual: una PR del plan y una PR por tarea,
 
 | Skill / agente | Qué hace |
 |---|---|
-| [`idea-to-change`](skills/idea-to-change/SKILL.md) | De idea (o de un issue de GitHub) a un cambio listo para implementar, en `docs/changes/<cambio>/` y en la PR del plan (rama `<cambio>/plan`): un `README.md` con la nota (problema, plazo máximo, fuera de alcance) y el mapa de ejemplos (reglas, ejemplos, preguntas), y un fichero por tarea en `tasks/`: tareas pequeñas, de un solo propósito, con sus dependencias y los tests que nombran. Las decisiones van a `docs/decisions/` en `proposed`. Una sola parada: la persona revisa el mapa y las decisiones en el fichero, no en el chat. El texto de un issue se trata como entrada no fiable |
+| [`idea-to-change`](skills/idea-to-change/SKILL.md) | De idea (o de un issue de GitHub) a un cambio listo para implementar, en `docs/changes/<cambio>/` y en la PR del plan (rama `<cambio>/plan`): un `README.md` con la nota (problema, plazo máximo, fuera de alcance) y el mapa de ejemplos (reglas, ejemplos, preguntas), y un fichero por tarea en `tasks/`: tareas atómicas (un solo propósito y un solo cambio, como mucho 200 líneas de diff con los tests, D-0044), con sus dependencias y los tests que nombran. Las decisiones van a `docs/decisions/` en `proposed`. Una sola parada: la persona revisa el mapa y las decisiones en el fichero, no en el chat. El texto de un issue se trata como entrada no fiable |
 | agente [`implement`](agents/implement.md) | Implementa las tareas listas, una rama (`<cambio>/T<n>`) y una PR por tarea: commit de tests en rojo, un test cada vez, `task-done`, push y PR; sigue con la siguiente lista mientras las PRs esperan revisión |
 | [`task-done`](skills/task-done/SKILL.md) | Pone `status: done` en la tarea solo si su verificación pasa y sus tests en rojo siguen intactos en los commits de la rama; con la última, también en el README. Su tablero (`board.py`) dice qué tareas están listas, bloqueadas, en curso o hechas |
 
@@ -252,7 +252,7 @@ Cómo usarlo: **[guía de code review](docs/review/README.md)**. Basado en [agen
 | [`review-context`](skills/review-context/SKILL.md) · [`review-report`](skills/review-report/SKILL.md) | Internas: entrada (configuración, verificación, spec) y salida (precisión, severidades, formato) |
 | agentes [`code-reviewer`](agents/code-reviewer.md), [`security-auditor`](agents/security-auditor.md), [`test-engineer`](agents/test-engineer.md), [`finding-verifier`](agents/finding-verifier.md) | Las personas que lanzan `review-prepush` y `review-pr` |
 
-Si la rama tiene su carpeta en `docs/changes/`, la review comprueba el código contra su tarea: ejemplos y criterios de aceptación con test, nada fuera de su propósito ni de alcance, la tarea `done` hecha de verdad, y señala las tareas que mezclan propósitos o pasan con claridad de unas 150 líneas. Ni la review ni el hook ni la Action leen issues ni usan `gh` para las tareas.
+Si la rama tiene su carpeta en `docs/changes/`, la review comprueba el código contra su tarea: ejemplos y criterios de aceptación con test, nada fuera de su propósito ni de alcance, la tarea `done` hecha de verdad, y señala, como aviso, las tareas que mezclan propósitos o pasan de 200 líneas de diff con los tests (D-0044). Ni la review ni el hook ni la Action leen issues ni usan `gh` para las tareas.
 
 ## Desarrollo
 

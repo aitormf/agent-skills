@@ -1,7 +1,7 @@
 ---
 id: T8
 title: Documentar las tareas atómicas
-status: todo
+status: done
 depends_on: [T7]
 examples: []
 verification: scripts/check.sh
