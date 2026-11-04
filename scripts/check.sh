@@ -754,91 +754,6 @@ gd checkout -q main; (cd "$d" && python3 "$ds" main...feat) > "$tmp/size.out" 2>
 [ "$(cat "$tmp/size.out")" = "1 lines, small (at most 200)" ] || { echo "E35 from another branch: got '$(cat "$tmp/size.out")'" >&2; exit 1; }
 gd branch -qD feat
 
-echo "▶ review: code-reviewer passes when it is the only reviewer (E13-E16, D-0045)"
-python3 - <<'PYEOF'
-import re, sys
-text = open("agents/code-reviewer.md", encoding="utf-8").read()
-m = re.search(r"^## Passes\n(.*?)(?=^## )", text, re.S | re.M)
-sec = m.group(1) if m else ""
-want = {
-    "E13 security pass: external input, files or paths, security-checklist.md, trust boundaries of security-auditor": [
-        "external input", "file", "path", "references/security-checklist.md", "security-auditor", "who can trigger"],
-    "E13 the Passes: line with the reason": ["Passes:", "base, tests, security (file path from request input)"],
-    "E14 base and tests always, others only on a trigger": ["always", "base", "tests", "Passes: base, tests"],
-    "E15 performance pass: loops over data, I/O, queries, performance-checklist.md": [
-        "loop", "I/O", "quer", "references/performance-checklist.md"],
-    "E16 security pass on lockfiles, dependencies and high-risk paths; mandatory on tier 2": [
-        "lockfile", "dependenc", "high-risk", "tier 2", "even with no external input"],
-    "only when the command says you review alone; the fan-out keeps its personas": [
-        "only reviewer", "security-auditor", "test-engineer"],
-    "finds the checklists without a preloaded skill or a fixed install path": ["Glob", "code-review-and-quality/references/"],
-}
-bad = [f"{k}: missing {w!r}" for k, ws in want.items() for w in ws if w.lower() not in sec.lower()]
-if not m:
-    bad = ["agents/code-reviewer.md has no '## Passes' section"]
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-PYEOF
-
-echo "▶ review: review-pr chooses the reviewers by the size of the diff (E10-E12, R2, D-0045)"
-python3 - <<'PYEOF'
-import re, sys
-from pathlib import Path
-text = Path("skills/review-pr/SKILL.md").read_text(encoding="utf-8")
-def step(n):
-    m = re.search(rf"^## Step {n} .*?(?=^## |\Z)", text, re.S | re.M)
-    return m.group(0).lower() if m else ""
-s2, s4 = step(2), step(4)
-want = {
-    "--deep in argument-hint": (text.split("---")[1], ["--deep"]),
-    "Step 2 measures the size with diff_size.py, not the model": (s2, ["diff_size.py", "200"]),
-    "E10 up to 200 lines, tiers 1-2: one code-reviewer, the only reviewer, plus the verifier": (
-        s4, ["at most 200", "only reviewer", "verifier", "tiers 1"]),
-    "E10 tier 2: mandatory security pass, no security-auditor": (
-        s4, ["tier 2", "mandatory", "security pass", "without `security-auditor`"]),
-    "E11 over 200 lines or --deep: full fan-out": (s4, ["more than 200", "--deep", "full fan-out"]),
-    "E11 the summary says the size and the D-0044 warning": (s4 + s2, ["lines", "d-0044"]),
-    "E12 tier 0: only code-reviewer, whatever the size": (s4, ["tier 0", "whatever the size"]),
-}
-bad = [f"review-pr {k}: missing {w!r}" for k, (t, ws) in want.items() for w in ws if w.lower() not in t.lower()]
-if len(text) > 12500:
-    bad.append(f"skills/review-pr/SKILL.md has {len(text)} characters (limit 12500)")
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-PYEOF
-
-echo "▶ review: code-reviewer carries the condensed criterion, not the whole skill (E25-E28, R6, D-0045)"
-python3 - <<'PYEOF'
-import re, sys
-from pathlib import Path
-text = Path("agents/code-reviewer.md").read_text(encoding="utf-8")
-m = re.search(r"^## Judgement\n(.*?)(?=^## )", text, re.S | re.M)
-sec = m.group(1) if m else ""
-bad = [] if m else ["agents/code-reviewer.md has no '## Judgement' section"]
-if m and not 1200 <= len(sec.encode()) <= 2400:
-    bad.append(f"Judgement is {len(sec.encode())} bytes, expected about 1.5-2 KB")
-# Each rule the inventory keeps "in the agent" must stay in it: key phrases per example.
-want = {
-    "E25 reuse the existing helper and name it; named structural remedies": [
-        "reuse the existing helper", "name it in the fix", "propose the move", "explicit dispatcher",
-        "delete a pass-through wrapper", "extract a helper"],
-    "E26 moving complexity is not reducing it: count the concepts": [
-        "collapse duplicate branches", "count the concepts", "relocat", "conditionals scattered", "grows a large file"],
-    "E27 dead code the change leaves, listed by name": ["dead code", "by name"],
-    "E28 honesty and agent code; --deep reads the whole skill": [
-        "soften", "without evidence", "quantify", "agent", "--deep", "code-review-and-quality"],
-}
-bad += [f"{k}: missing {w!r}" for k, ws in want.items() for w in ws if w.lower() not in sec.lower()]
-fm = text.split("\n---\n", 1)[0]
-if "code-review-and-quality" in fm:
-    bad.append("agents/code-reviewer.md frontmatter still lists code-review-and-quality")
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-PYEOF
-
 echo "▶ review: the report format is read by the main session only (E29, R6, D-0045)"
 python3 - <<'EOF2'
 import re, sys
@@ -878,34 +793,6 @@ for a in ("code-reviewer", "security-auditor", "test-engineer"):
 sa = Path("agents/security-auditor.md").read_text(encoding="utf-8")
 if "## Severity Classification" not in sa or "| **Critical** |" not in sa or "| **Info** |" not in sa:
     bad.append("agents/security-auditor.md lost its severity scale (review-report §2 maps from it)")
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-EOF2
-echo "▶ review: review-prepush picks the reviewers by the size of the diff (E7-E9, R2, D-0044, D-0045)"
-python3 - <<'EOF2'
-import re, sys
-from pathlib import Path
-bad = []
-text = Path("skills/review-prepush/SKILL.md").read_text(encoding="utf-8")
-front = text.split("\n# /review-prepush", 1)[0]
-m = re.search(r"^## Step 3 .*?(?=^## |\Z)", text, re.S | re.M)
-step = m.group(0) if m else ""
-need = {  # E7: small diff, the unified code-reviewer and the verifier; E8: large, fan-out and the warning; E9: --deep
-    "E7 diff_size.py": "diff_size.py",
-    "E7 at most 200": "200 lines",
-    "E7 the unified code-reviewer alone": "code-reviewer",
-    "E8 security-auditor": "security-auditor",
-    "E8 test-engineer": "test-engineer",
-    "E8 in a single assistant turn": "single assistant turn",
-    "E8 the size warning": "pasa de 200 líneas (D-0044)",
-    "E9 --deep": "--deep",
-}
-bad += [f"review-prepush Step 3: missing ({k})" for k, v in need.items() if v not in step]
-if front.count("--deep") < 2:
-    bad.append("review-prepush: E9 --deep must be in argument-hint (and its claudecode block)")
-if "--deep" in Path("skills/review-prepush/assets/pre-push").read_text(encoding="utf-8"):
-    bad.append("pre-push hook: E9 must not pass --deep")
 for b in bad:
     print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)

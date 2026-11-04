@@ -2,11 +2,11 @@
 id: D-0045
 title: Hasta 200 líneas de diff, la review usa un solo code-reviewer con pasadas condicionales y el verifier; el fan-out de tres personas queda para diffs mayores o --deep, y los subagentes no reescriben lo que otro ya escribió
 type: architecture
-status: accepted
+status: superseded
 date: 2026-11-03
 affects: [skills/review-prepush/, skills/review-pr/, skills/review-context/, skills/review-report/, agents/code-reviewer.md, agents/security-auditor.md, agents/test-engineer.md, agents/finding-verifier.md]
 supersedes: null
-superseded_by: null
+superseded_by: D-0047
 issue: null
 ---
 

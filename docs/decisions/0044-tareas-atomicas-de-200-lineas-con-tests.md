@@ -19,7 +19,7 @@ D-0033 pedía un solo propósito por tarea (comportamiento nuevo, refactor o pre
 ## Decisión
 
 - **Atómica:** un solo propósito (comportamiento nuevo, refactor o preparación, sin mezclar) **y** un solo cambio: un comportamiento, una regla del mapa de ejemplos. El propósito se explica en una frase sin "y"; si necesita "y", son dos tareas.
-- **Tamaño:** como mucho 200 líneas de diff (añadidas + borradas) **con los tests incluidos**, contadas como en D-0045 (sin lockfiles, generados ni snapshots). Si una tarea promete más, se parte al planificar.
+- **Tamaño:** como mucho 200 líneas de diff (añadidas + borradas) **con los tests incluidos**, contadas como en D-0047 (sin lockfiles, generados ni snapshots). Si una tarea promete más, se parte al planificar.
 - **Cada tarea deja la rama base en verde y desplegable.** Si el comportamiento queda a medias, va detrás de un feature flag apagado por defecto, con el mecanismo que diga `AGENTS.md`.
 - **Un cambio con flag termina con una tarea que lo retira**, con el código muerto y los tests del camino viejo. Esa tarea depende de todas las demás.
 
