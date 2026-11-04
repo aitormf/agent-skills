@@ -8,7 +8,7 @@ verification: scripts/check.sh
 ---
 **Propósito:** comprobar con datos que el reviewer unificado gasta menos sin perder hallazgos (S3).
 
-**Dentro:** 3 ejecuciones de `review-prepush` y `review-pr` con el cambio, con `tests/review-sandbox/measure.sh`; la comparación con la base de T17 en `docs/review/medicion-review.md` (tokens por agente, total y sin caché; bugs y señuelos por ejecución). Si el unificado detecta menos B1–B6 que la base de forma consistente, se dice en la página y en la PR, y no se da el cambio por bueno hasta reforzar los disparadores (otra tarea).
+**Dentro:** 3 ejecuciones de `review-prepush` y `review-pr` con el cambio, con `tests/review-sandbox/measure.sh`; la comparación con la base de T17 en `docs/review/medicion-review.md` (tokens por agente, total y sin caché; bugs y señuelos por ejecución). El efecto de T15 se mide aparte, porque la base mezcla los dos modos: con el mismo commit, 3 ejecuciones de `review-prepush` pidiendo en el prompt `fork_turns: "none"` y 3 pidiendo `"all"`, comparando entrada total, sin caché y la de la sesión principal. Si el unificado detecta menos B1–B6 que la base de forma consistente, se dice en la página y en la PR, y no se da el cambio por bueno hasta reforzar los disparadores (otra tarea).
 
 **Fuera:** reforzar los disparadores en esta misma tarea.
 
