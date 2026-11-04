@@ -751,6 +751,32 @@ for b in bad:
 sys.exit(1 if bad else 0)
 PYEOF
 
+echo "▶ review: the report format is read by the main session only (E29, R6, D-0045)"
+python3 - <<'EOF2'
+import re, sys
+from pathlib import Path
+bad = []
+ref = Path("skills/review-report/references/report-format.md")
+if not ref.is_file():
+    bad.append(f"{ref} does not exist")
+else:
+    t = ref.read_text(encoding="utf-8")
+    bad += [f"{ref}: missing '{h}'" for h in ("### 4.1 Full layout", "### 4.2 Short layout", "### 4.3 Findings block") if h not in t]
+head = Path("skills/review-report/SKILL.md").read_text(encoding="utf-8")
+bad += [f"skills/review-report/SKILL.md still has '{h}'" for h in ("### 4.1", "### 4.2", "### 4.3") if h in head]
+for f in [*Path("agents").glob("*.md"), *Path("adapters").glob("*/agents/*")]:
+    if f.name == "implement.md" or not re.search(r"code-reviewer|security-auditor|test-engineer|finding-verifier", f.name):
+        continue
+    if re.search(r"§4", f.read_text(encoding="utf-8")):
+        bad.append(f"{f}: a persona cites §4 of review-report")
+for skill in ("review-prepush", "review-pr"):
+    if "references/report-format.md" not in Path(f"skills/{skill}/SKILL.md").read_text(encoding="utf-8"):
+        bad.append(f"skills/{skill}/SKILL.md does not read references/report-format.md")
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF2
+
 echo "▶ manifiestos"
 python3 - <<'EOF'
 import json, sys
