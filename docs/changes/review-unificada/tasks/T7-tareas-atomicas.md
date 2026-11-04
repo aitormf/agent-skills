@@ -1,7 +1,7 @@
 ---
 id: T7
 title: Tareas atómicas de como mucho 200 líneas con los tests
-status: todo
+status: done
 depends_on: [T2]
 examples: [E20, E21, E22, E23, E24]
 verification: scripts/check.sh
