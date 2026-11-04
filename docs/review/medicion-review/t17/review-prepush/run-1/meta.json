@@ -1,0 +1,12 @@
+{
+ "command": "review-prepush",
+ "run": 1,
+ "model": "gpt-6.1-terra",
+ "codex": "codex-cli 0.165.0",
+ "exit_code": 0,
+ "seconds": 113,
+ "kit_commit": "6d9fd8a",
+ "prompt": "Ejecuta la skill review-prepush (.agents/skills/review-prepush/SKILL.md) con los argumentos: main, estando en la rama feature/orders-pagination-invoices. Usa solo las skills de este proyecto, en .agents/skills/ (también las que ella cite: review-context, review-report, task-done); no leas ~/.agents ni ~/.codex. Los subagentes son los de .codex/agents/. No cambies ningún fichero.",
+ "codex_exec": "codex exec -m gpt-6.1-terra -s read-only --json -c agents.<rol>.{description,config_file}=... -o report.md \"<prompt>\" (en repo/)",
+ "personas": "las de .codex/agents/ del sandbox, con -c agents.<rol>.config_file (una por persona)"
+}
