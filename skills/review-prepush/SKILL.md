@@ -1,7 +1,7 @@
 ---
 name: review-prepush
-description: Fast pre-push review of the current branch against its base — runs the repo's checks from AGENTS.md, a fresh-context code-reviewer (against the branch's docs/changes/ folder, if it has one), and an adversarial finding-verifier. Blocks only on confirmed Critical findings. Use before pushing, or when asked whether a branch is ready.
-argument-hint: "[base-branch]"
+description: Fast pre-push review of the current branch against its base — runs the repo's checks from AGENTS.md, a fresh-context code-reviewer (alone up to 200 changed lines, with security-auditor and test-engineer above that or with --deep) (against the branch's docs/changes/ folder, if it has one), and an adversarial finding-verifier. Blocks only on confirmed Critical findings. Use before pushing, or when asked whether a branch is ready.
+argument-hint: "[base-branch] [--deep]"
 allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*)
 kind: skill
 uses:
@@ -14,7 +14,7 @@ related:
   - skill:task-done
 # Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
 claudecode:
-  argument-hint: "[base-branch]"
+  argument-hint: "[base-branch] [--deep]"
   allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*)
 ---
 
@@ -54,9 +54,12 @@ python3 <task-done-dir>/scripts/task_done.py --audit docs/changes/<change> [T<n>
 
 It runs no verification, edits nothing and reads only git and the repo. Its scope follows the branch (D-0032). On a task branch, only that task: among the commits of the branch since the base branch, that each of its examples has a test named after it in the red commit (`test(T3): …`) and no later commit changed or removed those tests (a task not done without a red commit is `pending`), that its examples are in the README's example map, and that its `depends_on` are done in the base branch. On the plan branch: the task files (frontmatter, no dependency that does not exist, no cycle) and that every example of the map is in some task. Keep its output as a verification result (exit 0: nothing wrong; exit 3: `PROBLEM` lines). If the skill or `python3` is not available, if it exits 2, or if its only `PROBLEM` is that it cannot read the git history of the branch (no base branch found), write "Test protection: not checked (<reason>)" under Verification.
 
-## Step 3 — Review (one subagent)
+## Step 3 — Review (subagents, by the size of the diff)
+Measure the diff: `python3 <review-context-dir>/scripts/diff_size.py <base>...HEAD` (`../review-context`, next to this skill; lines added plus deleted, generated files and lockfiles not counted). Choose the reviewers (D-0045):
+- up to 200 lines and no `--deep`: spawn **one** `code-reviewer`; it applies the security and performance passes itself when the diff asks for them, and the test checks of `review-report` §5;
+- more than 200 lines, or `--deep` in `$ARGUMENTS`: the fan-out of `review-pr` Step 4. Spawn `code-reviewer`, `security-auditor` and `test-engineer` **in a single assistant turn so they run in parallel**. Tell `code-reviewer` that `test-engineer` runs alongside (the test checks are not its job). Add to the Summary of the report: `El diff pasa de 200 líneas (D-0044): revisión con tres personas` (with `--deep` and 200 lines or fewer: `--deep: revisión con tres personas`). The `pre-push` hook never passes `--deep`.
 
-Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool lists it — `harness:code-reviewer` when installed as the Claude Code plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session. Give it, verbatim:
+Use the names exactly as the Agent tool lists them (`harness:code-reviewer` etc. when installed as the Claude Code plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session. Give each, verbatim:
 
 - the base ref and the exact diff command: `git diff <base>...HEAD` (it must read the diff and the surrounding code itself);
 - the task (the paths of the change folder and the `review-context` §4 instruction, or the inferred task);
@@ -64,7 +67,7 @@ Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool l
 - the `Code review` section of AGENTS.md, if any, and the effective limits (`Max Optional`, `Max Nits`);
 - this brief:
 
-  > Pre-push review. Focus only on: (1) does the change fulfil the task (if there is a change folder, apply the checks you were given for it); (2) correctness bugs on realistic paths; (3) tests in the diff that would not fail if the logic were wrong, and quality lowered to pass (review-report §1); (4) debug leftovers, new TODO/FIXME without a ticket, commented-out or dead code; (5) obvious security holes in the changed lines; (6) the "Beyond the diff" checks of your instructions: callers outside the diff of symbols whose contract changed, and clashes with accepted decisions in `docs/decisions/`; (7) you are the only persona, so apply the test checks of review-report §5 (the test criterion, and one finding per `PROBLEM` line of the `task_done.py --audit` output); (8) on a task branch, the size and purpose check of your instructions (D-0033). Skip architecture, naming and style unless they hide a bug. Apply review-report precision rules (§1). Report findings in review-report §3 format, plus one concrete "what's done well" item and your one-line `Callers:` summary. Do not modify files.
+  > Pre-push review. Focus only on: (1) does the change fulfil the task (if there is a change folder, apply the checks you were given for it); (2) correctness bugs on realistic paths; (3) tests in the diff that would not fail if the logic were wrong, and quality lowered to pass (review-report §1); (4) debug leftovers, new TODO/FIXME without a ticket, commented-out or dead code; (5) obvious security holes in the changed lines; (6) the "Beyond the diff" checks of your instructions: callers outside the diff of symbols whose contract changed, and clashes with accepted decisions in `docs/decisions/`; (7) if you are the only persona, apply the test checks of review-report §5 (the test criterion, and one finding per `PROBLEM` line of the `task_done.py --audit` output); (8) on a task branch, the size and purpose check of your instructions (D-0033). Skip architecture, naming and style unless they hide a bug. Apply review-report precision rules (§1). Report findings in review-report §3 format, plus one concrete "what's done well" item and your one-line `Callers:` summary. Do not modify files.
 
 **Without subagents** (a tool that cannot spawn them, e.g. pi): run each persona's role yourself, one after another, using the same brief and keeping its output separate; then verify the findings yourself with the `finding-verifier` procedure. Say so under Verification ("personas run in the main session, not in a fresh context").
 
