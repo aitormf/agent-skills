@@ -776,4 +776,21 @@ else
   echo "  (claude no está instalado: se omite claude plugin validate)"
 fi
 
+echo "▶ E36: los permisos deniegan editar .gitattributes (plantilla de guardrails y este repo)"
+python3 - <<'EOF2'
+import json, sys
+bad = []
+for f, rules in (("skills/setup-guardrails-python/assets/files/.claude/settings.json", ("Edit(./.gitattributes)",)),
+                 (".claude/settings.json", ("Edit(./.gitattributes)", "Edit(./.claude/settings.json)"))):
+    try:
+        deny = json.load(open(f))["permissions"]["deny"]
+    except (OSError, KeyError, ValueError) as e:
+        bad.append(f"{f}: no se pudo leer permissions.deny ({e})")
+        continue
+    bad += [f"{f}: falta {r} en deny" for r in rules if r not in deny]
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF2
+
 echo "✔ todo en verde"
