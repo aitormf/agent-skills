@@ -76,13 +76,13 @@ Keep only `CONFIRMED` and `UNCERTAIN` findings, with the verifier's final severi
 
 ## Step 5 — Report (main session)
 
-Produce the `review-report` §4 report in the full layout (§4.1). Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. If there is a change folder, add one line to the Summary: `Task: <task file path> (<status>)` on a task branch, or `Plan: <folder> — <N> tasks` on the plan branch, followed by `; audit: <ok | N problems | not checked>`. Under Verification, add the audit command and its exit status, and the reviewer's `Callers:` line. Verdict values:
+Read `../review-report/references/report-format.md` (the `review-report` skill's directory, next to this one) and produce the report in the full layout (§4.1). Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. If there is a change folder, add one line to the Summary: `Task: <task file path> (<status>)` on a task branch, or `Plan: <folder> — <N> tasks` on the plan branch, followed by `; audit: <ok | N problems | not checked>`. Under Verification, add the audit command and its exit status, and the reviewer's `Callers:` line. Verdict values:
 
 - **BLOCK** — at least one CONFIRMED Critical.
 - **FIX BEFORE PR** — no confirmed Critical, but Required findings (or uncertain Critical).
 - **OK** — nothing above Optional.
 
-Output only the report (`review-report` §4): no preamble, no closing remarks.
+Output only the report (`report-format.md`): no preamble, no closing remarks.
 
 The last line of the output must be exactly (for the git hook):
 
