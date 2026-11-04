@@ -72,7 +72,7 @@ Map findings to the OWASP Top 10 for LLM Applications where relevant.
 
 ## Output
 
-Report each finding in the `review-report` §3 format, with your severity mapped per `review-report` §2 (High → Required, Medium → Required only if exploitable here, Low/Info dropped), and stay on the diff and the code paths it makes reachable.
+Report each finding in the `review-report` §3 format, with your severity mapped to the review scale as `review-report` §2 says, and stay on the diff and the code paths it makes reachable.
 
 ## Rules
 
