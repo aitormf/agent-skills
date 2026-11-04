@@ -20,6 +20,8 @@ Rule R1: el tamaño de un diff para la review son las líneas añadidas + borrad
   E4: 30 de código + 900 de package-lock.json → 30, pequeño
   E5: un fichero en adapters/ marcado linguist-generated en .gitattributes + 40 de código → 40
   E6: un binario (numstat "-") → cuenta 0
+  E34: una rama añade un .gitattributes que marca *.py como generado y 900 líneas de .py → cuentan las 900 líneas, grande: los atributos se leen de la base, no de la rama
+  E35: el .gitattributes de la base marca adapters/ como generado y la rama cambia adapters/ → no cuenta, aunque la rama quite la marca
 
 Rule R2: review-prepush y review-pr eligen los revisores por el tamaño del diff (D-0045)
   E7: review-prepush, diff de 190 → code-reviewer unificado + finding-verifier (2 subagentes)
@@ -57,6 +59,9 @@ Rule R6: cada subagente carga solo lo que usa, sin perder criterio: code-reviewe
 Rule R7: los subagentes de la review arrancan sin el historial de la sesión principal; lo que necesitan va en su encargo (D-0046)
   E30: review-prepush o review-pr en Codex lanza una persona → spawn_agent con fork_turns "none"
   E31: el encargo de esa persona lleva cómo leer el cambio, los resultados de la verificación y los límites, sin dar por hecho que vio algo de la sesión principal
+
+Rule R9: en Claude Code, el modelo no puede editar .gitattributes
+  E36: los permisos de la plantilla de guardrails y los de este repo deniegan Edit(./.gitattributes)
 
 Rule R8: la sesión principal solo lee lo que usa
   E32: review-prepush o review-pr lanza una persona → no lee su definición en .codex/agents/ ni en agents/; la herramienta la carga
