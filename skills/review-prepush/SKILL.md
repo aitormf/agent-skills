@@ -59,7 +59,7 @@ Measure the diff: `python3 <review-context-dir>/scripts/diff_size.py <base>...HE
 - up to 200 lines and no `--deep`: spawn **one** `code-reviewer`; it applies the security and performance passes itself when the diff asks for them, and the test checks of `review-report` §5;
 - more than 200 lines, or `--deep` in `$ARGUMENTS`: the fan-out of `review-pr` Step 4. Spawn `code-reviewer`, `security-auditor` and `test-engineer` **in a single assistant turn so they run in parallel**. Tell `code-reviewer` that `test-engineer` runs alongside (the test checks are not its job). Add to the Summary of the report: `El diff pasa de 200 líneas (D-0044): revisión con tres personas` (with `--deep` and 200 lines or fewer: `--deep: revisión con tres personas`). The `pre-push` hook never passes `--deep`.
 
-Use the names exactly as the Agent tool lists them (`harness:code-reviewer` etc. when installed as the Claude Code plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session. Give each, verbatim:
+Use the names exactly as the Agent tool lists them (`harness:code-reviewer` etc. when installed as the Claude Code plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `agent_type: "<persona>"` (`code-reviewer`, etc., so its definition loads) and `fork_turns: "none"` (default `all`) to `spawn_agent`; Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session. Give each, verbatim:
 
 - the base ref and the exact diff command: `git diff <base>...HEAD` (it must read the diff and the surrounding code itself);
 - the task (the paths of the change folder and the `review-context` §4 instruction, or the inferred task);
@@ -73,7 +73,7 @@ Use the names exactly as the Agent tool lists them (`harness:code-reviewer` etc.
 
 ## Step 4 — Verify findings (one subagent)
 
-If the reviewer reported zero findings, skip this step. Otherwise spawn **one** subagent `finding-verifier` (`harness:finding-verifier` as a plugin) with, in the same way (no inherited history; `fork_turns: "none"` in Codex): the task, the base ref and diff command, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3), and **all** findings verbatim (Optional and Nits included — it verifies and ranks them). Do not filter or rephrase them first.
+If the reviewer reported zero findings, skip this step. Otherwise spawn **one** subagent `finding-verifier` (`harness:finding-verifier` as a plugin) with, in the same way (no inherited history; in Codex `agent_type: "finding-verifier"` and `fork_turns: "none"`): the task, the base ref and diff command, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3), and **all** findings verbatim (Optional and Nits included — it verifies and ranks them). Do not filter or rephrase them first.
 
 Keep only `CONFIRMED` and `UNCERTAIN` findings, with the verifier's final severity. Label uncertain ones `(unverified)` in their title. Debug leftovers stay Required (`review-report` §1) — tell the verifier so. Record refuted ones (ID + one-line reason) for the Verification section.
 
