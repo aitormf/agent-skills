@@ -1,15 +1,15 @@
 ---
 id: T8
-title: Documentar la review por tamaño y las tareas atómicas
+title: Documentar las tareas atómicas
 status: todo
-depends_on: [T4, T5, T7]
+depends_on: [T7]
 examples: []
 verification: scripts/check.sh
 ---
 **Propósito:** documentación: que las guías para personas digan lo que ya hacen las skills.
 
-**Dentro:** `docs/review/README.md` (tabla "Cuándo usar cada una" con el coste por tamaño, `--deep`, la recomendación de usar `review-prepush` en local), `docs/review/orchestration-addendum.md` (el fan-out pasa a ser para diffs de más de 200 líneas, con referencia a D-0045), `README.md` y `docs/sdd/README.md` (150 → 200 con tests, tarea atómica).
+**Dentro:** `README.md` y `docs/sdd/README.md` (150 → 200 líneas con tests, tarea atómica, D-0044).
 
-**Fuera:** el modelo de Codex (T9).
+**Fuera:** el modelo de Codex (T9); la review, que mantiene el fan-out (D-0047).
 
 **Flag:** ninguno.

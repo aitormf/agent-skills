@@ -2,7 +2,7 @@
 id: T13
 title: Quitar de las personas las plantillas de salida que contradicen review-report
 status: done
-depends_on: [T11]
+depends_on: []
 examples: []
 verification: scripts/check.sh
 ---
