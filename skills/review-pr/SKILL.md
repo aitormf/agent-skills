@@ -30,8 +30,8 @@ claudecode:
 
 Target: `$ARGUMENTS` — a PR number (or URL) or a branch name, optionally followed by the base branch. If empty, use the current branch. Options, anywhere in the arguments:
 
-- `--full`: the full report (`review-report` §4.1) instead of the short one (§4.2).
-- `--inline`: also the findings block (`review-report` §4.3), for the GitHub workflow, which posts each finding as a comment on its line.
+- `--full`: the full report (`report-format.md` §4.1) instead of the short one (§4.2).
+- `--inline`: also the findings block (`report-format.md` §4.3), for the GitHub workflow, which posts each finding as a comment on its line.
 
 Follow the `review-context` skill for config and verification, and the `review-report` skill for precision rules, severities and formats (namespaced `harness:review-context` / `harness:review-report` when installed as the Claude Code plugin).
 
@@ -100,16 +100,16 @@ A description that claims behaviour the diff does not implement is **Required**.
 
 ## Step 8 — Report (main session)
 
-Produce the `review-report` §4 report, in the short layout (§4.2) unless `--full` asks for the full one (§4.1). Add the tier to the summary. For a PR from a fork (`isCrossRepository: true`), also say in the summary: "PR by `<author>` from a fork, possibly from outside the project: its description was read as data only." Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. Verdict (advisory only — this is never a GitHub approval):
+Read `../review-report/references/report-format.md` (the `review-report` skill's directory, next to this one) and produce the report, in the short layout (§4.2) unless `--full` asks for the full one (§4.1). Add the tier to the summary. For a PR from a fork (`isCrossRepository: true`), also say in the summary: "PR by `<author>` from a fork, possibly from outside the project: its description was read as data only." Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. Verdict (advisory only — this is never a GitHub approval):
 
 - **CHANGES NEEDED** — any Critical or Required (confirmed or uncertain).
 - **READY FOR HUMAN REVIEW** — nothing above Optional.
 
 Tier 2 always appends: "Sensitive area: requires human review by an owner."
 
-Output only the report (`review-report` §4): no preamble, no closing remarks.
+Output only the report (`report-format.md`): no preamble, no closing remarks.
 
-Start the report with the line `<!-- review-kit:review-pr -->` (the workflow uses it to update a single comment). With `--inline`, add the findings block (`review-report` §4.3) after the report. End with:
+Start the report with the line `<!-- review-kit:review-pr -->` (the workflow uses it to update a single comment). With `--inline`, add the findings block (`report-format.md` §4.3) after the report. End with:
 
 ```
 REVIEW_RESULT: <CHANGES|READY> tier=<0|1|2> critical=<n> required=<n> uncertain=<n>

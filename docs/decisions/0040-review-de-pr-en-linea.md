@@ -18,7 +18,7 @@ El comentario único de la review era largo: todos los hallazgos enteros, lo bie
 
 ## Decisión
 
-- `review-pr --inline` añade al informe un bloque ```` ```json review-kit ```` con el veredicto, el resumen y los hallazgos (`review-report` §4.3).
+- `review-pr --inline` añade al informe un bloque ```` ```json review-kit ```` con el veredicto, el resumen y los hallazgos (`review-report/references/report-format.md` §4.3).
 - El job `publish` lee ese bloque como datos: comprueba cada `path` y `line` contra el diff de la PR, publica los que caben en una review con `event: COMMENT` y pone el resto enteros en el resumen. Sigue sin ejecutar ningún modelo (D-0027), y su script va en el propio workflow, no en el artefacto del job `review`, que el modelo podría haber escrito.
 - El resumen se edita en cada run; los comentarios en línea se quedan. Un hallazgo que ya tiene comentario del bot en la misma línea y con el mismo título no se repite.
 - Sin bloque válido, se publica el informe en Markdown como antes.

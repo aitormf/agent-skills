@@ -120,7 +120,7 @@ Only when the command says you are the only reviewer (`review-prepush`, `review-
 
 ## Output Format
 
-> **review-kit:** use the finding format (§3) and report format (§4) from the `review-report` skill. The labels below are the same scale; the template that follows is kept for reference only.
+> **review-kit:** use the finding format (§3) from the `review-report` skill. The labels below are the same scale; the template that follows is kept for reference only.
 
 Categorize every finding, using the same severity labels as the `code-review-and-quality` skill:
 
