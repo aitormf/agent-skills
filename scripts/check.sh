@@ -142,6 +142,43 @@ for b in bad:
 sys.exit(1 if bad else 0)
 PYEOF
 
+echo "▶ review: the main session reads only what it uses (E32, E33) (R8)"
+python3 - <<'PYEOF'
+import re, sys
+from pathlib import Path
+bad = []
+def skill(name):
+    return Path(f"skills/{name}/SKILL.md").read_text(encoding="utf-8")
+for name in ("review-prepush", "review-pr"):
+    text = skill(name)
+    m = re.search(r"^\*\*Read only what you use\.\*\*.*$", text, re.M)
+    rule = m.group(0) if m else ""
+    if not rule:
+        bad.append(f"{name}: missing the 'Read only what you use.' rule")
+    for k, v in {"E32 .codex/agents/": ".codex/agents/", "E32 agents/": " `agents/`", "E32 the tool loads them": "tool loads",
+                 "E33 task-done only with a change folder": "task-done"}.items():
+        if v not in rule:
+            bad.append(f"{name}: the rule lacks ({k})")
+    uses = re.search(r"^uses:\n((?:  - .*\n)+)", text, re.M).group(1)
+    if "skill:task-done" in uses:
+        bad.append(f"{name}: E33 uses: must not make task-done load without a change folder")
+pr = skill("review-pr")
+if "review-prepush" not in (re.search(r"^\*\*Read only what you use\.\*\*.*$", pr, re.M) or re.match("", "")).group(0):
+    bad.append("review-pr: E33 the rule does not name review-prepush")
+if "skill:review-prepush" in pr.split("\n---\n", 1)[0]:
+    bad.append("review-pr: E33 uses: must not load review-prepush")
+step3 = re.search(r"^## Step 3 .*?(?=^## |\Z)", pr, re.S | re.M).group(0)
+if "review-prepush" in step3:
+    bad.append("review-pr Step 3: E33 must not send the reader to review-prepush")
+for k, v in {"the command": "task_done.py --audit docs/changes/<change>", "task-done-dir": "<task-done-dir>",
+             "exit 3": "exit 3", "not checked": "Test protection: not checked"}.items():
+    if v not in step3:
+        bad.append(f"review-pr Step 3: E33 the audit lacks ({k})")
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+PYEOF
+
 echo "▶ test criterion: same text in implement and review-report"
 python3 - <<'EOF'
 import sys
