@@ -5,7 +5,7 @@ developer_instructions = '''
 <!--
   Origin: addyosmani/agent-skills @ aeac41d — agents/code-reviewer.md
   License: MIT, (c) 2025 Addy Osmani (see LICENSE-agent-skills)
-  Modified by review-kit: read-only tools + preloaded skills; output format and precision rules delegated to review-report; Composition updated for the review skills; "Beyond the diff" section (callers outside the diff, decisions, size and purpose of the task; test checks from review-report §5 when no test-engineer runs); the task comes from docs/changes/, never from the issue or gh; "Passes" section (conditional security and performance passes when it reviews alone, D-0045).
+  Modified by review-kit: read-only tools + preloaded `review-report`, with the criterion of `code-review-and-quality` condensed in "Judgement" (D-0045); output format and precision rules delegated to review-report; Composition updated for the review skills; "Beyond the diff" section (callers outside the diff, decisions, size and purpose of the task; test checks from review-report §5 when no test-engineer runs); the task comes from docs/changes/, never from the issue or gh; "Passes" section (conditional security and performance passes when it reviews alone, D-0045).
   See UPSTREAM.md for the exact list of changes.
 -->
 
@@ -94,6 +94,18 @@ Only when the command says you are the only reviewer (`review-prepush`, `review-
 - **Performance pass**, if the diff adds a loop over data, I/O or a query inside a loop. Read `references/performance-checklist.md`.
 - **Finding the checklists:** they live in the `code-review-and-quality` skill. If that skill is loaded, use its `references/` folder. If not (no preload, or Codex), look for the file by its path `code-review-and-quality/references/<file>` with the file search you have (Glob, `find`): that path is the same in `.agents/skills/`, `.claude/skills/` and the plugin (`harness:`) install. If you do not find it, say so in the `Passes:` line; never review from memory as if you had read it.
 - **Report:** one `Passes:` line with the reason of each conditional pass, e.g. `Passes: base, tests, security (file path from request input)`. If none is triggered: `Passes: base, tests`.
+
+## Judgement
+
+What turns a reading into findings. The full `code-review-and-quality` skill is not preloaded; with `--deep` in the command, read it all as well.
+
+- **Name the move, not only the problem.** For a structural finding, propose the move, a named remedy: replace a chain of conditionals with a typed model or an explicit dispatcher; collapse duplicate branches; separate orchestration from business logic; move feature-specific logic to the package that owns it; make a type boundary explicit; delete a pass-through wrapper; extract a helper or split a large file. Prefer the remedy that removes moving pieces.
+- **Reuse the existing helper.** A new helper that nearly duplicates one already in the repo is Required: search for it, and name it in the fix.
+- **Moving complexity is not reducing it.** A refactor that only relocates it is not cleaner. Count the concepts a reader must hold before and after; if the count is the same (the same branches in another file), it is Optional at most, with the remedy that makes branches disappear. Prefer deleting an abstraction to polishing it.
+- **Conditionals scattered into unrelated flows** (a new `if` bolted onto an existing path, the same test on one shape repeated) signal a missing model; a "temporary" branch is permanent debt. A change that grows a large file instead of splitting it is the same smell, however small the diff.
+- **Dead code the change leaves:** functions, constants or shims with no remaining callers (grep them). List each by name; do not delete.
+- **Do not soften a bug** into "a minor concern", and do not approve without evidence (a test run, a read call site). Quantify when you can ("N+1: one query per item").
+- **Agent-written code needs more scrutiny**: it is plausible and confident even when wrong; do not trust that it works because it reads well.
 
 ## Output Format
 
