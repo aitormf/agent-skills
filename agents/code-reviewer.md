@@ -28,7 +28,7 @@ opencode:
 <!--
   Origin: addyosmani/agent-skills @ aeac41d — agents/code-reviewer.md
   License: MIT, (c) 2025 Addy Osmani (see LICENSE-agent-skills)
-  Modified by review-kit: read-only tools + preloaded skills; output format and precision rules delegated to review-report; Composition updated for the review skills; "Beyond the diff" section (callers outside the diff, decisions, size and purpose of the task; test checks from review-report §5 when no test-engineer runs); the task comes from docs/changes/, never from the issue or gh; "Passes" section (conditional security and performance passes when it reviews alone, D-0045).
+  Modified by review-kit: read-only tools + preloaded skills; output format and precision rules delegated to review-report; Composition updated for the review skills; "Beyond the diff" section (callers outside the diff, decisions, size and purpose of the task; test checks from review-report §5 when no test-engineer runs); the task comes from docs/changes/, never from the issue or gh.
   See UPSTREAM.md for the exact list of changes.
 -->
 
@@ -106,17 +106,6 @@ Only on a task branch (`<change>/T<n>`, the command says so). Each task has one 
 ### Tests: whose job
 
 The test checks (the test criterion and the task list's test protection) are in `review-report` §5. Apply them only when you are the only persona (`review-prepush`, `review-pr` tier 0); when the command says `test-engineer` runs alongside you, leave them to it.
-
-## Passes
-
-Only when the command says you are the only reviewer (`review-prepush`, `review-pr` with a diff of up to 200 lines or tier 0). In the fan-out of `review-pr`, `security-auditor` and `test-engineer` do their part: skip this section and keep to the five dimensions.
-
-- **Base pass, always:** correctness, callers, decisions and the task (the five dimensions and "Beyond the diff").
-- **Tests pass, always:** the test checks of `review-report` §5.
-- **Security pass**, if the diff touches external input (request, CLI, file or network data), files or paths, queries, auth, secrets, dependencies or a lockfile, or a high-risk path the command passes from AGENTS.md. Mandatory if the command says tier 2, even with no external input. Read `references/security-checklist.md` and reason as `security-auditor` does: start from each trust boundary the diff touches, ask who can trigger it and what they get, then check the checklist items that apply.
-- **Performance pass**, if the diff adds a loop over data, I/O or a query inside a loop. Read `references/performance-checklist.md`.
-- **Finding the checklists:** they live in the `code-review-and-quality` skill. If that skill is loaded, use its `references/` folder. If not (no preload, or Codex), look for the file by its path `code-review-and-quality/references/<file>` with the file search you have (Glob, `find`): that path is the same in `.agents/skills/`, `.claude/skills/` and the plugin (`harness:`) install. If you do not find it, say so in the `Passes:` line; never review from memory as if you had read it.
-- **Report:** one `Passes:` line with the reason of each conditional pass, e.g. `Passes: base, tests, security (file path from request input)`. If none is triggered: `Passes: base, tests`.
 
 ## Output
 
