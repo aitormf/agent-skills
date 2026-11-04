@@ -650,6 +650,40 @@ python3 "$cd_" docs/decisions
 echo "▶ parser de la suite de activación"
 python3 tests/evals/triggering/run.py --self-test
 
+echo "▶ review: tamaño del diff (diff_size.py, R1 de review-unificada, D-0045)"
+d="$tmp/size"; git init -q -b main "$d"
+gd() { git -C "$d" -c user.name=t -c user.email=t@t "$@"; }
+ds="$PWD/skills/review-context/scripts/diff_size.py"
+lines() { seq 1 "$1" | sed 's/^/x/'; }  # lines <n>: n distinct lines
+size_case() {  # size_case <name> <expected output>: the diff main...HEAD of $d, then back to main
+  (cd "$d" && python3 "$ds" main...HEAD) > "$tmp/size.out" 2>&1 || { cat "$tmp/size.out" >&2; echo "$1: diff_size.py failed" >&2; exit 1; }
+  [ "$(cat "$tmp/size.out")" = "$2" ] || { echo "$1: expected '$2', got '$(cat "$tmp/size.out")'" >&2; exit 1; }
+  gd checkout -q main; gd branch -qD feat
+}
+echo base > "$d/README"; gd add .; gd commit -qm base
+new_branch() { gd checkout -qb feat; mkdir -p "$d/src" "$d/adapters"; }
+new_branch; lines 120 > "$d/src/a.py"; lines 70 > "$d/src/test_a.py"; gd add .; gd commit -qm c
+size_case E1 "190 lines, small (at most 200)"
+new_branch; lines 150 > "$d/src/a.py"; lines 60 > "$d/src/test_a.py"; gd add .; gd commit -qm c
+size_case E2 "210 lines, large (more than 200)"
+new_branch; lines 200 > "$d/src/a.py"; gd add .; gd commit -qm c
+size_case E3 "200 lines, small (at most 200)"
+new_branch; lines 30 > "$d/src/a.py"; lines 900 > "$d/package-lock.json"; mkdir "$d/src/__snapshots__"; lines 50 > "$d/src/__snapshots__/a.snap"; lines 50 > "$d/b.snap"; gd add .; gd commit -qm c
+size_case E4 "30 lines, small (at most 200)"
+printf 'adapters/** linguist-generated\n' > "$d/.gitattributes"; gd add .; gd commit -qm attrs
+new_branch; lines 40 > "$d/src/a.py"; lines 500 > "$d/adapters/gen.md"; gd add .; gd commit -qm c
+size_case E5 "40 lines, small (at most 200)"
+new_branch; lines 40 > "$d/src/a.py"; head -c 3000 /dev/urandom > "$d/img.bin"; gd add .; gd commit -qm c
+size_case E6 "40 lines, small (at most 200)"
+# A rename counts as the lines that change in it, not the whole file (git --numstat -M): a moved file is not new work.
+mkdir -p "$d/src"; lines 100 > "$d/src/old.py"; gd add .; gd commit -qm old
+new_branch; gd mv src/old.py src/new.py; echo extra >> "$d/src/new.py"; gd add .; gd commit -qm mv
+size_case "rename" "1 lines, small (at most 200)"
+(cd "$d" && python3 "$ds" nope...HEAD) > "$tmp/size.out" 2>&1 && { echo "diff_size.py accepted a range that does not exist" >&2; exit 1; }
+grep -q "nope" "$tmp/size.out" || { echo "diff_size.py did not name the range that failed" >&2; exit 1; }
+[ "$(git check-attr linguist-generated -- adapters/claude/x | awk '{print $NF}')" = set ] \
+  || { echo ".gitattributes does not mark adapters/ as linguist-generated" >&2; exit 1; }
+
 echo "▶ manifiestos"
 python3 - <<'EOF'
 import json, sys
