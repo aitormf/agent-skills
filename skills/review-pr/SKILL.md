@@ -12,6 +12,8 @@ delegates:
   - agent:security-auditor
   - agent:test-engineer
   - agent:finding-verifier
+related:
+  - skill:task-done
 # Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
 claudecode:
   argument-hint: "<pr-number | branch> [base-branch] [--full] [--inline]"

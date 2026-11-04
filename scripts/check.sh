@@ -162,6 +162,9 @@ for name in ("review-prepush", "review-pr"):
     uses = re.search(r"^uses:\n((?:  - .*\n)+)", text, re.M).group(1)
     if "skill:task-done" in uses:
         bad.append(f"{name}: E33 uses: must not make task-done load without a change folder")
+    rel = re.search(r"^related:\n((?:  - .*\n)*)", text, re.M)
+    if "skill:task-done" not in (rel.group(1) if rel else ""):
+        bad.append(f"{name}: E33 related: must declare skill:task-done (the audit script)")
 pr = skill("review-pr")
 if "review-prepush" not in (re.search(r"^\*\*Read only what you use\.\*\*.*$", pr, re.M) or re.match("", "")).group(0):
     bad.append("review-pr: E33 the rule does not name review-prepush")
