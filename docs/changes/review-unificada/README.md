@@ -1,5 +1,5 @@
 ---
-status: open
+status: done
 issue: null
 ---
 # Review local más barata: un reviewer con pasadas condicionales y tareas atómicas
