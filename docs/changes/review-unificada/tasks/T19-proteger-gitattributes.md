@@ -1,7 +1,7 @@
 ---
 id: T19
 title: Denegar al modelo la edición de .gitattributes
-status: todo
+status: done
 depends_on: []
 examples: [E36]
 verification: scripts/check.sh

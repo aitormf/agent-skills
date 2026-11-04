@@ -33,6 +33,7 @@ Lo que el kit hace cumplir, sin depender de que el modelo siga sus instrucciones
 | Momento | Garantía | Claude Code | Codex | OpenCode | pi |
 |---|---|---|---|---|---|
 | **Sesión del agente** | No leer secretos (`.env`, `~/.ssh`…), no usar `pip`, no editar el arnés ni hacer `commit --no-verify` | ✅ `settings.json` | — | — | — |
+| | No editar `.gitattributes` con las herramientas de edición (decide qué cuenta como generado en la review) | ✅ `settings.json` (regla `Edit`) | — sin comprobar | — | — |
 | | Preguntar antes de un push forzado | ✅ hook | ✅ `.codex/rules`, si confías en la capa `.codex/` | ✅ `opencode.json` | — |
 | | Paquetes inventados o con menos de 90 días | ✅ hook | — | — | — |
 | | No terminar con `check.sh` en rojo | ✅ hook `Stop` | — | — | — |
@@ -42,6 +43,7 @@ Lo que el kit hace cumplir, sin depender de que el modelo siga sus instrucciones
 | **CI** (la autoridad final) | `check.sh`, gitleaks, pip-audit, Semgrep, zizmor | ✅ | ✅ | ✅ | ✅ |
 | | Review de la PR con comentarios en línea | ✅ Action con Claude Code | ✅ | ✅ | ✅ |
 
+- La regla `Edit` no frena un comando de shell (`echo >> .gitattributes`). En Codex, `.codex/rules` cubre comandos, no ediciones; sus perfiles de permisos tienen reglas de ficheros (`deny_read` en la 0.165), pero no hemos comprobado que haya una de solo escritura, así que no damos ninguna por buena.
 - **Lo que se pierde fuera de Claude Code** son las barreras de la sesión: allí solo quedan las instrucciones. Lo que falle se para en el commit (si el agente no se salta los hooks) y, en última instancia, en CI.
 - `pre-commit` y el hook pre-push se saltan con `--no-verify`. Solo Claude Code lo impide en la sesión; por eso CI repite todas las comprobaciones.
 - Una garantía es de `setup-guardrails-python` o del hook pre-push solo si están instalados en el repo.
