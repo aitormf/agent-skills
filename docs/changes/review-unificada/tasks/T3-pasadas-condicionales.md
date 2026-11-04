@@ -1,7 +1,7 @@
 ---
 id: T3
 title: code-reviewer con pasadas condicionales cuando va solo
-status: todo
+status: done
 depends_on: [T17]
 examples: [E13, E14, E15, E16]
 verification: scripts/check.sh
