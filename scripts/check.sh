@@ -214,6 +214,39 @@ if any(len(c) != 1 for c in copies.values()) or len(texts) != 1:
     sys.exit(1)
 EOF
 
+echo "▶ atomic tasks E20-E24: the four texts say the same (D-0044)"
+python3 - <<'EOF'
+import sys
+from pathlib import Path
+T = {f: Path(f).read_text(encoding="utf-8") for f in (
+    "skills/idea-to-change/SKILL.md", "skills/plan-to-tasks/SKILL.md",
+    "agents/implement.md", "agents/code-reviewer.md")}
+splitters = ("skills/idea-to-change/SKILL.md", "skills/plan-to-tasks/SKILL.md")
+bad = []
+def need(ok, msg):
+    if not ok:
+        bad.append(msg)
+for f, t in T.items():
+    need("D-0044" in t, f"{f}: cites D-0044")
+    need("D-0033" not in t, f"{f}: still cites D-0033")
+    need("150 lines" not in t and "150 changed" not in t, f"{f}: still says 150")
+    need("200 lines" in t or "200 changed lines" in t, f"{f}: says 200 lines")
+    need("with the tests" in t and "without the tests" not in t, f"{f}: counts the tests in")
+for f in splitters:  # E20, E21, E22
+    t = T[f]
+    need("at most 200 lines of diff with the tests" in t and "split" in t, f"E20 {f}")
+    need('without "and"' in t and "two tasks" in t, f"E21 {f}")
+    need("one behaviour" in t, f"E22 {f}")
+c = T["agents/code-reviewer.md"]  # E23
+need("diff_size.py" in c and "Optional" in c and "give the count" in c, "E23 code-reviewer")
+need("git diff --shortstat" not in c, "E23 code-reviewer: still counts without the tests")
+i = T["agents/implement.md"]  # E24
+need("beyond 200 lines" in i and "stop and report" in i, "E24 implement")
+if bad:
+    print("atomic tasks (D-0044) not said in: " + "; ".join(bad), file=sys.stderr)
+    sys.exit(1)
+EOF
+
 echo "▶ task-done"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 td=skills/task-done/scripts/task_done.py
