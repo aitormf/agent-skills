@@ -1,7 +1,7 @@
 ---
 id: T9
 title: Documentar cómo elegir el modelo de los subagentes en Codex
-status: todo
+status: done
 depends_on: []
 examples: []
 verification: scripts/check.sh
