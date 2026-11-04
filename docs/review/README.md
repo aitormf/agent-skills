@@ -214,6 +214,26 @@ En modo interactivo, Claude Code pide permiso antes de cada comando que no esté
 - **Personas propias:** en Claude Code, un `.claude/agents/code-reviewer.md` de proyecto (o `~/.claude/agents/`, de usuario) tiene prioridad sobre el del plugin.
 - **Modelo por persona:** añade `model:` al frontmatter de la persona en `agents/` y regenera los adaptadores con `scripts/build-agents.py`.
 
+### Modelo de los subagentes en Codex
+
+En Codex los subagentes de la review (`code-reviewer`, `security-auditor`, `test-engineer`, `finding-verifier`) no llevan modelo en el kit: ni `agents/` ni los adaptadores lo fijan, a propósito, porque los catálogos de modelos cambian. El modelo se elige al lanzar la review.
+
+- **El de la sesión.** Se pasa con `codex exec -m <modelo> …` (comprobado en `codex exec --help`: «Model the agent should use») o con `-c model="<modelo>"`, que sobrescribe `~/.codex/config.toml` solo en esa llamada.
+- **Qué hereda un subagente sin `model`.** La herramienta `spawn_agent` admite `model` y `reasoning_effort`; su descripción dice «Omit unless an explicit override is needed» para el modelo y «Omit to inherit the parent effort» para el esfuerzo. Las mediciones de [`medicion-review.md`](medicion-review.md) (Codex 0.165.0) lo confirman para el modelo: los subagentes corrieron en el de la sesión, sin que el kit lo fijara. **Observado, no explicado:** los subagentes aparecieron con esfuerzo `low` aunque la sesión principal no registra el suyo, y no se averiguó quién lo fija.
+- **Recomendación:** para las reviews locales, elige explícitamente un modelo más barato que el que usas para escribir código, en vez de dejar el que haya por defecto. Como el subagente hereda el de la sesión, basta con pasarlo a `codex exec -m`. Mira antes qué modelos ofrece tu Codex.
+- **Sin confirmar:** que un `model` dentro del `.toml` de una persona, o un modelo por defecto en `[agents]`, se aplique al subagente (no se probó en Codex 0.165.0); y que un `model` pasado a `spawn_agent` desde la skill tenga efecto en la review. Si quieres un modelo distinto por persona, es una prueba que te toca hacer.
+
+**Dónde carga Codex las personas.** En las mediciones, Codex **no cargó la capa `.codex/` del proyecto** (ni `.codex/agents/` ni un `.codex/config.toml`) y los subagentes usaron las copias de `~/.codex/agents/`, aunque el proyecto tuviera otras: la persona que corre puede no ser la que ves en el repo. Una sobrescritura de esa llamada sí funcionó y tiene prioridad sobre la global del mismo nombre:
+
+```bash
+codex exec -m <modelo> \
+  -c 'agents.code-reviewer.config_file="/ruta/a/.codex/agents/code-reviewer.toml"' \
+  -c 'agents.code-reviewer.description="…"' \
+  "<prompt>"
+```
+
+Es un par `config_file` y `description` por persona; el ejemplo completo está en `tests/review-sandbox/measure.sh`. No se pudo separar si la causa es que el proyecto no está marcado como de confianza en `~/.codex/config.toml` o que `codex exec` no lee esa capa. Si cambias una persona en `agents/`, comprueba qué copia carga Codex antes de fiarte de la review.
+
 ## Prueba: `tests/review-sandbox/`
 
 Un mini servicio Node sin dependencias, con bugs plantados y también señuelos (código que parece mal pero es correcto). Los hallazgos esperados están en [`tests/review-sandbox/EXPECTED.md`](../../tests/review-sandbox/EXPECTED.md), fuera del repo de prueba para no dar pistas al revisor.
