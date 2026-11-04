@@ -723,6 +723,17 @@ size_case "rename" "1 lines, small (at most 200)"
 grep -q "nope" "$tmp/size.out" || { echo "diff_size.py did not name the range that failed" >&2; exit 1; }
 [ "$(git check-attr linguist-generated -- adapters/claude/x | awk '{print $NF}')" = set ] \
   || { echo ".gitattributes does not mark adapters/ as linguist-generated" >&2; exit 1; }
+# T18 (R1): the attributes are read from the merge base of the range, not from the branch or the working tree.
+# $d is on main, whose .gitattributes marks adapters/** as generated.
+new_branch; lines 900 > "$d/src/big.py"; printf '*.py linguist-generated\n' >> "$d/.gitattributes"; gd add .; gd commit -qm c
+size_case E34 "901 lines, large (more than 200)"
+new_branch; lines 500 > "$d/adapters/gen.md"; : > "$d/.gitattributes"; gd add .; gd commit -qm c
+size_case E35 "1 lines, small (at most 200)"
+# The same range with the working tree on another branch gives the same answer.
+new_branch; lines 500 > "$d/adapters/gen.md"; : > "$d/.gitattributes"; gd add .; gd commit -qm c
+gd checkout -q main; (cd "$d" && python3 "$ds" main...feat) > "$tmp/size.out" 2>&1
+[ "$(cat "$tmp/size.out")" = "1 lines, small (at most 200)" ] || { echo "E35 from another branch: got '$(cat "$tmp/size.out")'" >&2; exit 1; }
+gd branch -qD feat
 
 echo "▶ review: code-reviewer passes when it is the only reviewer (E13-E16, D-0045)"
 python3 - <<'PYEOF'
