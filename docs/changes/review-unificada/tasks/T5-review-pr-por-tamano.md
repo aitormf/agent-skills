@@ -1,7 +1,7 @@
 ---
 id: T5
 title: review-pr elige los revisores por el tamaño del diff
-status: done
+status: todo
 depends_on: [T2, T3, T16, T18]
 examples: [E10, E11, E12]
 verification: scripts/check.sh

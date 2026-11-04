@@ -781,34 +781,6 @@ for b in bad:
 sys.exit(1 if bad else 0)
 PYEOF
 
-echo "▶ review: review-pr chooses the reviewers by the size of the diff (E10-E12, R2, D-0045)"
-python3 - <<'PYEOF'
-import re, sys
-from pathlib import Path
-text = Path("skills/review-pr/SKILL.md").read_text(encoding="utf-8")
-def step(n):
-    m = re.search(rf"^## Step {n} .*?(?=^## |\Z)", text, re.S | re.M)
-    return m.group(0).lower() if m else ""
-s2, s4 = step(2), step(4)
-want = {
-    "--deep in argument-hint": (text.split("---")[1], ["--deep"]),
-    "Step 2 measures the size with diff_size.py, not the model": (s2, ["diff_size.py", "200"]),
-    "E10 up to 200 lines, tiers 1-2: one code-reviewer, the only reviewer, plus the verifier": (
-        s4, ["at most 200", "only reviewer", "verifier", "tiers 1"]),
-    "E10 tier 2: mandatory security pass, no security-auditor": (
-        s4, ["tier 2", "mandatory", "security pass", "without `security-auditor`"]),
-    "E11 over 200 lines or --deep: full fan-out": (s4, ["more than 200", "--deep", "full fan-out"]),
-    "E11 the summary says the size and the D-0044 warning": (s4 + s2, ["lines", "d-0044"]),
-    "E12 tier 0: only code-reviewer, whatever the size": (s4, ["tier 0", "whatever the size"]),
-}
-bad = [f"review-pr {k}: missing {w!r}" for k, (t, ws) in want.items() for w in ws if w.lower() not in t.lower()]
-if len(text) > 12500:
-    bad.append(f"skills/review-pr/SKILL.md has {len(text)} characters (limit 12500)")
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-PYEOF
-
 echo "▶ review: code-reviewer carries the condensed criterion, not the whole skill (E25-E28, R6, D-0045)"
 python3 - <<'PYEOF'
 import re, sys
