@@ -116,6 +116,32 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF
 
+echo "▶ review: subagents start without the main session history (E30) and their brief stands on its own (E31) (D-0046)"
+python3 - <<'PYEOF'
+import re, sys
+from pathlib import Path
+# (skill, step heading, is a persona step: also needs the limits and the "stand on its own" sentence)
+steps = [("review-prepush", "Step 3", True), ("review-prepush", "Step 4", False),
+         ("review-pr", "Step 4", True), ("review-pr", "Step 6", False)]
+bad = []
+for skill, step, persona in steps:
+    text = Path(f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")
+    m = re.search(rf"^## {step} .*?(?=^## |\Z)", text, re.S | re.M)
+    body = m.group(0) if m else ""
+    need = {  # E30: the history is not inherited; E31: the brief carries what the persona needs
+        'E30 fork_turns: "none"': 'fork_turns: "none"',
+        "E30 no history": "history",
+        "E31 the task": "the task",
+        "E31 verification results": "verification results",
+    }
+    if persona:
+        need |= {"E31 stand on its own": "stand on its own", "E31 limits": "limits"}
+    bad += [f"{skill} {step}: missing ({k})" for k, v in need.items() if v not in body]
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+PYEOF
+
 echo "▶ test criterion: same text in implement and review-report"
 python3 - <<'EOF'
 import sys
