@@ -1,7 +1,7 @@
 ---
 id: T10
 title: Medición del reviewer unificado frente a la base
-status: todo
+status: done
 depends_on: [T20, T21, T4, T5, T11, T12, T13, T15, T16]
 examples: []
 verification: scripts/check.sh
