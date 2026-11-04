@@ -684,6 +684,33 @@ grep -q "nope" "$tmp/size.out" || { echo "diff_size.py did not name the range th
 [ "$(git check-attr linguist-generated -- adapters/claude/x | awk '{print $NF}')" = set ] \
   || { echo ".gitattributes does not mark adapters/ as linguist-generated" >&2; exit 1; }
 
+echo "▶ review: code-reviewer passes when it is the only reviewer (E13-E16, D-0045)"
+python3 - <<'PYEOF'
+import re, sys
+text = open("agents/code-reviewer.md", encoding="utf-8").read()
+m = re.search(r"^## Passes\n(.*?)(?=^## )", text, re.S | re.M)
+sec = m.group(1) if m else ""
+want = {
+    "E13 security pass: external input, files or paths, security-checklist.md, trust boundaries of security-auditor": [
+        "external input", "file", "path", "references/security-checklist.md", "security-auditor", "who can trigger"],
+    "E13 the Passes: line with the reason": ["Passes:", "base, tests, security (file path from request input)"],
+    "E14 base and tests always, others only on a trigger": ["always", "base", "tests", "Passes: base, tests"],
+    "E15 performance pass: loops over data, I/O, queries, performance-checklist.md": [
+        "loop", "I/O", "quer", "references/performance-checklist.md"],
+    "E16 security pass on lockfiles, dependencies and high-risk paths; mandatory on tier 2": [
+        "lockfile", "dependenc", "high-risk", "tier 2", "even with no external input"],
+    "only when the command says you review alone; the fan-out keeps its personas": [
+        "only reviewer", "security-auditor", "test-engineer"],
+    "finds the checklists without a preloaded skill or a fixed install path": ["Glob", "code-review-and-quality/references/"],
+}
+bad = [f"{k}: missing {w!r}" for k, ws in want.items() for w in ws if w.lower() not in sec.lower()]
+if not m:
+    bad = ["agents/code-reviewer.md has no '## Passes' section"]
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+PYEOF
+
 echo "▶ manifiestos"
 python3 - <<'EOF'
 import json, sys
