@@ -1,7 +1,7 @@
 ---
 id: T16
 title: La sesión principal de la review solo lee lo que usa
-status: todo
+status: done
 depends_on: [T15]
 examples: [E32, E33]
 verification: scripts/check.sh

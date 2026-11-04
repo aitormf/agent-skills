@@ -7,10 +7,11 @@ kind: skill
 uses:
   - skill:review-context
   - skill:review-report
-  - skill:task-done
 delegates:
   - agent:code-reviewer
   - agent:finding-verifier
+related:
+  - skill:task-done
 # Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
 claudecode:
   argument-hint: "[base-branch]"
@@ -28,6 +29,8 @@ claudecode:
 Goal: answer, quickly, **"is this branch ready to push?"** Focus on: does the work do what the task asked, real bugs, tests that do not actually test anything, debug leftovers, TODOs and dead code. Not an architecture review — keep it fast.
 
 Follow the `review-context` skill for config and verification, and the `review-report` skill for precision rules, severities and formats (namespaced `harness:review-context` / `harness:review-report` when installed as the Claude Code plugin). Do not edit any file.
+
+**Read only what you use.** Do not read the persona definitions (`.codex/agents/`, `agents/`): the tool loads them when it spawns the persona. Read `task-done` only if there is a change folder, and then only to run its audit script.
 
 ## Step 1 — Scope (main session)
 
