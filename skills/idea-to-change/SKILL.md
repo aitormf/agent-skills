@@ -54,10 +54,10 @@ Apply their corrections to the README. Set the records they accepted to `accepte
 
 ## 4. The tasks and the plan PR
 
-Write one file per task, `tasks/T<n>-<slug>.md`, from `assets/task.md`. Each one becomes a branch and a PR of its own, merged on its own into the base branch, so split by these rules (D-0033):
+Write one file per task, `tasks/T<n>-<slug>.md`, from `assets/task.md`. Each one becomes a branch and a PR of its own, merged on its own into the base branch, so split by these rules (D-0044):
 
-- **One purpose per task:** new behaviour, or a refactor, or preparation (plumbing, a migration). Never mixed. The purpose fits in one sentence, in the body of the file.
-- **Small:** about 150 lines of diff without the tests. A task that promises more is split.
+- **One purpose and one behaviour per task:** new behaviour, or a refactor, or preparation (plumbing, a migration). Never mixed, and one behaviour (one rule of the example map). The purpose fits in one sentence without "and" (if it needs "and", they are two tasks), in the body of the file.
+- **Small:** at most 200 lines of diff with the tests (counted as in D-0047). A task that promises more is split.
 - **The base branch stays green and deployable after each task.** If the behaviour is unfinished until a later task, it goes behind a feature flag, off by default, with the mechanism `AGENTS.md` names. If `AGENTS.md` names none and a flag is needed, ask the person which one to use; do not invent one.
 - **A change with a flag ends with a task that removes it**, with the dead code and the tests of the old path. It depends on every other task.
 - **T1 is the thinnest slice that works end to end** (behind the flag if there is one). Each task goes through every layer it needs.

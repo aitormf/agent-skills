@@ -24,10 +24,10 @@ Turn a plan into task files that the `implement` agent takes one by one, each in
 
 ## How to split
 
-Each task is merged on its own into the base branch, so (D-0033):
+Each task is merged on its own into the base branch, so (D-0044):
 
-- **One purpose per task:** new behaviour, or a refactor, or preparation (plumbing, a migration). Never mixed. The purpose fits in one sentence, in the body.
-- **Small:** about 150 lines of diff without the tests. A task that promises more is split.
+- **One purpose and one behaviour per task:** new behaviour, or a refactor, or preparation (plumbing, a migration). Never mixed, and one behaviour (one rule of the example map). The purpose fits in one sentence without "and" (if it needs "and", they are two tasks), in the body.
+- **Small:** at most 200 lines of diff with the tests (counted as in D-0047). A task that promises more is split.
 - **The base branch stays green and deployable after each task.** Unfinished behaviour goes behind a feature flag, off by default, with the mechanism `AGENTS.md` names (if none and a flag is needed, ask). A change with a flag ends with a task that removes it, with the dead code and the tests of the old path; it depends on every other task.
 - **`depends_on`:** only the tasks that must be merged first, or `[]`. What a task blocks is computed. Tasks that do not depend on each other go in parallel.
 - **Tests in order:** a task with logic lists its tests from the simplest to the most complex (the examples in `examples`, or the acceptance criteria and tests of the plan in its body): `implement` makes them pass one at a time in that order. Behaviours of the same function are one task each, with their own tests, never one task for the whole function.
