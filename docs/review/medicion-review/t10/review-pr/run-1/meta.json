@@ -1,0 +1,13 @@
+{
+ "command": "review-pr",
+ "run": 1,
+ "model": "gpt-6.1-terra",
+ "effort": "medium",
+ "codex": "codex-cli 0.165.0",
+ "exit_code": 0,
+ "seconds": 102,
+ "kit_commit": "28b00c5",
+ "prompt": "Ejecuta la skill review-pr (.agents/skills/review-pr/SKILL.md) con los argumentos: feature/orders-pagination-invoices main. Usa solo las skills de este proyecto, en .agents/skills/ (también las que ella cite: review-context, review-report, task-done); no leas ~/.agents ni ~/.codex. Los subagentes son los de .codex/agents/. No cambies ningún fichero.",
+ "codex_exec": "codex exec -m gpt-6.1-terra -c model_reasoning_effort=\\\"medium\\\" -s read-only --json -c agents.<rol>.{description,config_file}=... -o report.md \"<prompt>\" (en repo/)",
+ "personas": "las de .codex/agents/ del sandbox, con -c agents.<rol>.config_file (una por persona)"
+}
