@@ -63,7 +63,7 @@ Only if the working tree is the change's head: run the AGENTS.md verification co
 
 ## Step 4 — Fan-out (parallel subagents)
 
-Tier 0: spawn only `code-reviewer`. Tiers 1–2: spawn the three personas **in a single assistant turn so they run in parallel** (use the names as the Agent tool lists them — `harness:<name>` as a plugin):
+Tier 0: spawn only `code-reviewer`. Tiers 1–2: spawn the three personas **in a single assistant turn so they run in parallel** (use the names as the Agent tool lists them — `harness:<name>` as a plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session.
 
 1. **`code-reviewer`** — five-axis review of the diff, plus its "Beyond the diff" checks (callers outside the diff, decisions, and on a task branch the size and purpose of the task, D-0033). Tell it that `test-engineer` runs alongside, so the test checks of `review-report` §5 are not its job (in tier 0 it is alone and applies them).
 2. **`security-auditor`** — trust-boundary / OWASP pass on the diff and the code paths it makes reachable (tier noted).
@@ -79,7 +79,7 @@ Combine the reports: map severities per `review-report` §2, merge duplicates (k
 
 ## Step 6 — Verify (one subagent)
 
-If there are findings, spawn **one** `finding-verifier` with the change access info, the tier, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3) and **all** merged findings verbatim (Optional and Nits included — it verifies and ranks them). Keep `CONFIRMED` and `UNCERTAIN` (label the latter `(unverified)`); record refuted ones for the Verification section.
+If there are findings, spawn **one** `finding-verifier`, with no inherited history (`fork_turns: "none"` in Codex), with the task, the change access info, the tier, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3) and **all** merged findings verbatim (Optional and Nits included — it verifies and ranks them). Keep `CONFIRMED` and `UNCERTAIN` (label the latter `(unverified)`); record refuted ones for the Verification section.
 
 ## Step 7 — PR description (main session)
 

@@ -53,7 +53,7 @@ It runs no verification, edits nothing and reads only git and the repo. Its scop
 
 ## Step 3 — Review (one subagent)
 
-Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool lists it — `harness:code-reviewer` when installed as the Claude Code plugin). Give it, verbatim:
+Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool lists it — `harness:code-reviewer` when installed as the Claude Code plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session. Give it, verbatim:
 
 - the base ref and the exact diff command: `git diff <base>...HEAD` (it must read the diff and the surrounding code itself);
 - the task (the paths of the change folder and the `review-context` §4 instruction, or the inferred task);
@@ -67,7 +67,7 @@ Spawn **one** subagent `code-reviewer` (use the name exactly as the Agent tool l
 
 ## Step 4 — Verify findings (one subagent)
 
-If the reviewer reported zero findings, skip this step. Otherwise spawn **one** subagent `finding-verifier` (`harness:finding-verifier` as a plugin) with: the base ref and diff command, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3), and **all** findings verbatim (Optional and Nits included — it verifies and ranks them). Do not filter or rephrase them first.
+If the reviewer reported zero findings, skip this step. Otherwise spawn **one** subagent `finding-verifier` (`harness:finding-verifier` as a plugin) with, in the same way (no inherited history; `fork_turns: "none"` in Codex): the task, the base ref and diff command, the verification results, the `Known non-issues` of AGENTS.md (`review-context` §3), and **all** findings verbatim (Optional and Nits included — it verifies and ranks them). Do not filter or rephrase them first.
 
 Keep only `CONFIRMED` and `UNCERTAIN` findings, with the verifier's final severity. Label uncertain ones `(unverified)` in their title. Debug leftovers stay Required (`review-report` §1) — tell the verifier so. Record refuted ones (ID + one-line reason) for the Verification section.
 

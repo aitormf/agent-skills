@@ -1,7 +1,7 @@
 ---
 id: T15
 title: Los subagentes de la review arrancan sin el historial de la sesión principal
-status: todo
+status: done
 depends_on: [T17]
 examples: [E30, E31]
 verification: scripts/check.sh
