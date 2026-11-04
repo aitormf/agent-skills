@@ -1,7 +1,7 @@
 ---
 id: T2
 title: Script que cuenta el tamaño del diff para la review
-status: todo
+status: done
 depends_on: []
 examples: [E1, E2, E3, E4, E5, E6]
 verification: scripts/check.sh
