@@ -1,7 +1,7 @@
 ---
 id: T4
 title: review-prepush elige los revisores por el tamaño del diff
-status: done
+status: todo
 depends_on: [T2, T3, T16, T18]
 examples: [E7, E8, E9]
 verification: scripts/check.sh

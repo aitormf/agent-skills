@@ -854,34 +854,6 @@ for b in bad:
     print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)
 EOF2
-echo "▶ review: review-prepush picks the reviewers by the size of the diff (E7-E9, R2, D-0044, D-0045)"
-python3 - <<'EOF2'
-import re, sys
-from pathlib import Path
-bad = []
-text = Path("skills/review-prepush/SKILL.md").read_text(encoding="utf-8")
-front = text.split("\n# /review-prepush", 1)[0]
-m = re.search(r"^## Step 3 .*?(?=^## |\Z)", text, re.S | re.M)
-step = m.group(0) if m else ""
-need = {  # E7: small diff, the unified code-reviewer and the verifier; E8: large, fan-out and the warning; E9: --deep
-    "E7 diff_size.py": "diff_size.py",
-    "E7 at most 200": "200 lines",
-    "E7 the unified code-reviewer alone": "code-reviewer",
-    "E8 security-auditor": "security-auditor",
-    "E8 test-engineer": "test-engineer",
-    "E8 in a single assistant turn": "single assistant turn",
-    "E8 the size warning": "pasa de 200 líneas (D-0044)",
-    "E9 --deep": "--deep",
-}
-bad += [f"review-prepush Step 3: missing ({k})" for k, v in need.items() if v not in step]
-if front.count("--deep") < 2:
-    bad.append("review-prepush: E9 --deep must be in argument-hint (and its claudecode block)")
-if "--deep" in Path("skills/review-prepush/assets/pre-push").read_text(encoding="utf-8"):
-    bad.append("pre-push hook: E9 must not pass --deep")
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-EOF2
 echo "▶ manifiestos"
 python3 - <<'EOF'
 import json, sys
