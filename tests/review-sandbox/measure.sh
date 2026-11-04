@@ -9,6 +9,7 @@
 # gpt-6.1-terra (T17 midió con él). Los subagentes sin esfuerzo propio lo heredan de la sesión; summarize.py invalida la ejecución
 # si algún agente, la sesión principal incluida, no corre con MODEL y EFFORT (según su turn_context).
 # KIT=<dir>: de dónde copió build.sh las skills y personas (por defecto este checkout); su commit va en meta.json (kit_commit).
+# EXTRA="<texto>": texto que se añade al final del prompt (p. ej. EXTRA='Al lanzar subagentes pasa fork_turns: "none".'); va en meta.json (prompt).
 # START=<k> numera desde k (para añadir una repetición sin pisar las anteriores).
 # Personas: Codex no carga .codex/agents/ de un proyecto que no es de confianza en ~/.codex/config.toml, y
 # `-c projects."<ruta>".trust_level=...` no lo hace de confianza; entonces el subagente usa la copia global de
@@ -34,6 +35,7 @@ case "$CMD" in
   *) echo "comando desconocido: $CMD" >&2; exit 2 ;;
 esac
 
+[ -z "${EXTRA:-}" ] || PROMPT="$PROMPT $EXTRA"
 AGENT_ARGS=()
 while IFS= read -r line; do AGENT_ARGS+=("$line"); done < <(python3 -I - "$REPO/.codex/agents" <<'PY'
 import json, sys, tomllib

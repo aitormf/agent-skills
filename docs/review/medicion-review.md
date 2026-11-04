@@ -1,8 +1,99 @@
 # Medición base de la review
 
-Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`). Este documento no saca conclusiones sobre el reviewer unificado: aún no existe.
+Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`). Las secciones de T17, T20 y T1 no sacan conclusiones sobre el reviewer unificado; la de T10 (la primera) lo compara con ellas.
 
-Hay tres mediciones, cada una válida para su esfuerzo. **La de T20** (`medium`, la primera sección) es la referencia para T10 en `review-prepush`; en `review-pr` no tiene ejecuciones válidas. **La de T17** (`low`) sigue siendo válida para ese esfuerzo. La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
+Hay cuatro mediciones, cada una válida para su esfuerzo. **La de T20** (`medium`, la primera sección) es la referencia para T10 en `review-prepush`; en `review-pr` no tiene ejecuciones válidas. **La de T17** (`low`) sigue siendo válida para ese esfuerzo. La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
+
+## Reviewer unificado frente a la base (T10)
+
+Mide el kit de `origin/main` tras T4, T5, T11, T12, T13, T15, T16 y T21 (commit `28b00c5`), con Codex, `gpt-6.1-terra` y esfuerzo `medium` (2026-11-04, `codex-cli 0.165.0`). Es la medición de T10: comprueba si el reviewer unificado gasta menos sin perder hallazgos (S3).
+
+**Resumen.** Las 12 ejecuciones son válidas (ninguna se descartó) y ninguna lanzó el fan-out: el diff del sandbox es de 119 líneas y todas usaron `code-reviewer` más `finding-verifier`, con la persona del sandbox cargada. **`review-pr` baja mucho** la entrada total (586.444 frente a 1.081.680 de T17, -46%) y algo la entrada sin caché (-8%). **`review-prepush` apenas cambia** la entrada total (597.210 frente a 650.935 de T20, -8%) y **sube** la entrada sin caché (87.813 frente a 64.055, +37%), con tres ejecuciones por grupo y una variación entre ejecuciones del mismo orden que la diferencia. **El unificado detecta menos B1–B6 que la base, de forma consistente en `review-prepush`** (5,3 de 6 frente a 6,0) y algo menos en `review-pr` (4,0 frente a 4,3); ver «Qué encuentra»: pierde B5 (el TODO, Nit) y B2 (el test inútil) con frecuencia. No se refuerzan los disparadores aquí, y por la tarea (S3) **el cambio no se da por bueno** hasta que otra tarea los refuerce.
+
+### Cómo se midió
+
+| | |
+|---|---|
+| Kit | `28b00c5` (`origin/main`), el propio worktree: `tests/review-sandbox/build.sh --codex` y `measure.sh` sin `KIT`. `meta.json` registra `kit_commit: 28b00c5` |
+| Modelo y esfuerzo | `-m gpt-6.1-terra -c model_reasoning_effort="medium"` en toda ejecución (valores por defecto de `measure.sh`); `summarize.py` los comprueba en todos los agentes, la sesión principal incluida: `problems` vacío en las 12 |
+| Ejecución | `-s read-only`, sin `--dangerously-bypass-*`; nada de `~/.codex` tocado ni credenciales copiadas |
+| Ejecuciones | `review-prepush` run-1 a run-3 y `review-pr` run-1 a run-3 con el prompt de T17/T20 (sin `fork_turns`); `review-prepush` run-11 a run-13 con `EXTRA` = «Al lanzar cada subagente con spawn_agent pasa fork_turns: "none".»; run-21 a run-23 con `"all"`. `EXTRA` es una variable nueva de `measure.sh`, que añade ese texto al final del prompt |
+| Subagentes | en las 12: 2 (`code-reviewer` y `finding-verifier`), persona del sandbox cargada (`persona.sandbox_match`). Ningún `security-auditor` ni `test-engineer`: nunca hubo fan-out |
+| Resultados | `report.md`, `summary.json` y `meta.json` de las 12 en `docs/review/medicion-review/t10/<comando>/run-<n>/`, con la ruta del sandbox sustituida por `repo/` |
+
+Límites: Semgrep sigue sin poder ejecutarse en `read-only` (lo anotan las reviews); la duración es de reloj; n = 3 por grupo, así que las medias son orientativas. La tanda de `fork_turns` se cortó por el límite de tiempo del lanzador (no del modelo) durante `run-22`; run-22 se repitió entero con `START=22` junto con run-23. No hay ejecuciones fallidas ni inválidas.
+
+### Ejecuciones inválidas
+
+Ninguna. Las 12 pasan `summarize.py` sin problemas (modelo, esfuerzo y persona). Sin fallos de capacidad.
+
+### Tokens por agente (medias de 3 ejecuciones)
+
+Entrada total / entrada sin caché / salida / razonamiento. Los números de la base salen de los `summary.json` de T17 y T20 (`docs/review/medicion-review/t17`, `t20`).
+
+#### `review-prepush`, unificado (prompt sin `fork_turns`) frente a la base `medium` (T20)
+
+En las tres ejecuciones el modelo pasó `fork_turns: "none"` por sí solo, como dice la skill (la base mezclaba `none` y no indicado).
+
+| Agente | T20 (`medium`, antes de T15) | T10 (`medium`, `28b00c5`) |
+|---|---|---|
+| sesión principal | 398.661 / 33.179 / 3.999 / 129 | 351.340 / 29.463 / 3.556 / 130 |
+| code-reviewer | 142.039 / 17.495 / 1.582 / 76 | 161.392 / 35.525 / 1.546 / 78 |
+| finding-verifier | 110.235 / 13.381 / 916 / 47 | 84.478 / 22.825 / 1.066 / 48 |
+| **Total** | **650.935 / 64.055 / 6.497 / 252** | **597.210 / 87.813 / 6.167 / 256** |
+| Duración (s) | 137 | 123 |
+| Bugs de 9 (B1–B6 de 6) | 6,3 (6,0) | 6,0 (5,3) |
+
+#### `review-pr`, unificado frente a la base `low` (T17)
+
+**Esta comparación mezcla dos esfuerzos**: T17 midió con `low` y T10 con `medium`, porque T20 no tiene ninguna ejecución válida de `review-pr` (con `medium` el modelo no pasó `agent_type`). Se ha de leer como orientativa: parte de la diferencia puede ser del esfuerzo, no del cambio. En T17, `review-pr` lanzaba cuatro subagentes; ahora, dos.
+
+| Agente | T17 (`low`, 4 subagentes) | T10 (`medium`, 2 subagentes) |
+|---|---|---|
+| sesión principal | 571.927 / 34.369 / 3.252 / 95 | 343.125 / 32.426 / 2.578 / 142 |
+| code-reviewer | 149.364 / 10.654 / 792 / 18 | 168.929 / 28.726 / 1.503 / 97 |
+| security-auditor | 104.941 / 12.355 / 399 / 29 | no lanzado |
+| test-engineer | 120.754 / 10.674 / 541 / 30 | no lanzado |
+| finding-verifier | 134.694 / 11.771 / 796 / 37 | 74.390 / 12.182 / 967 / 51 |
+| **Total** | **1.081.680 / 79.824 / 5.780 / 209** | **586.444 / 73.335 / 5.048 / 290** |
+| Duración (s) | 91 | 93 |
+| Bugs de 9 (B1–B6 de 6) | 4,7 (4,3) | 4,0 (4,0) |
+
+### Efecto de `fork_turns` (T15), solo `review-prepush`
+
+Mismo commit, mismo esfuerzo; el prompt pide `none` o `all` para los dos subagentes (media de 3):
+
+| `fork_turns` | Entrada total | Sin caché | Entrada de la sesión principal / sin caché | Entrada de la 1.ª llamada de cada subagente | Salida | Razonamiento | Duración (s) | Bugs de 9 |
+|---|---:|---:|---|---|---:|---:|---:|---:|
+| `none` (run-11 a 13) | 578.875 | 52.283 | 338.373 / 19.610 | ~22.400 y ~21.600 | 7.268 | 269 | 138 | 6,3 |
+| `all` (run-21 a 23) | 508.160 | 42.966 | 295.502 / 14.328 | ~37.100 y ~38.700 | 5.647 | 189 | 120 | 5,0 |
+
+Con `all` la primera llamada de cada subagente es ~15.000 tokens mayor (hereda el historial), pero la entrada total y la sin caché de la ejecución salen más bajas: los subagentes hacen menos llamadas (3 y 2 frente a 5 y 3-4) y la sesión principal, menos. Con n = 3 y esta variación (la entrada sin caché con `none` va de 37.310 a 75.533) **no se puede decir que `all` gaste menos**: es un solo diff de 119 líneas y un modelo que ya entiende la tarea desde el historial. Además, con `all` los hallazgos fueron un poco peores (B2 solo en 1 de 3; ver abajo), y T15 pide `none` para que las personas revisen con contexto fresco e independiente. No cambia la recomendación de T15.
+
+### Qué encuentra
+
+Puntuado a mano, leyendo cada `report.md` contra `tests/review-sandbox/EXPECTED.md` con el criterio de T17: B2 exige decir que el test actual no comprueba el contenido o que pasa con el bug (pedir contenido exacto solo en el arreglo de B1 es «parcial» y no cuenta); B8 pide un remedio con nombre.
+
+| | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | D1 | D2 | D3 | Bugs |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `review-prepush` run-1 | sí | sí | sí | sí | sí | sí | no | no | sí | no | no | no | 7/9 |
+| `review-prepush` run-2 | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/9 |
+| `review-prepush` run-3 | sí | sí | sí | sí | no | sí | no | no | sí | no | no | no | 6/9 |
+| `review-prepush` run-11 (`none`) | sí | sí | sí | sí | sí | sí | no | no | sí | no | no | no | 7/9 |
+| `review-prepush` run-12 (`none`) | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/9 |
+| `review-prepush` run-13 (`none`) | sí | sí | sí | sí | no | sí | no | no | sí | no | no | no | 6/9 |
+| `review-prepush` run-21 (`all`) | sí | parcial | sí | sí | sí | sí | no | no | no | no | no | no | 5/9 |
+| `review-prepush` run-22 (`all`) | sí | parcial | sí | sí | sí | sí | no | no | no | no | no | no | 5/9 |
+| `review-prepush` run-23 (`all`) | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/9 |
+| `review-pr` run-1 | sí | parcial | sí | sí | no | sí | no | no | no | no | no | no | 4/9 |
+| `review-pr` run-2 | sí | parcial | sí | sí | no | sí | no | no | no | no | no | no | 4/9 |
+| `review-pr` run-3 | sí | parcial | sí | sí | no | sí | no | no | no | no | no | no | 4/9 |
+
+Medias: `review-prepush` sin `fork_turns` indicado en el prompt 6,0 (T20: 6,3; T17: 6,0); con `none` 6,3; con `all` 5,0; `review-pr` 4,0 (T17: 4,7). B7 (duplicación con `sumTotals`), B8 y B9 casi no aparecen: B7 y B8 en ninguna de las 12; B9 (código muerto `latestFirst`) en 4 de las 9 de `review-prepush`, que la base no encontraba. Ningún señuelo sobrevive en ninguna.
+
+**El unificado detecta menos B1–B6 que la base en `review-prepush`, de forma consistente.** Contando solo B1–B6: 6, 5, 5 sin `fork_turns` en el prompt, 6, 6, 5 con `none` y 5, 5, 5 con `all` (media de las 9: 5,3), frente a 6, 6, 6 en T20 y también en T17: 6 de las 9 ejecuciones quedan por debajo y ninguna supera la base. Siempre aparecen B1, B3, B4 y B6; lo que se pierde es B5 (el TODO sin ticket, un Nit: presente en 5 de las 9, y con `all` en 2 de 3) y B2 (el test inútil: «parcial» en 2 de 3 con `all`). En `review-pr` la diferencia es menor: 4, 4, 4 frente a 4, 5, 4 de T17 (B1–B6 con el criterio de T17), y B5 faltaba también en T17; lo que ya no aparece es B7 (1 de 3 en T17) y B2 es «parcial» en las tres (en T17, en dos). En `review-pr` run-1 el verifier refutó un hallazgo de cobertura de tests por duplicar C1–C3. Hallazgos fuera de `EXPECTED.md`: falta de test de `/invoices` (discutible) y, en 4 de 12, que la factura incluida no es un PDF válido (Critical). Las nueve de `review-prepush` acaban en BLOCK y las de `review-pr` en `CHANGES NEEDED` (tier 2).
+
+**No se da el cambio por bueno**: B2 y B5 (y, en `review-pr`, B7) se pierden con frecuencia; reforzar los disparadores es otra tarea; aquí no se tocan.
 
 ## Base con esfuerzo `medium` (T20)
 
