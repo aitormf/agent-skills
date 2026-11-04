@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Resume una ejecución de measure.sh: tokens por agente y total, subagentes y modelos.
 
-Uso: python3 -I summarize.py <results/<comando>/run-<i>> [<sandbox>]   (escribe JSON en stdout)
+Uso: python3 -I summarize.py <results/<comando>/run-<i>> [<sandbox> [<modelo> <esfuerzo>]]   (escribe JSON en stdout)
 
 Además de los tokens, comprueba qué persona cargó cada subagente: el cuerpo completo (`developer_instructions`)
 del .toml del sandbox (por defecto `<results>/../../repo/.codex/agents/`) debe estar en los mensajes `developer`
@@ -10,6 +10,9 @@ de arranque del subagente; si no, la ejecución es inválida (`problems`). Se co
 "liste" una persona, o que la sesión principal la lea con `cat`, no prueba qué cargó el subagente. Registra
 además, por subagente, el `fork_turns` con que se lanzó (None = no se indicó) y los tokens de entrada de su
 primera llamada (lo que ya lleva antes de empezar: el historial heredado).
+Modelo y esfuerzo: los esperados salen de `<run>/meta.json` (`model`, `effort`; por defecto `gpt-6.1-terra` y `medium`)
+o de los argumentos 3 y 4. Si algún agente, la sesión principal incluida, tiene en su `turn_context` otro modelo u
+otro esfuerzo (o ninguno), la ejecución es inválida (`problems`).
 
 Las cifras salen de los registros de sesión de Codex ($CODEX_HOME/sessions/**/rollout-*.jsonl): cada llamada
 a la API deja un `token_usage_record` con su `usage` y el `thread_id` del agente que la hizo. No se estima nada:
@@ -31,7 +34,9 @@ def body(path: Path):
     return tomllib.loads(path.read_text(encoding="utf-8"))["developer_instructions"].strip()
 
 
-def main(run: Path, sandbox: Path | None = None) -> dict:
+def main(run: Path, sandbox: Path | None = None, model: str | None = None, effort: str | None = None) -> dict:
+    meta = json.loads((run / "meta.json").read_text(encoding="utf-8")) if (run / "meta.json").is_file() else {}
+    model, effort = model or meta.get("model") or "gpt-6.1-terra", effort or meta.get("effort") or "medium"
     sandbox = sandbox or run.resolve().parent.parent.parent / "repo"
     root = None
     turn_usage = None
@@ -44,7 +49,7 @@ def main(run: Path, sandbox: Path | None = None) -> dict:
             root = e["thread_id"]
         if e.get("type") == "turn.completed":
             turn_usage = e.get("usage")
-    out = {"root_thread": root, "turn_completed_usage": turn_usage, "agents": {}, "problems": []}
+    out = {"expected_model": model, "expected_effort": effort, "root_thread": root, "turn_completed_usage": turn_usage, "agents": {}, "problems": []}
     if root is None:
         out["problems"].append("events.jsonl no tiene thread.started")
         return out
@@ -114,6 +119,9 @@ def main(run: Path, sandbox: Path | None = None) -> dict:
             out["agents"][tid]["persona"] = persona = check_persona(t["role"], "\n".join(t["dev"]), sandbox, global_agents)
             if not persona["sandbox_match"]:
                 out["problems"].append(f"{t['role']} ({tid}): la persona cargada no es la del sandbox ({persona['detail']})")
+        bad = [f"{m} (effort {eff})" for m, eff in t["models"] if (m, eff) != (model, effort)]
+        if bad or not t["models"]:
+            out["problems"].append(f"{t['role']} ({tid}): no corre con {model} (effort {effort}): {', '.join(bad) or 'sin turn_context'}")
     out["total"] = total
     out["subagents"] = sum(1 for a in out["agents"].values() if a["role"] != "main")
     out["models_seen"] = sorted({m for t in threads.values() for m, _ in t["models"] if m})
@@ -141,5 +149,6 @@ def check_persona(role, dev_text: str, sandbox: Path, global_agents: Path) -> di
 
 
 if __name__ == "__main__":
-    json.dump(main(Path(sys.argv[1]), Path(sys.argv[2]) if len(sys.argv) > 2 else None), sys.stdout, ensure_ascii=False, indent=1)
+    json.dump(main(Path(sys.argv[1]), Path(sys.argv[2]) if len(sys.argv) > 2 else None,
+                   sys.argv[3] if len(sys.argv) > 3 else None, sys.argv[4] if len(sys.argv) > 4 else None), sys.stdout, ensure_ascii=False, indent=1)
     print()

@@ -5,6 +5,10 @@
 # (tokens por agente y total, subagentes y duración, de summarize.py). results/ no se sube al repo.
 # Las ejecuciones se puntúan a mano contra EXPECTED.md. Necesita red (API de Codex): no va en scripts/check.sh.
 # Modelo: MODEL (por defecto gpt-6.1-terra), siempre explícito con -m. Los subagentes no fijan modelo y heredan el de la sesión.
+# Esfuerzo: EFFORT (por defecto medium), siempre explícito con -c model_reasoning_effort. El catálogo trae `low` por defecto para
+# gpt-6.1-terra (T17 midió con él). Los subagentes sin esfuerzo propio lo heredan de la sesión; summarize.py invalida la ejecución
+# si algún agente, la sesión principal incluida, no corre con MODEL y EFFORT (según su turn_context).
+# KIT=<dir>: de dónde copió build.sh las skills y personas (por defecto este checkout); su commit va en meta.json (kit_commit).
 # START=<k> numera desde k (para añadir una repetición sin pisar las anteriores).
 # Personas: Codex no carga .codex/agents/ de un proyecto que no es de confianza en ~/.codex/config.toml, y
 # `-c projects."<ruta>".trust_level=...` no lo hace de confianza; entonces el subagente usa la copia global de
@@ -16,6 +20,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CMD="${1:?uso: measure.sh <review-pr|review-prepush> <n>}"
 N="${2:?uso: measure.sh <review-pr|review-prepush> <n>}"
 MODEL="${MODEL:-gpt-6.1-terra}"
+EFFORT="${EFFORT:-medium}"
 START="${START:-1}"
 BRANCH=feature/orders-pagination-invoices
 REPO="$HERE/repo"
@@ -41,7 +46,8 @@ PY
 )
 
 VERSION="$(codex --version)"
-KIT_COMMIT="$(git -C "$HERE" rev-parse --short HEAD)"
+KIT="${KIT:-$(cd "$HERE/../.." && pwd)}"
+KIT_COMMIT="$(git -C "$KIT" rev-parse --short HEAD)"
 for ((i = START; i < START + N; i++)); do
   DIR="$HERE/results/$CMD/run-$i"
   rm -rf "$DIR"
@@ -50,17 +56,17 @@ for ((i = START; i < START + N; i++)); do
   T0=$(date +%s)
   # Sin --dangerously-bypass-*: sandbox de solo lectura. Sin push, así que el hook pre-push no se dispara.
   set +e
-  (cd "$REPO" && codex exec -m "$MODEL" -s read-only --json "${AGENT_ARGS[@]}" -o "$DIR/report.md" "$PROMPT") >"$DIR/events.jsonl" 2>"$DIR/stderr.txt"
+  (cd "$REPO" && codex exec -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" -s read-only --json "${AGENT_ARGS[@]}" -o "$DIR/report.md" "$PROMPT") >"$DIR/events.jsonl" 2>"$DIR/stderr.txt"
   RC=$?
   set -e
   T1=$(date +%s)
-  python3 -I - "$DIR/meta.json" "$CMD" "$i" "$MODEL" "$VERSION" "$RC" "$((T1 - T0))" "$KIT_COMMIT" "$PROMPT" <<'PY'
+  python3 -I - "$DIR/meta.json" "$CMD" "$i" "$MODEL" "$EFFORT" "$VERSION" "$RC" "$((T1 - T0))" "$KIT_COMMIT" "$PROMPT" <<'PY'
 import json, sys
-keys = ["command", "run", "model", "codex", "exit_code", "seconds", "kit_commit", "prompt"]
+keys = ["command", "run", "model", "effort", "codex", "exit_code", "seconds", "kit_commit", "prompt"]
 meta = dict(zip(keys, sys.argv[2:]))
 for k in ("run", "exit_code", "seconds"):
     meta[k] = int(meta[k])
-meta["codex_exec"] = f"codex exec -m {meta['model']} -s read-only --json -c agents.<rol>.{{description,config_file}}=... -o report.md \"<prompt>\" (en repo/)"
+meta["codex_exec"] = f"codex exec -m {meta['model']} -c model_reasoning_effort=\\\"{meta['effort']}\\\" -s read-only --json -c agents.<rol>.{{description,config_file}}=... -o report.md \"<prompt>\" (en repo/)"
 meta["personas"] = "las de .codex/agents/ del sandbox, con -c agents.<rol>.config_file (una por persona)"
 json.dump(meta, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
 PY
