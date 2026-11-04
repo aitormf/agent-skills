@@ -2,7 +2,7 @@
 id: D-0046
 title: Los subagentes de la review arrancan sin el historial de la sesión principal; en Codex, con fork_turns none
 type: architecture
-status: proposed
+status: accepted
 date: 2026-11-03
 affects: [skills/review-prepush/, skills/review-pr/]
 supersedes: null
