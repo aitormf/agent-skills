@@ -1,7 +1,7 @@
 ---
 id: T11
 title: code-reviewer con el criterio condensado en lugar de precargar code-review-and-quality
-status: done
+status: todo
 depends_on: [T3]
 examples: [E25, E26, E27, E28]
 verification: scripts/check.sh

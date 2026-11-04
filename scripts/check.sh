@@ -781,36 +781,6 @@ for b in bad:
 sys.exit(1 if bad else 0)
 PYEOF
 
-echo "▶ review: code-reviewer carries the condensed criterion, not the whole skill (E25-E28, R6, D-0045)"
-python3 - <<'PYEOF'
-import re, sys
-from pathlib import Path
-text = Path("agents/code-reviewer.md").read_text(encoding="utf-8")
-m = re.search(r"^## Judgement\n(.*?)(?=^## )", text, re.S | re.M)
-sec = m.group(1) if m else ""
-bad = [] if m else ["agents/code-reviewer.md has no '## Judgement' section"]
-if m and not 1200 <= len(sec.encode()) <= 2400:
-    bad.append(f"Judgement is {len(sec.encode())} bytes, expected about 1.5-2 KB")
-# Each rule the inventory keeps "in the agent" must stay in it: key phrases per example.
-want = {
-    "E25 reuse the existing helper and name it; named structural remedies": [
-        "reuse the existing helper", "name it in the fix", "propose the move", "explicit dispatcher",
-        "delete a pass-through wrapper", "extract a helper"],
-    "E26 moving complexity is not reducing it: count the concepts": [
-        "collapse duplicate branches", "count the concepts", "relocat", "conditionals scattered", "grows a large file"],
-    "E27 dead code the change leaves, listed by name": ["dead code", "by name"],
-    "E28 honesty and agent code; --deep reads the whole skill": [
-        "soften", "without evidence", "quantify", "agent", "--deep", "code-review-and-quality"],
-}
-bad += [f"{k}: missing {w!r}" for k, ws in want.items() for w in ws if w.lower() not in sec.lower()]
-fm = text.split("\n---\n", 1)[0]
-if "code-review-and-quality" in fm:
-    bad.append("agents/code-reviewer.md frontmatter still lists code-review-and-quality")
-for b in bad:
-    print(b, file=sys.stderr)
-sys.exit(1 if bad else 0)
-PYEOF
-
 echo "▶ review: the report format is read by the main session only (E29, R6, D-0045)"
 python3 - <<'EOF2'
 import re, sys
