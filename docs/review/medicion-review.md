@@ -1,10 +1,170 @@
-# Medición base de la review (T1)
+# Medición base de la review
 
-> **Corrección:** esta base no mide del todo la review del commit indicado. Al lanzar los subagentes, Codex usó las copias globales de `~/.codex/agents/` (del 2026-10-19), no las personas del sandbox: `code-reviewer` y `test-engineer` coinciden solo con la global en todos los subagentes medidos, y la `code-reviewer` global no tiene la sección "Beyond the diff". `security-auditor` es idéntica en ambos sitios, y `finding-verifier` no se pudo distinguir con la comprobación usada (los primeros 2.500 caracteres). Las skills sí eran las del sandbox. Los hallazgos y los tokens de los subagentes no sirven como base comparable: la base válida es la de T17.
+Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`). Este documento no saca conclusiones sobre el reviewer unificado: aún no existe.
+
+Hay dos mediciones. **La válida es la de T17** (esta sección). La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
+
+## Base válida (T17)
+
+### Cómo se midió
+
+| | |
+|---|---|
+| Fecha | 2026-11-04 |
+| Codex | `codex-cli 0.165.0` |
+| Modelo | `gpt-6.1-terra`, explícito con `-m` en toda ejecución (también en las pruebas previas) y registrado en cada `meta.json`. Los hilos de las seis ejecuciones, subagentes incluidos, lo tienen en su `turn_context` |
+| Commit del kit | `6d9fd8a` (`main`). `skills/`, `agents/` y `adapters/` no cambian: la review medida es la de ese commit. La PR toca solo `measure.sh`, `summarize.py` y esta documentación |
+| Sandbox | `tests/review-sandbox/build.sh --codex`, rama `feature/orders-pagination-invoices` (sin remoto; no hay push) |
+| Ejecución | `-s read-only`, sin `--dangerously-bypass-*`, sin ampliar permisos. No se tocó nada de `~/.codex` ni se copió ninguna credencial |
+| Prompts | los de T1, sin cambios y sin indicar `fork_turns` (ver más abajo): se mide la review de hoy y la variación del modelo es parte de lo medido |
+
+Comandos (desde la raíz del repo):
+
+```bash
+tests/review-sandbox/build.sh --codex
+tests/review-sandbox/measure.sh review-prepush 1     # ejecución de prueba; solo si es válida:
+START=2 tests/review-sandbox/measure.sh review-prepush 2
+tests/review-sandbox/measure.sh review-pr 3
+```
+
+### Por qué T1 usó las personas globales y cómo se resolvió
+
+Comprobado, no supuesto. Para saber qué persona carga un subagente se compara el mensaje `developer` de arranque de su registro en `~/.codex/sessions` con el cuerpo (`developer_instructions`) de cada `.toml`.
+
+1. En el sandbox, `code-reviewer`, `test-engineer` y `finding-verifier` difieren de las de `~/.codex/agents/`; `security-auditor` es idéntica.
+2. Sondeos pequeños con `gpt-6.1-terra` (seis ejecuciones, no incluidas en las tablas). Un agente de nombre único (`zz-probe`) en `.codex/agents/` del proyecto, y otro declarado en un `.codex/config.toml` del proyecto, dan `unknown agent_type`: **Codex no carga la capa `.codex/` del proyecto**. Pasa igual con `-c projects."<ruta>".trust_level="trusted"`, y el `code-reviewer` lanzado con ese `-c` cargó la global.
+3. La sobrescritura de una sola llamada `-c agents.<rol>.config_file=<ruta al .toml>` (con `agents.<rol>.description`) sí funciona: el agente de nombre único se carga, y con el nombre de una persona global **tiene prioridad sobre la global**.
+4. **Causa, parcialmente confirmada:** el proyecto del sandbox no figura en `[projects]` de `~/.codex/config.toml` (solo está de confianza otro) y la capa del proyecto no se carga. No se pudo separar «falta de confianza» de «`codex exec` no lee esa capa»: lo único que lo distinguiría es marcar el proyecto de confianza en `~/.codex/config.toml`, que está fuera de los límites de esta tarea (y `-c projects...` no basta). Lo confirmado es el efecto y que declarar las personas con `-c` lo evita.
+5. **Arreglo:** `measure.sh` pasa a `codex exec` un `-c agents.<rol>.config_file` y un `description` por cada `.toml` de `.codex/agents/` del sandbox. No cambia nada fuera del repo generado.
+
+### Prueba de que cargaron las personas del sandbox
+
+`summarize.py` comprueba, por subagente, que el **cuerpo completo** de su `.toml` del sandbox está en los mensajes `developer` de su registro; si no, añade el problema a `problems` y la ejecución es inválida. También lo compara con `~/.codex/agents/` y dice si las dos copias se pueden distinguir. Las seis ejecuciones tienen `problems` vacío y los 18 subagentes cargaron la persona del sandbox (los 6 `code-reviewer`, 3 `test-engineer` y 6 `finding-verifier` se distinguen de la global; los 3 `security-auditor` son idénticos en ambos sitios y **no se puede distinguir** cuál cargaron).
+
+La comprobación discrimina: aplicada a los registros de T1 marca como inválidos `code-reviewer`, `test-engineer` y `finding-verifier` («cargó la global de ~/.codex/agents») y deja pasar a `security-auditor` marcándolo como indistinguible.
+
+### De dónde salen las cifras
+
+Igual que en T1: `summarize.py` suma los `token_usage_record` de los registros de sesión por agente (la sesión principal coincide con `turn.completed`: ningún `problems` por eso). «Entrada» incluye la «entrada en caché»; «sin caché» es la resta. **No hay cifras estimadas.** Se añade por subagente: el `fork_turns` con el que lo lanzó la principal (`spawn_agent`; «no indicado» = hereda todo el historial) y los tokens de entrada de su primera llamada, que son el historial heredado más sus instrucciones.
+
+### Límites y condiciones
+
+- **Semgrep no funciona, igual que en T1.** El motivo cambia al intentarlo. La falta de directorio temporal se resuelve con `-s workspace-write`, `TMPDIR` y las variables `SEMGREP_*` dentro del sandbox generado y sin `/tmp` escribible (comprobado con `codex sandbox`). Pero `semgrep scan --config p/default` descarga las reglas de `semgrep.dev` y falla con `Name or service not known`: hace falta red, y dársela sería ampliar los permisos fuera del sandbox. Fuera del sandbox de Codex el script sí corre. Se mantuvo `read-only`, así que las condiciones son las de T1: los informes dicen «Semgrep: skipped/failed».
+- **Variación del modelo:** con el mismo prompt, el modelo lanzó los subagentes con `fork_turns: "none"` en `review-prepush` run-1 y run-3 (primera llamada de ~21.500 tokens de entrada) y sin indicarlo en el resto (entre 35.570 y 50.017). Es parte de lo medido, pero explica gran parte de la diferencia entre ejecuciones.
+- **Esfuerzo:** los subagentes aparecen con `effort low` en su `turn_context`; la sesión principal no lo registra (campo vacío). Los `.toml` no lo declaran y no se ha investigado quién lo fija. Los hijos con historial heredado muestran además un primer `turn_context` del padre (sin esfuerzo), copiado del historial.
+- **Idioma:** el prompt no lo fija y el informe salió en español en cinco ejecuciones y en inglés en `review-prepush` run-1.
+- **Repeticiones y fallos:** ninguna ejecución de Codex se repitió ni falló (todas `exit 0`). `review-prepush` run-1 fue la ejecución de prueba y es válida, así que cuenta. Con la primera versión de `summarize.py` cuatro ejecuciones salieron «inválidas» (las de subagentes con historial heredado): era un fallo del script (atribuía los mensajes `developer` de un hijo a su padre, porque el registro de un hijo trae al final la `session_meta` del padre). Se corrigió y se resumieron de nuevo los mismos registros; no se relanzó Codex. Aparte, seis sondeos pequeños de diagnóstico (arriba) y una ejecución de `codex sandbox` para Semgrep.
+- Los registros crudos (`events.jsonl`, `stderr.txt`) quedan en `tests/review-sandbox/results/` (ignorado por git). En el repo van `report.md`, `summary.json` y `meta.json` de cada ejecución en `docs/review/medicion-review/t17/<comando>/run-<n>/`, con la ruta absoluta del sandbox sustituida por `repo/`. No hay secretos.
+- La duración es de reloj, de principio a fin de `codex exec`.
+
+### Tokens
+
+#### `review-prepush`
+
+**run-1** (exit 0, 113 s, 2 subagentes, modelo visto: gpt-6.1-terra, esfuerzo de los subagentes: low, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 14 | 447.230 | 417.408 | 29.822 | 3.484 | 64 | — | — | — |
+| code-reviewer | 6 | 168.325 | 137.216 | 31.109 | 1.501 | 0 | `none` | 21.612 | sandbox |
+| finding-verifier | 3 | 81.338 | 64.000 | 17.338 | 1.584 | 50 | `none` | 21.465 | sandbox |
+| **Total** | 23 | **696.893** | **618.624** | **78.269** | **6.569** | **114** | | | |
+
+**run-2** (exit 0, 92 s, 2 subagentes, modelo visto: gpt-6.1-terra, esfuerzo de los subagentes: low, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 10 | 282.896 | 262.784 | 20.112 | 2.884 | 25 | — | — | — |
+| code-reviewer | 4 | 167.707 | 151.424 | 16.283 | 1.168 | 9 | no indicado | 36.421 | sandbox |
+| finding-verifier | 3 | 137.707 | 120.960 | 16.747 | 738 | 27 | no indicado | 39.808 | sandbox |
+| **Total** | 17 | **588.310** | **535.168** | **53.142** | **4.790** | **61** | | | |
+
+**run-3** (exit 0, 131 s, 2 subagentes, modelo visto: gpt-6.1-terra, esfuerzo de los subagentes: low, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 15 | 526.510 | 492.416 | 34.094 | 3.481 | 10 | — | — | — |
+| code-reviewer | 6 | 168.810 | 137.600 | 31.210 | 1.439 | 28 | `none` | 21.623 | sandbox |
+| finding-verifier | 3 | 82.671 | 63.488 | 19.183 | 1.366 | 48 | `none` | 21.436 | sandbox |
+| **Total** | 24 | **777.991** | **693.504** | **84.487** | **6.286** | **86** | | | |
+
+#### `review-pr`
+
+**run-1** (exit 0, 86 s, 4 subagentes, modelo visto: gpt-6.1-terra, esfuerzo de los subagentes: low, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 14 | 434.334 | 409.216 | 25.118 | 3.243 | 43 | — | — | — |
+| code-reviewer | 4 | 168.224 | 151.808 | 16.416 | 1.027 | 39 | no indicado | 36.125 | sandbox |
+| security-auditor | 3 | 125.089 | 108.544 | 16.545 | 543 | 8 | no indicado | 35.570 | sandbox (idéntica a la global) |
+| test-engineer | 3 | 120.875 | 106.752 | 14.123 | 630 | 9 | no indicado | 35.697 | sandbox |
+| finding-verifier | 3 | 146.227 | 130.944 | 15.283 | 813 | 54 | no indicado | 43.746 | sandbox |
+| **Total** | 27 | **994.749** | **907.264** | **87.485** | **6.256** | **153** | | | |
+
+**run-2** (exit 0, 92 s, 4 subagentes, modelo visto: gpt-6.1-terra, esfuerzo de los subagentes: low, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 15 | 532.570 | 490.368 | 42.202 | 2.980 | 26 | — | — | — |
+| code-reviewer | 3 | 135.174 | 125.312 | 9.862 | 759 | 8 | no indicado | 44.015 | sandbox |
+| security-auditor | 2 | 91.055 | 79.616 | 11.439 | 309 | 32 | no indicado | 43.436 | sandbox (idéntica a la global) |
+| test-engineer | 2 | 88.505 | 80.000 | 8.505 | 419 | 50 | no indicado | 43.560 | sandbox |
+| finding-verifier | 2 | 98.712 | 86.144 | 12.568 | 1.002 | 22 | no indicado | 46.846 | sandbox |
+| **Total** | 24 | **946.016** | **861.440** | **84.576** | **5.469** | **138** | | | |
+
+**run-3** (exit 0, 95 s, 4 subagentes, modelo visto: gpt-6.1-terra, esfuerzo de los subagentes: low, `problems`: vacío)
+
+| Agente | Llamadas | Entrada | En caché | Sin caché | Salida | Razonamiento | `fork_turns` | Entrada de su 1.ª llamada | Persona cargada |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| sesión principal | 18 | 748.876 | 713.088 | 35.788 | 3.534 | 216 | — | — | — |
+| code-reviewer | 3 | 144.693 | 139.008 | 5.685 | 589 | 7 | no indicado | 46.624 | sandbox |
+| security-auditor | 2 | 98.680 | 89.600 | 9.080 | 345 | 47 | no indicado | 46.053 | sandbox (idéntica a la global) |
+| test-engineer | 3 | 152.883 | 143.488 | 9.395 | 573 | 32 | no indicado | 46.211 | sandbox |
+| finding-verifier | 3 | 159.142 | 151.680 | 7.462 | 573 | 35 | no indicado | 50.017 | sandbox |
+| **Total** | 29 | **1.304.274** | **1.236.864** | **67.410** | **5.614** | **337** | | | |
+
+#### Medias
+
+| Comando | Ejecuciones | Subagentes | Duración (s) | Entrada | Entrada en caché | Salida | Razonamiento | Entrada sin caché |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `review-prepush` | 3 | 2 | 112 | 687.731 | 615.765 | 5.882 | 87 | 71.966 |
+| `review-pr` | 3 | 4 | 91 | 1.081.680 | 1.001.856 | 5.780 | 209 | 79.824 |
+
+
+Las medias son aritméticas sobre 3 ejecuciones; la variación entre ellas es grande, así que sirven de orden de magnitud.
+
+### Qué encuentran
+
+Puntuado **a mano**, leyendo cada `report.md` contra `tests/review-sandbox/EXPECTED.md`. Criterio: un bug cuenta si un hallazgo (o el arreglo de otro) lo señala con su causa. B2 exige señalar que el test no comprueba el contenido de la página (o que pasa con el bug); si solo aparece como «comprobar contenido exacto» en el arreglo de B1 se anota «parcial» y no cuenta. B8 cuenta solo con un remedio con nombre. Un señuelo aparece si sobrevive como hallazgo.
+
+| | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | D1 | D2 | D3 | Bugs detectados |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `review-prepush` run-1 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/9 |
+| `review-prepush` run-2 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/9 |
+| `review-prepush` run-3 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/9 |
+| **`review-prepush`, de 3** | 3 | 3 | 3 | 3 | 3 | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 6,0 de media |
+| `review-pr` run-1 | sí | parcial | sí | sí | no | sí | sí | no | no | no | no | no | 5/9 |
+| `review-pr` run-2 | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/9 |
+| `review-pr` run-3 | sí | parcial | sí | sí | no | sí | no | no | no | no | no | no | 4/9 |
+| **`review-pr`, de 3** | 3 | 1 (+2 parcial) | 3 | 3 | 0 | 3 | 1 | 0 | 0 | 0 | 0 | 0 | 4,7 de media |
+
+Notas por ejecución:
+
+- **`review-prepush`** (las tres, BLOCK, 3 Critical): B2 aparece como hallazgo propio («la prueba acepta páginas incorrectas», «pasa con el offset desplazado»); B5 como Nit («TODO sin referencia»). Fuera de `EXPECTED.md`: falta de test del endpoint `/invoices` (lo discutible) y de test del orden de `listOrders`.
+- **`review-pr` run-1:** B2 parcial (C2 pide comprobar contenido y totales exactos, pero ningún hallazgo dice que el test actual pase con el bug); B7 sí: R3 nombra `pageTotal` y `sumTotals` y pide compartir la función sin dependencia circular. Tier 2, CHANGES.
+- **`review-pr` run-2:** B2 sí (R2: «el test no comprueba items; la primera página incorrecta pasa todas las aserciones»). Sin B7. Tier 2.
+- **`review-pr` run-3:** B2 parcial (solo en el arreglo de C2); un Optional fuera de `EXPECTED.md` (O1, la descripción del commit no explica motivo ni verificación, fuente `pr-description`). Tier 2.
+- **B5 no aparece en ninguna de `review-pr`** (Nits: 0 en las tres). **B8 y B9 no aparecen en ninguna de las seis ejecuciones; B7 solo en una.** Ningún señuelo (D1–D3) sobrevive en ninguna.
+- El verifier refutó 0 hallazgos en las seis ejecuciones.
+
+
+## Medición de T1: no comparable
+
+> **No usar como base.** Al lanzar los subagentes, Codex usó las copias globales de `~/.codex/agents/` (del 2026-10-19), no las personas del sandbox. La comprobación de T17 sobre los registros de T1 lo confirma: `code-reviewer`, `test-engineer` y `finding-verifier` cargaron la global; `security-auditor` es idéntica en ambos sitios, así que no se puede distinguir. La `code-reviewer` global no tiene la sección «Beyond the diff». Las skills sí eran las del sandbox. Los hallazgos y los tokens de los subagentes de esta sección no son comparables con los de la base válida de arriba. (La comprobación de T1, «Codex las lista y la sesión principal las lee con `cat`», no demuestra qué carga el subagente; la nota anterior decía que `finding-verifier` no se pudo distinguir porque solo comparaba los primeros 2.500 caracteres.)
 
 Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`, paso S1). Este documento no saca conclusiones sobre el reviewer unificado: aún no existe.
 
-## Cómo se midió
+### Cómo se midió
 
 | | |
 |---|---|
@@ -37,14 +197,14 @@ con estos prompts (`$BRANCH` = `feature/orders-pagination-invoices`):
 
 `codex exec` no tiene comandos de barra: la skill se invoca nombrándola en el prompt.
 
-### De dónde salen las cifras
+#### De dónde salen las cifras
 
 - `turn.completed` de `--json` da solo el uso de la **sesión principal**. No incluye a los subagentes, y la salida `--json` no muestra su arranque (solo eventos `wait` sin ids).
 - Los subagentes sí dejan su propio fichero de sesión en `~/.codex/sessions/`, con su rol, su modelo (`turn_context`) y un `token_usage_record` por llamada a la API. `summarize.py` suma esos registros por agente. Para la sesión principal coinciden exactamente con `turn.completed` (comprobado en las seis ejecuciones: campo `problems` vacío en cada `summary.json`).
 - Cada cifra sale de esos registros; no hay estimaciones. «Entrada» incluye la «entrada en caché», como la entrega Codex; «razonamiento» se da tal cual, sin sumarlo a la salida.
 - **Modelo de los subagentes:** los 24 hilos de las seis ejecuciones (3 por ejecución de `review-prepush` y 5 por la de `review-pr`, la sesión principal incluida) tienen `gpt-6.1-terra` en su `turn_context`. Los subagentes aparecen además con `effort low` en su `turn_context`; los `.toml` de las personas no declaran modelo ni esfuerzo, así que ese valor no sale del kit (no se ha investigado quién lo fija).
 
-### Límites y cosas a tener en cuenta
+#### Límites y cosas a tener en cuenta
 
 - **Semgrep falló en las seis ejecuciones** («no hay directorio temporal escribible» en el sandbox de solo lectura), así que cada informe dice «Semgrep: skipped». Una review real lo ejecutaría si está instalado; aquí no cuenta ni en tokens ni en hallazgos.
 - **Skills globales:** la máquina tiene copias antiguas en `~/.agents/skills/` y el plugin `harness` activado en `~/.codex/config.toml`. Para que no se cuelen, el prompt manda usar solo `.agents/skills/` del sandbox y ninguna ejecución ha leído `~/.agents` (comprobado en `events.jsonl`). No se aisló `CODEX_HOME` ni `HOME`.
@@ -53,9 +213,9 @@ con estos prompts (`$BRANCH` = `feature/orders-pagination-invoices`):
 - Los resultados crudos (`events.jsonl`, `stderr.txt`, informes) quedan en `tests/review-sandbox/results/` (en `.gitignore`) y, en esta máquina, copiados a `/tmp/t1-medicion-raw/`. En el repo van los informes, `summary.json` y `meta.json` de cada ejecución en `docs/review/medicion-review/<comando>/run-<n>/`; en los informes se sustituyó la ruta absoluta del sandbox por `repo/`. No hay secretos en ninguno.
 - La duración es de reloj, de principio a fin de `codex exec`.
 
-## Tokens
+### Tokens
 
-### `review-prepush`
+#### `review-prepush`
 
 **run-1** (exit 0, 119 s, 2 subagentes, modelos vistos: gpt-6.1-terra)
 
@@ -85,7 +245,7 @@ con estos prompts (`$BRANCH` = `feature/orders-pagination-invoices`):
 | **Total** | 16 | **468.796** | **392.064** | **6.220** | **53** |
 
 
-### `review-pr`
+#### `review-pr`
 
 **run-1** (exit 0, 91 s, 4 subagentes, modelos vistos: gpt-6.1-terra)
 
@@ -121,7 +281,7 @@ con estos prompts (`$BRANCH` = `feature/orders-pagination-invoices`):
 | **Total** | 26 | **1.060.354** | **991.488** | **5.137** | **251** |
 
 
-### Medias
+#### Medias
 
 | Comando | Ejecuciones | Subagentes | Duración (s) | Entrada | Entrada en caché | Salida | Razonamiento | Entrada sin caché |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -130,7 +290,7 @@ con estos prompts (`$BRANCH` = `feature/orders-pagination-invoices`):
 
 Las medias son aritméticas sobre 3 ejecuciones; la variación entre ellas es grande (p. ej. entrada de `review-prepush` entre 468.796 y 600.077), así que sirven de orden de magnitud, no de cifra exacta.
 
-## Qué encuentran
+### Qué encuentran
 
 Puntuado **a mano**, leyendo cada `report.md` contra `tests/review-sandbox/EXPECTED.md`. Criterio: un bug cuenta si un hallazgo (o el arreglo de otro) lo señala con su causa. B2 exige señalar que el test no comprueba el contenido de la página; si solo lo menciona de pasada en el arreglo de B1 se anota «parcial» y no cuenta. B8 cuenta solo si propone un remedio con nombre (*collapse duplicate branches*, *explicit dispatcher*…), como pide su fila. Un señuelo aparece si sobrevive como hallazgo.
 
@@ -156,7 +316,7 @@ Notas por ejecución:
 - Fuera de `EXPECTED.md`, en todas las ejecuciones aparece «falta de test del endpoint `/invoices`» (lo que `EXPECTED.md` da por discutible/aceptable) y, en ninguna, «distinguir ENOENT» como Optional.
 - Los `.toml` de las personas y las skills se leyeron de `.codex/agents/` y `.agents/skills/` del sandbox.
 
-## Qué ocupa la entrada
+### Qué ocupa la entrada
 
 Análisis posterior de los registros de sesión de las mismas 6 ejecuciones. Las columnas "~" son estimaciones (caracteres / 4 × llamadas posteriores); el resto son cifras registradas.
 

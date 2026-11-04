@@ -1,7 +1,7 @@
 ---
 id: T17
 title: Repetir la medición base con las personas del sandbox
-status: todo
+status: done
 depends_on: []
 examples: []
 verification: scripts/check.sh

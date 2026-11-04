@@ -1,0 +1,74 @@
+{
+ "root_thread": "01a1a503-5507-7ad1-b2b4-8df44fa72c95",
+ "turn_completed_usage": {
+  "input_tokens": 526510,
+  "cached_input_tokens": 492416,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 3481,
+  "reasoning_output_tokens": 10
+ },
+ "agents": {
+  "01a1a503-5507-7ad1-b2b4-8df44fa72c95": {
+   "role": "main",
+   "api_calls": 15,
+   "input_tokens": 526510,
+   "cached_input_tokens": 492416,
+   "output_tokens": 3481,
+   "reasoning_output_tokens": 10,
+   "models": [
+    "gpt-6.1-terra"
+   ]
+  },
+  "01a1a503-b694-7470-a8b1-d70d072ef9cf": {
+   "role": "code-reviewer",
+   "api_calls": 6,
+   "input_tokens": 168810,
+   "cached_input_tokens": 137600,
+   "output_tokens": 1439,
+   "reasoning_output_tokens": 28,
+   "models": [
+    "gpt-6.1-terra (effort low)"
+   ],
+   "fork_turns": "none",
+   "first_call_input_tokens": 21623,
+   "persona": {
+    "sandbox_match": true,
+    "global_match": false,
+    "distinguishable": true,
+    "detail": "cargó la del sandbox",
+    "body_chars": 9013
+   }
+  },
+  "01a1a504-7c6d-71d1-a199-77fb28750518": {
+   "role": "finding-verifier",
+   "api_calls": 3,
+   "input_tokens": 82671,
+   "cached_input_tokens": 63488,
+   "output_tokens": 1366,
+   "reasoning_output_tokens": 48,
+   "models": [
+    "gpt-6.1-terra (effort low)"
+   ],
+   "fork_turns": "none",
+   "first_call_input_tokens": 21436,
+   "persona": {
+    "sandbox_match": true,
+    "global_match": false,
+    "distinguishable": true,
+    "detail": "cargó la del sandbox",
+    "body_chars": 6062
+   }
+  }
+ },
+ "problems": [],
+ "total": {
+  "input_tokens": 777991,
+  "cached_input_tokens": 693504,
+  "output_tokens": 6286,
+  "reasoning_output_tokens": 86
+ },
+ "subagents": 2,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}
