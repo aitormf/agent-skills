@@ -1,7 +1,7 @@
 ---
 name: review-pr
 description: Risk-scaled review of a pull request or branch — repo checks from AGENTS.md, parallel fan-out to code-reviewer / security-auditor / test-engineer, adversarial finding-verifier, then one advisory report, checked against the branch's docs/changes/ folder if it has one. Comments only; never approves. Use to review a pull request or a branch before merge.
-argument-hint: "<pr-number | branch> [base-branch] [--full] [--inline]"
+argument-hint: "<pr-number | branch> [base-branch] [--full] [--deep] [--inline]"
 allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*)
 kind: skill
 uses:
@@ -16,7 +16,7 @@ related:
   - skill:task-done
 # Bloques para rulesync: los genera scripts/build-agents.py desde los campos de arriba. No editar a mano.
 claudecode:
-  argument-hint: "<pr-number | branch> [base-branch] [--full] [--inline]"
+  argument-hint: "<pr-number | branch> [base-branch] [--full] [--deep] [--inline]"
   allowed-tools: Read, Grep, Glob, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(git branch:*), Bash(git show:*), Bash(git ls-tree:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr checks:*)
 ---
 
@@ -31,7 +31,8 @@ claudecode:
 Target: `$ARGUMENTS` — a PR number (or URL) or a branch name, optionally followed by the base branch. If empty, use the current branch. Options, anywhere in the arguments:
 
 - `--full`: the full report (`report-format.md` §4.1) instead of the short one (§4.2).
-- `--inline`: also the findings block (`report-format.md` §4.3), for the GitHub workflow, which posts each finding as a comment on its line.
+- `--deep`: the full fan-out (Step 4) whatever the size of the diff.
+- `--inline`: also the findings block (`report-format.md` §4.3), for the workflow that posts each finding on its line.
 
 Follow the `review-context` skill for config and verification, and the `review-report` skill for precision rules, severities and formats (namespaced `harness:review-context` / `harness:review-report` when installed as the Claude Code plugin).
 
@@ -58,6 +59,8 @@ Classify from the changed paths and the diff content, and state the tier and the
 
 When in doubt between two tiers, choose the higher one. Upstream's skip rule still applies as a floor: anything over 2 files or 50 changed lines is at least tier 1 unless it is purely docs.
 
+**Size (D-0045):** the script counts, not you: `python3 ../review-context/scripts/diff_size.py <base>...<head>` (path from this skill's directory; run it from the repo root). Small is at most 200 lines. If the range is not available locally, treat the diff as large. Put its line in the summary.
+
 ## Step 3 — Verification (main session)
 
 Only if the working tree is the change's head: run the AGENTS.md verification commands per `review-context` §2 (if none, say so and continue), and, if there is a change folder, the read-only audit of the task or the plan, from the repo root, with `<task-done-dir>` the directory of the `task-done` skill (next to this one: `../task-done`):
@@ -66,13 +69,13 @@ Only if the working tree is the change's head: run the AGENTS.md verification co
 python3 <task-done-dir>/scripts/task_done.py --audit docs/changes/<change> [T<n>]   # T<n> on a task branch; nothing on the plan branch
 ```
 
-Always with the path, since the checkout may not be on the branch name. It runs no verification and edits nothing. Keep its output as a verification result (exit 0: nothing wrong; exit 3: `PROBLEM` lines). If the script or `python3` is not available, if it exits 2, or if its only `PROBLEM` is that it cannot read the git history of the branch, write "Test protection: not checked (<reason>)" under Verification. Semgrep per `review-context` §2.6. If it is a PR, also note `gh pr checks <n>` status if available (read-only).
+Always with the path, since the checkout may not be on the branch name. It runs no verification and edits nothing. Keep its output as a verification result (exit 0: nothing wrong; exit 3: `PROBLEM` lines). If the script or `python3` is not available, if it exits 2, or if its only `PROBLEM` is that it cannot read the git history of the branch, write "Test protection: not checked (<reason>)" under Verification. Semgrep per `review-context` §2.6. If it is a PR, also note `gh pr checks <n>` if available (read-only).
 
 ## Step 4 — Fan-out (parallel subagents)
 
-Tier 0: spawn only `code-reviewer`. Tiers 1–2: spawn the three personas **in a single assistant turn so they run in parallel** (use the names as the Agent tool lists them — `harness:<name>` as a plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session.
+Tier 0: spawn only `code-reviewer`, whatever the size. Tiers 1–2 with a diff of at most 200 lines and no `--deep`: spawn only `code-reviewer`, and tell it it is the only reviewer (its `Passes` section; the test checks of `review-report` §5 are its job), the tier and the high-risk paths of AGENTS.md; in tier 2 the security pass is mandatory. Without `security-auditor` and `test-engineer`; Step 6's verifier stays. Tiers 1–2 with more than 200 lines or with `--deep`: the full fan-out, and the summary warns that the task is over 200 lines (D-0044). Spawn the three personas **in a single assistant turn so they run in parallel** (use the names as the Agent tool lists them — `harness:<name>` as a plugin). Every persona starts without the main session's history, so it reviews independently of what the main session read: in Codex pass `fork_turns: "none"` to `spawn_agent` (its default is `all`); Claude Code subagents do not inherit the history and have no such parameter. The brief must stand on its own: do not assume the persona saw anything of this session.
 
-1. **`code-reviewer`** — five-axis review of the diff, plus its "Beyond the diff" checks (callers outside the diff, decisions, and on a task branch the size and purpose of the task, D-0033). Tell it that `test-engineer` runs alongside, so the test checks of `review-report` §5 are not its job (in tier 0 it is alone and applies them).
+1. **`code-reviewer`** — five-axis review of the diff, plus its "Beyond the diff" checks (callers outside the diff, decisions, and on a task branch the size and purpose of the task, D-0033). Tell it that `test-engineer` runs alongside, so the test checks of `review-report` §5 are not its job (alone, in tier 0 or a small diff, it applies them).
 2. **`security-auditor`** — trust-boundary / OWASP pass on the diff and the code paths it makes reachable (tier noted).
 3. **`test-engineer`** — "Auditing the tests of a diff": would these tests catch a regression? what concrete case is missing? It owns the test checks of `review-report` §5 (test criterion, `task_done.py --audit` output).
 
@@ -94,7 +97,7 @@ For a PR (not a bare branch): `references/pr-description.md` (it also has the fo
 
 ## Step 8 — Report (main session)
 
-Read `../review-report/references/report-format.md` (the `review-report` skill's directory, next to this one) and produce the report, in the short layout (§4.2) unless `--full` asks for the full one (§4.1). Add the tier to the summary. Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. Verdict (advisory only — this is never a GitHub approval):
+Read `../review-report/references/report-format.md` (the `review-report` skill's directory, next to this one) and produce the report, in the short layout (§4.2) unless `--full` asks for the full one (§4.1). Add the tier and the size line to the summary. Apply the limits after verification: keep the first `Max Optional` Optional and `Max Nits` Nit findings in the verifier's ranking (limits from AGENTS.md, default 3; see `review-context` §1); Optional findings that only extend a Critical/Required one are folded into its Fix. List what was dropped (ID, title, impact/cost) under Verification. Verdict (advisory only — this is never a GitHub approval):
 
 - **CHANGES NEEDED** — any Critical or Required (confirmed or uncertain).
 - **READY FOR HUMAN REVIEW** — nothing above Optional.
