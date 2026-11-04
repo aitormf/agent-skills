@@ -1,7 +1,7 @@
 ---
 id: T18
 title: diff_size.py lee los atributos de la base del diff
-status: todo
+status: done
 depends_on: [T2]
 examples: [E34, E35]
 verification: scripts/check.sh
