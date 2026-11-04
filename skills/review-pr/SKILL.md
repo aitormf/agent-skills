@@ -7,8 +7,6 @@ kind: skill
 uses:
   - skill:review-context
   - skill:review-report
-  - skill:review-prepush
-  - skill:task-done
 delegates:
   - agent:code-reviewer
   - agent:security-auditor
@@ -24,7 +22,6 @@ claudecode:
   review-kit (original). Derived from upstream /ship (addyosmani/agent-skills):
   same parallel fan-out + merge in the main agent, plus a risk tier that scales
   the depth, a finding-verifier pass after the merge, and a PR-description check.
-  No go/no-go or rollback plan: this is an advisory PR review, not a launch gate.
 -->
 
 # /review-pr
@@ -35,6 +32,8 @@ Target: `$ARGUMENTS` — a PR number (or URL) or a branch name, optionally follo
 - `--inline`: also the findings block (`review-report` §4.3), for the GitHub workflow, which posts each finding as a comment on its line.
 
 Follow the `review-context` skill for config and verification, and the `review-report` skill for precision rules, severities and formats (namespaced `harness:review-context` / `harness:review-report` when installed as the Claude Code plugin).
+
+**Read only what you use.** Do not read the persona definitions (`.codex/agents/`, `agents/`): the tool loads them when it spawns the persona. Read `task-done` only if there is a change folder, and then only to run its audit script. Never read `review-prepush`.
 
 **Hard rules:** never approve, request changes via the review API, merge, close, label or push. Never run `gh pr review`, `gh pr merge`, `gh pr edit`, `gh pr comment` or `gh api` with a write method. This command only produces a report; posting it is the caller's job (the GitHub workflow posts each finding on its line and a single summary comment). Do not edit any file.
 
@@ -59,7 +58,13 @@ When in doubt between two tiers, choose the higher one. Upstream's skip rule sti
 
 ## Step 3 — Verification (main session)
 
-Only if the working tree is the change's head: run the AGENTS.md verification commands per `review-context` §2 (if none, say so and continue), and, if there is a change folder, the read-only audit of the task or the plan exactly as `review-prepush` Step 2 describes (`task_done.py --audit docs/changes/<change> T<n>` on a task branch, `task_done.py --audit docs/changes/<change>` on the plan branch: always with the path, since the checkout may not be on the branch name). Semgrep per `review-context` §2.6. If it is a PR, also note `gh pr checks <n>` status if available (read-only).
+Only if the working tree is the change's head: run the AGENTS.md verification commands per `review-context` §2 (if none, say so and continue), and, if there is a change folder, the read-only audit of the task or the plan, from the repo root, with `<task-done-dir>` the directory of the `task-done` skill (next to this one: `../task-done`):
+
+```bash
+python3 <task-done-dir>/scripts/task_done.py --audit docs/changes/<change> [T<n>]   # T<n> on a task branch; nothing on the plan branch
+```
+
+Always with the path, since the checkout may not be on the branch name. It runs no verification and edits nothing. Keep its output as a verification result (exit 0: nothing wrong; exit 3: `PROBLEM` lines). If the script or `python3` is not available, if it exits 2, or if its only `PROBLEM` is that it cannot read the git history of the branch, write "Test protection: not checked (<reason>)" under Verification. Semgrep per `review-context` §2.6. If it is a PR, also note `gh pr checks <n>` status if available (read-only).
 
 ## Step 4 — Fan-out (parallel subagents)
 
