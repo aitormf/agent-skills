@@ -1,7 +1,7 @@
 ---
 id: T21
 title: En Codex, la review lanza cada persona con su agent_type
-status: todo
+status: done
 depends_on: []
 examples: [E37]
 verification: scripts/check.sh

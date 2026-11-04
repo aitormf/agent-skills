@@ -142,6 +142,25 @@ for b in bad:
 sys.exit(1 if bad else 0)
 PYEOF
 
+echo "▶ review: in Codex each persona is spawned with its agent_type (E37) (R10)"
+python3 - <<'PYEOF'
+import re, sys
+from pathlib import Path
+steps = [("review-prepush", "Step 3", ["code-reviewer"]), ("review-prepush", "Step 4", ["finding-verifier"]),
+         ("review-pr", "Step 4", ["code-reviewer", "security-auditor", "test-engineer"]),
+         ("review-pr", "Step 6", ["finding-verifier"])]
+bad = []
+for skill, step, personas in steps:
+    text = Path(f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")
+    m = re.search(rf"^## {step} .*?(?=^## |\Z)", text, re.S | re.M)
+    body = m.group(0) if m else ""
+    if "agent_type" not in body:
+        bad.append(f"{skill} {step}: E37 missing agent_type")
+    bad += [f"{skill} {step}: E37 missing persona {p}" for p in personas if p not in body]
+for b in bad:
+    print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+PYEOF
 echo "▶ review: the main session reads only what it uses (E32, E33) (R8)"
 python3 - <<'PYEOF'
 import re, sys
