@@ -74,7 +74,8 @@ Rule R8: la sesión principal solo lee lo que usa
 - S2: documentar cómo elegir el modelo de los subagentes en Codex por llamada → `docs/review/README.md`.
 - S0: el sandbox gana tres casos plantados del criterio que hoy viene de code-review-and-quality (B7 helper duplicado, B8 refactor que solo mueve complejidad, B9 código muerto), con sus filas en `EXPECTED.md`, antes de la medición base.
 - S4: repetir la medición base con las personas del sandbox, porque T1 midió las copias globales de `~/.codex/agents/` → `docs/review/medicion-review.md`; una ejecución cuyas personas no sean las del sandbox se marca como inválida.
-- S3: repetir la medición con el reviewer unificado y comparar con S4 → misma página; si detecta menos B1–B6 de forma consistente, se dice y se refuerzan los disparadores antes de cerrar. B7–B9 cuentan como posible mejora, porque la base casi nunca los detecta; por eso la medición no cubre el riesgo de T11.
+- S5: repetir la base con esfuerzo `medium`, que es el de uso real: `gpt-6.1-terra` tiene `low` por defecto y T17 midió con él. Se mide la review anterior a T15 → `docs/review/medicion-review.md`.
+- S3: repetir la medición con el reviewer unificado y comparar con S5 → misma página; si detecta menos B1–B6 de forma consistente, se dice y se refuerzan los disparadores antes de cerrar. B7–B9 cuentan como posible mejora, porque la base casi nunca los detecta; por eso la medición no cubre el riesgo de T11.
 
 ## Supuestos
 
