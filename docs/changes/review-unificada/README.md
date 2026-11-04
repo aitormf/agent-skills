@@ -63,6 +63,9 @@ Rule R7: los subagentes de la review arrancan sin el historial de la sesión pri
 Rule R9: en Claude Code, el modelo no puede editar .gitattributes
   E36: los permisos de la plantilla de guardrails y los de este repo deniegan Edit(./.gitattributes)
 
+Rule R10: en Codex, cada subagente de la review se lanza con su persona, no como agente genérico
+  E37: review-prepush o review-pr en Codex lanza finding-verifier → spawn_agent con agent_type "finding-verifier" (y fork_turns "none")
+
 Rule R8: la sesión principal solo lee lo que usa
   E32: review-prepush o review-pr lanza una persona → no lee su definición en .codex/agents/ ni en agents/; la herramienta la carga
   E33: review-pr sin carpeta de cambio → no lee task-done ni review-prepush
@@ -75,7 +78,7 @@ Rule R8: la sesión principal solo lee lo que usa
 - S0: el sandbox gana tres casos plantados del criterio que hoy viene de code-review-and-quality (B7 helper duplicado, B8 refactor que solo mueve complejidad, B9 código muerto), con sus filas en `EXPECTED.md`, antes de la medición base.
 - S4: repetir la medición base con las personas del sandbox, porque T1 midió las copias globales de `~/.codex/agents/` → `docs/review/medicion-review.md`; una ejecución cuyas personas no sean las del sandbox se marca como inválida.
 - S5: repetir la base con esfuerzo `medium`, que es el de uso real: `gpt-6.1-terra` tiene `low` por defecto y T17 midió con él. Se mide la review anterior a T15 → `docs/review/medicion-review.md`.
-- S3: repetir la medición con el reviewer unificado y comparar con S5 → misma página; si detecta menos B1–B6 de forma consistente, se dice y se refuerzan los disparadores antes de cerrar. B7–B9 cuentan como posible mejora, porque la base casi nunca los detecta; por eso la medición no cubre el riesgo de T11.
+- S3: repetir la medición con el reviewer unificado y comparar con S5 → misma página; `review-pr` se compara con la base de S4 (`low`), porque en S5 ninguna ejecución de `review-pr` cargó las personas y la base no es válida; la comparación dice que mezcla dos esfuerzos; si detecta menos B1–B6 de forma consistente, se dice y se refuerzan los disparadores antes de cerrar. B7–B9 cuentan como posible mejora, porque la base casi nunca los detecta; por eso la medición no cubre el riesgo de T11.
 
 ## Supuestos
 
