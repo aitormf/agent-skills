@@ -1,7 +1,7 @@
 ---
 id: T7
 title: Claude Code no termina el turno con el gate en rojo, salvo a la segunda parada seguida
-status: todo
+status: done
 depends_on: [T5]
 examples: [E22, E23, E24]
 verification: scripts/check.sh
