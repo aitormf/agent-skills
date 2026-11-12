@@ -45,11 +45,11 @@ Rule R5: una tarea puede llevar tier (trivial | standard | deep) con su motivo; 
   E25: tier: huge → board.py lo cuenta como problema y sale con 2
 Rule R6: el manager cumple el story-contract de Karajan
   E26: assertManager(createManager({ config, env, run })) no lanza; capabilities { acceptanceCriteria: "body", dependencies: "graph", assignee: false, verdicts: "pr", offline: true, tier: true }; credentials []
-  E27: runStoryContract("kj-board-changes", makeManager) pasa contra un repo de prueba con un cambio de tres tareas
+  E27: la conformidad propia (assertManager y los casos de runStoryContract que caben en solo lectura: capabilities y credentials, list con la forma del contrato, move que relee, BoardRejectedError cuando git no coincide) pasa contra un repo de prueba con un cambio de tres tareas; los casos de la suite que crean, mueven escribiendo o guardan quién tiene la carta no aplican (D-0050)
 Question: ¿el manager escribe (crea la rama, pone status) o solo comprueba? → D-0048 (recomendado: solo comprueba)
 Question: ¿dónde vive el código JS y cómo se prueba? → D-0049 (recomendado: integrations/karajan-board/, Node ≥ 22, en check.sh)
-Question: ¿Karajan carga un manager de la allowlist desde una ruta del repo o solo desde node_modules? | a) T1 lo comprueba y, si solo es node_modules, la doc dice `npm install --no-save ./integrations/karajan-board` (recomendada) b) publicar en npm ya
-Question: ¿runStoryContract exige que create funcione? | a) si lo exige, la tarea de R6 lo dice y paramos a decidir antes de forzar escrituras (recomendada) b) que create escriba un fichero de tarea suelto
+Question: ¿Karajan carga un manager de la allowlist desde una ruta del repo o solo desde node_modules? → solo node_modules, a la versión exacta de la allowlist (src/hu/managers/index.js, visto en T2): la doc dice `npm install --no-save ./integrations/karajan-board`
+Question: ¿runStoryContract exige que create funcione? → sí (story-contract 1.0.0, la única en npm): el manager sigue en solo lectura y T7 usa una conformidad propia (D-0050)
 ```
 
 ## Supuestos
