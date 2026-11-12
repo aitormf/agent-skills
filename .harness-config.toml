@@ -1,0 +1,6 @@
+# Configuración del harness que leen sus scripts. Es un fichero de control: el gate lo lee de la rama base
+# y la rama de una tarea no puede tocarlo.
+
+[gate.control]
+# Cada tarea de este repo añade sus tests a scripts/check.sh, así que aquí no es un fichero de control.
+remove = ["scripts/check.sh"]

@@ -1005,13 +1005,23 @@ for f in .pre-commit-config.yaml .github/workflows/ci.yml .claude/settings.json 
   ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/$(dirname "$f")"; echo x >> "$ar/$f"; ag add -A; ag commit -qm "feat(T4): $f"
   agate || true; [ $rc = 1 ] && grep -q "una tarea no cambia el arnés: va en su propia PR, revisada por CODEOWNERS" "$tmp/out" && grep -q "$f" "$tmp/out" || fail "E27: a task branch touching $f did not exit 1 with the message"
 done
-ag checkout -q main; printf 'deploy/**\n' > "$ar/.kit-control"; ag add -A; ag commit -qm "control list"
-ag checkout -q -B 42-cancelar/T4 main; : > "$ar/.kit-control"; mkdir -p "$ar/deploy"; echo x > "$ar/deploy/run.sh"; ag add -A; ag commit -qm "feat(T4): quita el patron"
-agate || true; [ $rc = 1 ] && grep -q "deploy/run.sh" "$tmp/out" && grep -q ".kit-control" "$tmp/out" || fail "E28: a branch removing a pattern from the control list escaped the list of the base"
-ag checkout -q -B 42-cancelar/T4 main; printf 'deploy/**\nsrc/**\n' > "$ar/.kit-control"; ag add -A; ag commit -qm "feat(T4): añade patron"
-agate || true; [ $rc = 1 ] && grep -q ".kit-control" "$tmp/out" || fail "E28: a branch changing the control list did not exit 1"
+hc="$ar/.harness-config.toml"
+ag checkout -q main; printf '[gate.control]\nadd = ["deploy/**"]\n' > "$hc"; ag add -A; ag commit -qm "control list"
+ag checkout -q -B 42-cancelar/T4 main; : > "$hc"; mkdir -p "$ar/deploy"; echo x > "$ar/deploy/run.sh"; ag add -A; ag commit -qm "feat(T4): quita el patron"
+agate || true; [ $rc = 1 ] && grep -q "deploy/run.sh" "$tmp/out" && grep -q ".harness-config.toml" "$tmp/out" || fail "E28: a branch removing a pattern from the control list escaped the list of the base"
+ag checkout -q -B 42-cancelar/T4 main; printf '[gate.control]\nadd = ["deploy/**", "src/**"]\n' > "$hc"; ag add -A; ag commit -qm "feat(T4): añade patron"
+agate || true; [ $rc = 1 ] && grep -q ".harness-config.toml" "$tmp/out" || fail "E28: a branch changing the control list did not exit 1"
 ag checkout -q -B 42-cancelar/T4 main; echo x > "$ar/ok.py"; ag add -A; ag commit -qm "feat(T4): ok"
 agate; [ $rc = 0 ] || fail "E27: a task branch with no control file did not exit 0"
+ag checkout -q main; printf '[gate.control]\nadd = ["deploy/**"]\nremove = ["scripts/check.sh", ".harness-config.toml"]\n' > "$hc"; ag add -A; ag commit -qm "control list sin check.sh"
+ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/scripts"; echo x >> "$ar/scripts/check.sh"; ag add -A; ag commit -qm "feat(T4): toca check.sh"
+agate; [ $rc = 0 ] || fail "R7: a default pattern removed in the base .harness-config.toml still blocked the branch"
+ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/.github"; echo x > "$ar/.github/ci.yml"; echo '# x' >> "$hc"; ag add -A; ag commit -qm "feat(T4): toca .github y la config"
+agate || true; [ $rc = 1 ] && grep -q ".github/ci.yml" "$tmp/out" && grep -q ".harness-config.toml" "$tmp/out" || fail "R7: remove dropped more than its pattern, or the config stopped being control"
+ag checkout -q main; printf '[gate.control]\nremove = "scripts/check.sh"\n' > "$hc"; ag add -A; ag commit -qm "config rota"
+ag checkout -q -B 42-cancelar/T4 main; echo x > "$ar/ok.py"; ag add -A; ag commit -qm "feat(T4): ok"
+agate || true; [ $rc = 2 ] && grep -q "no puedo comprobar: .harness-config.toml de la rama base no es válido" "$tmp/out" || fail "R7: an invalid .harness-config.toml in the base did not exit 2"
+ag checkout -q main; git -C "$ar" rm -q "$hc"; ag commit -qm "sin config"
 echo "▶ gate --context: la sesión de Claude Code recibe la rama, la tarea y las reglas (R5, T6 de control-del-flujo)"
 cx="$tmp/ctx"; mkdir -p "$cx/docs/changes/42-cancelar/tasks"; git -C "$cx" init -q -b main
 cg() { git -C "$cx" -c user.name=t -c user.email=t@t "$@"; }
@@ -1073,7 +1083,7 @@ sys.exit(0 if any("check-on-stop.sh" in c for c in cmds) and any("kit-gate-on-st
 EOF2
 echo "▶ requisitos del proyecto documentados: branch protection, CODEOWNERS e identidad del agente (S1, T8 de control-del-flujo)"
 for f in skills/setup-guardrails-python/SKILL.md README.md; do
-  for t in "kit-gate" "Require review from Code Owners" "CODEOWNERS" ".kit-control" "admin" "fine-grained"; do
+  for t in "kit-gate" "Require review from Code Owners" "CODEOWNERS" ".harness-config.toml" "admin" "fine-grained"; do
     grep -qi -- "$t" "$f" || { echo "S1: $f no menciona '$t'" >&2; exit 1; }
   done
 done
