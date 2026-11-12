@@ -2,7 +2,7 @@
 id: D-0051
 title: Se aplaza la integración con Karajan Code después de T1; el esfuerzo pasa a la review cruzada y a un gate en git y CI que valgan para cualquier agente
 type: architecture
-status: proposed
+status: accepted
 date: 2026-11-12
 affects: [docs/changes/karajan-board/, integrations/karajan-board/]
 supersedes: null
