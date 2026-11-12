@@ -2,7 +2,7 @@
 """Board of a change: which tasks are ready, blocked (and by which), doing and done.
 
 Usage:
-  board.py [CHANGE_DIR]
+  board.py [--json] [CHANGE_DIR]
 
   Without CHANGE_DIR, it is docs/changes/<change>/ from the current branch, <...>/<change>/T<n>
   or <...>/<change>/plan (the change is the second-to-last segment), from the repo root.
@@ -17,11 +17,18 @@ else origin/main, origin/master, main or master). A task is
   ready    if it is todo and every task in depends_on is done in the base branch;
   blocked  otherwise, by the dependencies not done in the base branch yet.
 
+--json prints on stdout {"base": ..., "tasks": [{id, title, kind, branch, depends_on, examples, path}]}
+instead of the text. base is the git ref the board compares against, as found above (origin/main
+with a remote, main without one), not a bare branch name. kind: ready | blocked | doing | done;
+branch: null if none; path: the task file from the repo root, with "/" (docs/changes/<change>/tasks/T1-x.md),
+however CHANGE_DIR is given. Problems go to stderr, nothing to stdout, exit 2.
+
 Read-only. Exit 0; exit 2 if the call is wrong, the folder or the base branch is not
 found, or the tasks are wrong: a malformed frontmatter, a dependency that does not
 exist or a cycle.
 """
 
+import json
 import re
 import subprocess
 import sys
@@ -256,8 +263,10 @@ def task_branches(folder: Path) -> dict[str, str]:
 
 
 def main(argv: list[str]) -> int:
+    as_json = "--json" in argv
+    argv = [a for a in argv if a != "--json"]
     if len(argv) > 1 or argv[:1] in (["-h"], ["--help"]):
-        fail("usage: board.py [CHANGE_DIR]")
+        fail("usage: board.py [--json] [CHANGE_DIR]")
     if argv:
         folder = Path(argv[0])
     else:
@@ -276,11 +285,13 @@ def main(argv: list[str]) -> int:
     try:
         base = base_branch(folder)
         merged = statuses_at(base, folder)
+        root = Path(git(folder, "rev-parse", "--show-toplevel").strip()).resolve()
     except (OSError, RuntimeError, ValueError) as error:
         fail(f"cannot read the base branch: {error}")
     branches = task_branches(folder)
 
     counts = dict.fromkeys(("ready", "blocked", "doing", "done"), 0)
+    entries = []
     for tid in sorted(tasks, key=number):
         task = tasks[tid]
         waiting = [d for d in task["depends_on"] if merged.get(d) != "done"]
@@ -293,7 +304,23 @@ def main(argv: list[str]) -> int:
         else:
             kind, note = "ready", ""
         counts[kind] += 1
+        entries.append(
+            {
+                "id": tid,
+                "title": task["title"],
+                "kind": kind,
+                "branch": branches.get(tid),
+                "depends_on": task["depends_on"],
+                "examples": task["examples"],
+                "path": task["path"].resolve().relative_to(root).as_posix(),
+            }
+        )
+        if as_json:
+            continue
         print(f"{tid} {kind}{note}: {task['title']}")
+    if as_json:
+        print(json.dumps({"base": base, "tasks": entries}, indent=2, ensure_ascii=False))
+        return 0
     summary = ", ".join(f"{n} {kind}" for kind, n in counts.items())
     print(f"--- board of {folder} (done: merged into {base}): {summary}")
     return 0
