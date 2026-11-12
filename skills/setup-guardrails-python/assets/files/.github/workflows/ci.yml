@@ -22,7 +22,7 @@ jobs:
       - run: uv sync --locked      # fails if uv.lock does not match pyproject.toml
       - run: ./scripts/check.sh
 
-  gate:
+  kit-gate:
     # The kit's workflow gate, with the .pre-commit-config.yaml of the base branch: a PR cannot change the rev
     # of the kit or remove the hook to pass its own gate (D-0052).
     if: github.event_name == 'pull_request'

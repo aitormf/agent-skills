@@ -37,11 +37,13 @@ repos:
       - id: commitizen
 
   # The kit's workflow gate (one task per branch, red commit, size). Pin `rev` to a tag of the kit; updating it is a PR of the project (D-0052).
-  # Runs on pre-push and in CI (`pre-commit run kit-gate --hook-stage manual`).
+  # Runs on pre-push and in CI (`pre-commit run kit-gate --hook-stage manual`). kit-context (manual stage only)
+  # prints the task and the rules for the Claude Code SessionStart hook.
   - repo: https://github.com/aitormf/agent-skills
     rev: <version>
     hooks:
       - id: kit-gate
+      - id: kit-context
   # mypy and import-linter with `uv run` to use the versions in uv.lock.
   - repo: local
     hooks:

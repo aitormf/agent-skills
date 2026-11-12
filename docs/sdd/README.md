@@ -237,7 +237,7 @@ Qué va en cada sección y ejemplos: [secciones-de-la-spec.md](secciones-de-la-s
 
 El kit `aitormf/sdd` usaba `.sdd/`, un `backlog.md` con 13 estados, un agente orquestador y una constitución. Para migrar un proyecto:
 
-1. Mueve cada `.sdd/<trabajo>/` que siga abierto a `docs/changes/<cambio>/` y pasa sus tareas a un fichero por tarea (ver [actualizar a la v2](../actualizar-a-v2.md#4-los-trabajos-en-curso-a-docschangescambio-con-un-fichero-por-tarea)) (los terminados no hace falta moverlos: git los guarda).
+1. Mueve cada `.sdd/<trabajo>/` que siga abierto a `docs/changes/<cambio>/` y pasa sus tareas a un fichero por tarea, `tasks/T<n>-<slug>.md`, con el formato de la plantilla [`task.md`](../../skills/idea-to-change/assets/task.md) (los terminados no hace falta moverlos: git los guarda).
 2. Añade el frontmatter a cada `spec.md` y `plan.md`, según el estado que tuviera en `backlog.md`:
 
    | Estado en `backlog.md` | `spec.md` | `plan.md` |

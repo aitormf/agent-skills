@@ -966,6 +966,7 @@ sys.exit(1 if bad else 0)
 EOF2
 cfg=skills/setup-guardrails-python/assets/files
 grep -q "id: kit-gate" "$cfg/.pre-commit-config.yaml" && grep -q "pre-push" "$cfg/.pre-commit-config.yaml" || fail "E15: the .pre-commit-config.yaml template does not declare kit-gate and install the pre-push hook"
+grep -q "id: kit-context" "$cfg/.pre-commit-config.yaml" || fail "E19: the .pre-commit-config.yaml template does not declare kit-context, which the SessionStart hook runs"
 grep -q "pre-commit run kit-gate --hook-stage manual" "$cfg/.github/workflows/ci.yml" || fail "E16: the ci.yml template does not run kit-gate in the manual stage"
 grep -q "git show origin/.*\.pre-commit-config\.yaml" "$cfg/.github/workflows/ci.yml" || fail "E29: the ci.yml template does not take .pre-commit-config.yaml from the base branch"
 if command -v pre-commit >/dev/null; then pc=(pre-commit); elif command -v uvx >/dev/null && uvx --offline pre-commit --version >/dev/null 2>&1; then pc=(uvx --offline pre-commit); else pc=(); echo "  (sin pre-commit ni uvx con pre-commit en la caché: se omite try-repo)"; fi
