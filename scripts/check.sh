@@ -896,4 +896,31 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF2
 
+echo "▶ gate: la rama de una tarea o del plan (R1, T1 de control-del-flujo)"
+gate="$PWD/skills/task-done/scripts/gate.py"
+gr="$tmp/gate"; mkdir -p "$gr"; git -C "$gr" init -q -b main
+gg() { git -C "$gr" -c user.name=t -c user.email=t@t "$@"; }
+gate() { rc=0; (cd "$gr" && python3 "$gate" "$@") >"$tmp/out" 2>&1 || rc=$?; return 0; }
+mkdir -p "$gr/docs/changes/42-cancelar/tasks" "$gr/src"
+printf -- '---\nid: T3\ntitle: t\nstatus: todo\ndepends_on: []\nexamples: []\nverification: true\n---\n' > "$gr/docs/changes/42-cancelar/tasks/T3-reembolso.md"
+echo base > "$gr/README.md"; gg add -A; gg commit -qm base
+gg checkout -qb 42-cancelar/T3
+gate; [ $rc = 0 ] || fail "E1: the branch of a task with its file did not exit 0"
+gg checkout -qb fix/errata main
+gate; [ $rc = 0 ] && grep -q "la rama no nombra una tarea: no se comprueba nada" "$tmp/out" || fail "E2: a branch without a task and without --require-task did not exit 0 with the warning"
+echo 'x = 1' > "$gr/src/a.py"; gg add -A; gg commit -qm "feat: a"
+gate --require-task || true; [ $rc = 1 ] && grep -q "la rama no nombra una tarea" "$tmp/out" || fail "E3: --require-task with a change in src/ did not exit 1"
+gg checkout -qb fix/docs main; echo d > "$gr/docs/n.md"; echo r > "$gr/NOTES.md"; gg add -A; gg commit -qm "docs: n"
+gate --require-task; [ $rc = 0 ] || fail "E4: --require-task with only changes in docs/ and root *.md did not exit 0"
+gg checkout -qb 42-cancelar/T9 main
+gate || true; [ $rc = 1 ] && grep -q "la tarea T9 no existe en docs/changes/42-cancelar/" "$tmp/out" || fail "E5: a task without its file did not exit 1"
+gg checkout -qb 42-cancelar/plan main; echo p > "$gr/docs/changes/42-cancelar/plan.md"; gg add -A; gg commit -qm "docs: plan"
+gate; [ $rc = 0 ] || fail "E6: the plan branch with only docs/ did not exit 0"
+mkdir -p "$gr/src"; echo 'y = 2' > "$gr/src/b.py"; gg add -A; gg commit -qm "feat: b"
+gate || true; [ $rc = 1 ] && grep -q "la PR del plan no lleva código" "$tmp/out" || fail "E7: the plan branch touching src/ did not exit 1"
+gg checkout -q --detach; rc=0; (cd "$gr" && GITHUB_HEAD_REF=42-cancelar/plan python3 "$gate") >"$tmp/out" 2>&1 || rc=$?
+[ $rc = 1 ] && grep -q "la PR del plan no lleva código" "$tmp/out" || fail "E17: the detached HEAD of CI did not take the branch of GITHUB_HEAD_REF"
+gg branch -q -D main; gg checkout -q 42-cancelar/plan
+gate || true; [ $rc = 2 ] && grep -q "no puedo comprobar: no encuentro la rama base" "$tmp/out" || fail "E18: without a base branch it did not exit 2"
+
 echo "✔ todo en verde"
