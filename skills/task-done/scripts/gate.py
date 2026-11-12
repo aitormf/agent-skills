@@ -2,7 +2,8 @@
 """The flow gate: decides what to check from the branch (R1 of control-del-flujo).
 Usage: gate.py [--require-task]
 The branch is GITHUB_HEAD_REF if set (CI checks out a detached HEAD), else the current one.
-  - <...>/<change>/T<n>: the file docs/changes/<change>/tasks/T<n>-*.md must exist.
+  - <...>/<change>/T<n>: the file docs/changes/<change>/tasks/T<n>-*.md must exist; above 200
+    lines of diff it warns (D-0053), it does not fail.
   - <...>/<change>/plan: the plan PR carries no code.
   - any other branch: nothing is checked, unless --require-task: then a change of code
     (anything outside docs/ and the *.md of the root) fails.
@@ -52,6 +53,14 @@ def task_problems(root: Path, base: str, change: str, task: str, files: list[str
     return found
 
 
+def size_warning(root: Path, base: str) -> str | None:
+    """R3 (D-0053): the size counted by diff_size.py (D-0047); above 200 lines it warns, it never blocks."""
+    script = Path(__file__).resolve().parents[2] / "review-context" / "scripts" / "diff_size.py"
+    run = subprocess.run([sys.executable, str(script), f"{base}...HEAD"], cwd=root, capture_output=True, text=True)
+    count = re.match(r"(\d+) lines, large", run.stdout)
+    return f"{count[1]} líneas > 200 (D-0044): parte la tarea en el plan" if count else None
+
+
 def main(argv: list[str]) -> int:
     if any(a != "--require-task" for a in argv):
         print("usage: gate.py [--require-task]", file=sys.stderr)
@@ -87,6 +96,8 @@ def main(argv: list[str]) -> int:
             return 2
         for problem in problems:
             print(f"gate: {problem}", file=sys.stderr)
+        if warning := size_warning(root, base):
+            print(f"gate: aviso: {warning}", file=sys.stderr)
         return 1 if problems else 0
     if "--require-task" in argv and code:
         print(f"gate: la rama no nombra una tarea y cambia código: {', '.join(code[:5])}", file=sys.stderr)
