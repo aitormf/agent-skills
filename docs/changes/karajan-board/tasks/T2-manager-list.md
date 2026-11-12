@@ -1,7 +1,7 @@
 ---
 id: T2
 title: Paquete kj-board-changes con list() y la tabla de estados
-status: todo
+status: done
 depends_on: [T1]
 examples: [E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E26]
 verification: scripts/check.sh

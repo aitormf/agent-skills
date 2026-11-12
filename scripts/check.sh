@@ -896,4 +896,10 @@ for b in bad:
 sys.exit(1 if bad else 0)
 EOF2
 
+echo "▶ manager de Karajan (integrations/karajan-board, Node >= 22)"
+if ! command -v node >/dev/null || ! node -e 'process.exit(+process.versions.node.split(".")[0] >= 22 ? 0 : 1)'; then
+  echo "integrations/karajan-board necesita Node >= 22 (D-0049) y no se salta: instala Node 22 o superior" >&2
+  exit 1
+fi
+(cd integrations/karajan-board && npm ci --silent && npm test)
 echo "✔ todo en verde"
