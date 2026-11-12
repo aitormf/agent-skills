@@ -22,6 +22,23 @@ jobs:
       - run: uv sync --locked      # fails if uv.lock does not match pyproject.toml
       - run: ./scripts/check.sh
 
+  gate:
+    # The kit's workflow gate, with the .pre-commit-config.yaml of the base branch: a PR cannot change the rev
+    # of the kit or remove the hook to pass its own gate (D-0052).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - name: kit-gate
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: |
+          git show origin/$GITHUB_BASE_REF:.pre-commit-config.yaml > "$RUNNER_TEMP/pre-commit-base.yaml"
+          uvx pre-commit run kit-gate --hook-stage manual --config "$RUNNER_TEMP/pre-commit-base.yaml"
   secrets:
     runs-on: ubuntu-latest
     steps:
