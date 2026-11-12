@@ -1,7 +1,7 @@
 ---
 id: T3
 title: El gate avisa cuando la tarea pasa de 200 líneas
-status: todo
+status: done
 depends_on: [T1]
 examples: [E12, E13, E14]
 verification: scripts/check.sh

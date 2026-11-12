@@ -992,4 +992,12 @@ if [ ${#pc[@]} -gt 0 ]; then
   pcr --hook-stage pre-push --from-ref main --to-ref HEAD
   [ $rc = 1 ] && grep -q "PROBLEM" "$tmp/out" || fail "E15: the pre-push hook did not exit 1 on a task branch with a red test changed"
 fi
+echo "▶ gate: aviso de tamaño sin bloquear (R3, D-0053, T3 de control-del-flujo)"
+lines() { seq 1 "$1" | sed 's/^/x = /'; }
+ag checkout -q -B 42-cancelar/T4 main; lines 180 > "$ar/big.py"; ag add -A; ag commit -qm "feat(T4): big"
+agate; [ $rc = 0 ] && ! grep -q "parte la tarea" "$tmp/out" || fail "E12: 180 lines gave a warning or did not exit 0"
+ag checkout -q -B 42-cancelar/T4 main; lines 260 > "$ar/big.py"; ag add -A; ag commit -qm "feat(T4): big"
+agate; [ $rc = 0 ] && grep -q "260 líneas > 200 (D-0044): parte la tarea en el plan" "$tmp/out" || fail "E13: 260 lines did not exit 0 with the warning"
+ag checkout -q -B 42-cancelar/T4 main; lines 140 > "$ar/big.py"; lines 120 > "$ar/uv.lock"; ag add -A; ag commit -qm "feat(T4): big"
+agate; [ $rc = 0 ] && ! grep -q "parte la tarea" "$tmp/out" || fail "E14: 260 lines with 120 in uv.lock gave a warning"
 echo "✔ todo en verde"
