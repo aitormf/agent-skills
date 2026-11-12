@@ -1,0 +1,12 @@
+{
+  "name": "kj-board-changes",
+  "version": "0.1.0",
+  "description": "Karajan Code board manager: the tasks of docs/changes/ as HUs (D-0048, D-0049).",
+  "type": "module",
+  "main": "src/index.js",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test" },
+  "devDependencies": { "@karajan-family/story-contract": "1.0.0" }
+}
