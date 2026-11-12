@@ -1,0 +1,3 @@
+# Control list of this repo (gate.py, R7): extends the kit's default list, read from the base branch.
+# Here every task adds its tests to scripts/check.sh, so it is not a control file.
+!scripts/check.sh

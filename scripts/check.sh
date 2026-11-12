@@ -1012,6 +1012,11 @@ ag checkout -q -B 42-cancelar/T4 main; printf 'deploy/**\nsrc/**\n' > "$ar/.kit-
 agate || true; [ $rc = 1 ] && grep -q ".kit-control" "$tmp/out" || fail "E28: a branch changing the control list did not exit 1"
 ag checkout -q -B 42-cancelar/T4 main; echo x > "$ar/ok.py"; ag add -A; ag commit -qm "feat(T4): ok"
 agate; [ $rc = 0 ] || fail "E27: a task branch with no control file did not exit 0"
+ag checkout -q main; printf 'deploy/**\n!scripts/check.sh\n!.kit-control\n' > "$ar/.kit-control"; ag add -A; ag commit -qm "control list sin check.sh"
+ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/scripts"; echo x >> "$ar/scripts/check.sh"; ag add -A; ag commit -qm "feat(T4): toca check.sh"
+agate; [ $rc = 0 ] || fail "R7: a default pattern dropped with !pattern in the base .kit-control still blocked the branch"
+ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/.github"; echo x > "$ar/.github/ci.yml"; echo '# x' >> "$ar/.kit-control"; ag add -A; ag commit -qm "feat(T4): toca .github y la lista"
+agate || true; [ $rc = 1 ] && grep -q ".github/ci.yml" "$tmp/out" && grep -q ".kit-control" "$tmp/out" || fail "R7: !pattern dropped more than its pattern, or the list itself stopped being control"
 echo "▶ gate --context: la sesión de Claude Code recibe la rama, la tarea y las reglas (R5, T6 de control-del-flujo)"
 cx="$tmp/ctx"; mkdir -p "$cx/docs/changes/42-cancelar/tasks"; git -C "$cx" init -q -b main
 cg() { git -C "$cx" -c user.name=t -c user.email=t@t "$@"; }

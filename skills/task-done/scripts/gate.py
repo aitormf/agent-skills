@@ -22,7 +22,8 @@ from pathlib import Path
 from board import TASK_ID, base_branch, git, parse_frontmatter
 
 PLAN_FIELDS = ("examples", "verification", "depends_on")
-# R7: control files; the project extends the list in CONTROL_LIST, itself a control file.
+# R7: control files; the project extends the list in CONTROL_LIST (one pattern per line, "!pattern" drops a
+# default one), itself a control file that cannot be dropped.
 CONTROL = (".github/**", ".pre-commit-config.yaml", ".claude/settings*.json", ".claude/hooks/**", ".codex/**",
            "opencode.json", "scripts/check.sh", ".gitattributes", "CODEOWNERS")
 CONTROL_LIST = ".kit-control"
@@ -67,7 +68,9 @@ def control_files(root: Path, base: str, files: list[str]) -> list[str]:
         extra = git(root, "show", f"{base}:{CONTROL_LIST}").splitlines()
     except RuntimeError:
         extra = []  # the base has no project list
-    patterns = CONTROL + tuple(p.strip() for p in extra if p.strip() and not p.lstrip().startswith("#"))
+    lines = [p.strip() for p in extra if p.strip() and not p.lstrip().startswith("#")]
+    dropped = {p[1:].strip() for p in lines if p.startswith("!")}  # "!pattern" drops a default pattern
+    patterns = tuple(p for p in CONTROL if p not in dropped) + tuple(p for p in lines if not p.startswith("!"))
     return [f for f in files if f == CONTROL_LIST or any(fnmatch.fnmatchcase(f, p) for p in patterns)]
 
 
