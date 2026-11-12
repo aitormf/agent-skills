@@ -1,7 +1,7 @@
 ---
 id: T6
 title: Claude Code recibe la rama, la tarea y las reglas al empezar, reanudar o compactar
-status: todo
+status: done
 depends_on: [T5]
 examples: [E19, E20, E21]
 verification: scripts/check.sh
