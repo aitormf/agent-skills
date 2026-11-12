@@ -1012,4 +1012,39 @@ ag checkout -q -B 42-cancelar/T4 main; printf 'deploy/**\nsrc/**\n' > "$ar/.kit-
 agate || true; [ $rc = 1 ] && grep -q ".kit-control" "$tmp/out" || fail "E28: a branch changing the control list did not exit 1"
 ag checkout -q -B 42-cancelar/T4 main; echo x > "$ar/ok.py"; ag add -A; ag commit -qm "feat(T4): ok"
 agate; [ $rc = 0 ] || fail "E27: a task branch with no control file did not exit 0"
+echo "▶ gate --context: la sesión de Claude Code recibe la rama, la tarea y las reglas (R5, T6 de control-del-flujo)"
+cx="$tmp/ctx"; mkdir -p "$cx/docs/changes/42-cancelar/tasks"; git -C "$cx" init -q -b main
+cg() { git -C "$cx" -c user.name=t -c user.email=t@t "$@"; }
+cgate() { rc=0; (cd "$cx" && python3 "$gate" --context) >"$tmp/out" 2>&1 || rc=$?; return 0; }
+printf '# c\n  E1: reembolso parcial devuelve el importe\n  E2: sin pedido falla\n' > "$cx/docs/changes/42-cancelar/README.md"
+printf -- '---\nid: T3\ntitle: Reembolso parcial\nstatus: todo\ndepends_on: []\nexamples: [E1, E2]\nverification: scripts/check.sh\n---\n**Propósito:** devolver una parte del pedido.\n' > "$cx/docs/changes/42-cancelar/tasks/T3-reembolso.md"
+echo base > "$cx/README.md"; cg add -A; cg commit -qm base
+cg checkout -qb 42-cancelar/T3
+cgate; [ $rc = 0 ] && grep -q "42-cancelar/T3" "$tmp/out" && grep -q "Reembolso parcial" "$tmp/out" && grep -q "devolver una parte del pedido" "$tmp/out" \
+  && grep -q "E1: reembolso parcial devuelve el importe" "$tmp/out" && grep -q "E2: sin pedido falla" "$tmp/out" && grep -q "scripts/check.sh" "$tmp/out" \
+  && grep -q "Reglas del flujo" "$tmp/out" || fail "E19: the context of a task branch lacks the branch, the task, its examples, its verification or the rules"
+cg checkout -q main
+cgate; [ $rc = 0 ] && grep -q "Reglas del flujo" "$tmp/out" && ! grep -q "Reembolso parcial" "$tmp/out" || fail "E20: the context of main is not only the rules"
+cg checkout -qb fix/errata
+cgate; [ $rc = 0 ] && grep -q "Reglas del flujo" "$tmp/out" && ! grep -q "Reembolso parcial" "$tmp/out" || fail "E20: the context of a branch without a task is not only the rules"
+cg checkout -qb 42-cancelar/T9
+cgate; [ $rc = 0 ] && grep -q "Reglas del flujo" "$tmp/out" && grep -q "la tarea T9 no existe en docs/changes/42-cancelar/" "$tmp/out" || fail "E21: a task branch without its file did not give the rules and the warning with exit 0"
+python3 - <<'EOF2' || fail "E19: kit-context or the SessionStart hook of the template are not declared"
+import json, sys, yaml
+from pathlib import Path
+hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("kit-context")
+bad = []
+if not hook: bad.append("falta el hook kit-context")
+else:
+    if hook.get("stages") != ["manual"]: bad.append("kit-context debe tener solo stages: [manual]")
+    if hook.get("verbose") is not True: bad.append("kit-context debe ser verbose: true")
+    if hook.get("pass_filenames") is not False or hook.get("always_run") is not True: bad.append("kit-context: pass_filenames false y always_run true")
+    if "--context" not in (hook.get("args", []) + hook.get("entry", "").split()): bad.append("kit-context debe llamar al gate con --context")
+settings = json.loads(Path("skills/setup-guardrails-python/assets/files/.claude/settings.json").read_text())
+start = settings["hooks"].get("SessionStart", [])
+if not any(e.get("matcher") == "startup|resume|compact" and any("pre-commit run kit-context" in h["command"] for h in e["hooks"]) for e in start):
+    bad.append("falta el SessionStart startup|resume|compact con pre-commit run kit-context")
+for b in bad: print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF2
 echo "✔ todo en verde"
