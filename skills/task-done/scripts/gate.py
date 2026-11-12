@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The flow gate: decides what to check from the branch (R1 of control-del-flujo).
-Usage: gate.py [--require-task]
+Usage: gate.py [--require-task | --context]
 The branch is GITHUB_HEAD_REF if set (CI checks out a detached HEAD), else the current one.
   - <...>/<change>/T<n>: the file docs/changes/<change>/tasks/T<n>-*.md must exist; above 200
     lines of diff it warns (D-0053), it does not fail.
@@ -8,6 +8,8 @@ The branch is GITHUB_HEAD_REF if set (CI checks out a detached HEAD), else the c
   - <...>/<change>/plan: the plan PR carries no code.
   - any other branch: nothing is checked, unless --require-task: then a change of code
     (anything outside docs/ and the *.md of the root) fails.
+--context prints what a Claude Code session needs (R5): the task of the branch, if any, and the rules of
+the flow. It never fails: it exits 0 and warns.
 Exit status: 0 passes, 1 a rule is broken, 2 cannot check (no base branch, no branch name).
 """
 import fnmatch
@@ -77,9 +79,53 @@ def size_warning(root: Path, base: str) -> str | None:
     return f"{count[1]} líneas > 200 (D-0044): parte la tarea en el plan" if count else None
 
 
+RULES = """Reglas del flujo (las comprueba el gate, no se saltan):
+- Una tarea, una rama (<cambio>/T<n>), una PR; las dependencias, ya integradas.
+- Antes del código, el commit test(T<n>) en rojo con los tests de sus ejemplos; después no se tocan.
+- El plan aprobado (examples, verification, depends_on) y el fichero de otra tarea no se cambian en la rama.
+- Una tarea no cambia el arnés (hooks, CI, ajustes de los agentes): va en su propia PR.
+- Hasta 200 líneas con los tests; si no cabe, para y pide partir la tarea.
+- El estado se marca con task-done, nunca a mano."""
+
+
+def context(root: Path, branch: str) -> list[str]:
+    """R5: the task of the branch (title, purpose, examples, verification); empty if there is none."""
+    segments = branch.split("/")
+    if len(segments) < 2 or not TASK_ID.fullmatch(segments[-1]):
+        return []
+    change = f"docs/changes/{segments[-2]}"
+    found = list((root / change / "tasks").glob(f"{segments[-1]}-*.md"))
+    if not found:
+        print(f"gate: la tarea {segments[-1]} no existe en {change}/", file=sys.stderr)
+        return []
+    text = found[0].read_text(encoding="utf-8")
+    fields = parse_frontmatter(text) or {}
+    purpose = next((m[0] for m in re.finditer(r"^\*\*Propósito:.*$", text, re.M)), "")
+    readme = (root / change / "README.md").read_text(encoding="utf-8") if (root / change / "README.md").is_file() else ""
+    lines = [f"Rama {branch}: tarea {segments[-1]}: {fields.get('title', '')}", purpose, f"Fichero: {found[0].relative_to(root)}"]
+    for example in fields.get("examples", []):
+        lines += [m[0].strip() for m in re.finditer(rf"^\s*{re.escape(example)}:.*$", readme, re.M)]
+    return [*lines, f"Verification: {fields.get('verification', '')}"]
+
+
+def main_context() -> int:
+    """Never fails: whatever goes wrong is a warning, the rules are always printed."""
+    lines: list[str] = []
+    try:
+        root = Path(git(Path.cwd(), "rev-parse", "--show-toplevel").strip())
+        branch = os.environ.get("GITHUB_HEAD_REF") or git(root, "rev-parse", "--abbrev-ref", "HEAD").strip()
+        lines = context(root, branch)
+    except (OSError, RuntimeError, ValueError) as error:
+        print(f"gate: aviso: no puedo leer la tarea: {error}", file=sys.stderr)
+    print("\n".join([*(l for l in lines if l), RULES]))
+    return 0
+
+
 def main(argv: list[str]) -> int:
+    if argv == ["--context"]:
+        return main_context()
     if any(a != "--require-task" for a in argv):
-        print("usage: gate.py [--require-task]", file=sys.stderr)
+        print("usage: gate.py [--require-task | --context]", file=sys.stderr)
         return 2
     try:
         root = Path(git(Path.cwd(), "rev-parse", "--show-toplevel").strip())

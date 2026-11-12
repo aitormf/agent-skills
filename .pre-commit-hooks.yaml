@@ -6,3 +6,13 @@
   stages: [pre-push, manual]
   pass_filenames: false
   always_run: true
+- id: kit-context
+  name: kit-context (rama, tarea y reglas del flujo para la sesión)
+  description: Imprime la tarea de la rama y las reglas del flujo; nunca falla (R5).
+  entry: skills/task-done/scripts/gate.py
+  args: [--context]
+  language: script
+  stages: [manual]
+  pass_filenames: false
+  always_run: true
+  verbose: true
