@@ -923,4 +923,41 @@ gg checkout -q --detach; rc=0; (cd "$gr" && GITHUB_HEAD_REF=42-cancelar/plan pyt
 gg branch -q -D main; gg checkout -q 42-cancelar/plan
 gate || true; [ $rc = 2 ] && grep -q "no puedo comprobar: no encuentro la rama base" "$tmp/out" || fail "E18: without a base branch it did not exit 2"
 
+echo "▶ hook del kit: kit-gate en pre-push y en CI (R4, D-0052, T5 de control-del-flujo)"
+hooks=.pre-commit-hooks.yaml
+[ -f "$hooks" ] || fail "E15: there is no $hooks in the root of the kit"
+python3 - <<'EOF2' || fail "E15: .pre-commit-hooks.yaml is not valid"
+import sys, yaml
+from pathlib import Path
+hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("kit-gate")
+bad = []
+if not hook: bad.append("falta el hook kit-gate")
+else:
+    if hook.get("language") != "script": bad.append("kit-gate debe ser language: script")
+    if not {"pre-push", "manual"} <= set(hook.get("stages", [])): bad.append("kit-gate debe tener stages pre-push y manual")
+    if hook.get("pass_filenames") is not False: bad.append("kit-gate no debe recibir ficheros (pass_filenames: false)")
+    entry = Path(hook.get("entry", "-"))
+    if not entry.is_file() or not entry.stat().st_mode & 0o111: bad.append(f"el entry {entry} no existe o no es ejecutable")
+for b in bad: print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF2
+cfg=skills/setup-guardrails-python/assets/files
+grep -q "id: kit-gate" "$cfg/.pre-commit-config.yaml" && grep -q "pre-push" "$cfg/.pre-commit-config.yaml" || fail "E15: the .pre-commit-config.yaml template does not declare kit-gate and install the pre-push hook"
+grep -q "pre-commit run kit-gate --hook-stage manual" "$cfg/.github/workflows/ci.yml" || fail "E16: the ci.yml template does not run kit-gate in the manual stage"
+grep -q "git show origin/.*\.pre-commit-config\.yaml" "$cfg/.github/workflows/ci.yml" || fail "E29: the ci.yml template does not take .pre-commit-config.yaml from the base branch"
+if command -v pre-commit >/dev/null; then pc=(pre-commit); elif command -v uvx >/dev/null && uvx --offline pre-commit --version >/dev/null 2>&1; then pc=(uvx --offline pre-commit); else pc=(); echo "  (sin pre-commit ni uvx con pre-commit en la caché: se omite try-repo)"; fi
+if [ ${#pc[@]} -gt 0 ]; then
+  export PRE_COMMIT_HOME="$tmp/pre-commit-home"
+  hk="$tmp/hook"; mkdir -p "$hk"; git -C "$hk" init -q -b main
+  hg() { git -C "$hk" -c user.name=t -c user.email=t@t "$@"; }
+  echo base > "$hk/README.md"; hg add -A; hg commit -qm base
+  hg checkout -qb 42-cancelar/T9; echo x > "$hk/a.txt"; hg add -A; hg commit -qm "feat: a"  # T9 has no file: the gate exits 1
+  pcr() { rc=0; (cd "$hk" && "${pc[@]}" try-repo "$OLDPWD" kit-gate "$@") >"$tmp/out" 2>&1 || rc=$?; }
+  pcr --hook-stage pre-push --from-ref main --to-ref HEAD
+  [ $rc = 1 ] && grep -q "la tarea T9 no existe" "$tmp/out" || fail "E15: the pre-push hook did not exit 1 with the message of the gate"
+  hg checkout -q --detach; export GITHUB_HEAD_REF=42-cancelar/T9
+  pcr --hook-stage manual
+  [ $rc = 1 ] && grep -q "la tarea T9 no existe" "$tmp/out" || fail "E16: the manual stage (CI) did not fail with the same message"
+  unset GITHUB_HEAD_REF
+fi
 echo "✔ todo en verde"
