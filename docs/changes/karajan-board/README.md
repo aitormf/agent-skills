@@ -4,6 +4,8 @@ issue: null
 ---
 # Las tareas de docs/changes como HUs de Karajan Code
 
+> **En pausa desde el 2026-11-12 ([D-0051](../../decisions/0051-aplazar-la-integracion-con-karajan.md)).** T1 está hecha y se queda. No implementes T2 a T8: se retoma cuando alguien que use `kj` lo pida.
+
 **Problema:** Karajan Code (`kj`) gobierna el trabajo del agente con tarjetas (HUs): sus gates `card-first` y `board-sync` piden que cada rama nombre una tarjeta y que una tarjeta mergeada se mueva en el tablero. Nuestras skills ya llevan el trabajo en curso en `docs/changes/<cambio>/tasks/T<n>-<slug>.md` (D-0029), con la rama como señal de "en curso" (D-0034). Si un proyecto usa las dos cosas, hoy hay que escribir cada tarea dos veces, una como fichero y otra como HU, y los dos estados se separan. Le importa a quien usa nuestras skills dentro de un proyecto con Karajan.
 
 **Plazo máximo:** unos 2–3 días de trabajo de agente, repartidos en tareas de como mucho 200 líneas con los tests (D-0044).
