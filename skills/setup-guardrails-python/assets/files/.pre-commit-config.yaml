@@ -1,6 +1,6 @@
 # Works with prek and pre-commit. After copying it: `prek autoupdate` (fills in the revs) and `prek install`.
 # Why: docs/arnes/herramientas-arnes.md §4.2 and docs/arnes/plan-seguridad-codigo-ia.md §4.3.
-default_install_hook_types: [pre-commit, commit-msg]
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -36,6 +36,12 @@ repos:
     hooks:
       - id: commitizen
 
+  # The kit's workflow gate (one task per branch, red commit, size). Pin `rev` to a tag of the kit; updating it is a PR of the project (D-0052).
+  # Runs on pre-push and in CI (`pre-commit run kit-gate --hook-stage manual`).
+  - repo: https://github.com/aitormf/agent-skills
+    rev: <version>
+    hooks:
+      - id: kit-gate
   # mypy and import-linter with `uv run` to use the versions in uv.lock.
   - repo: local
     hooks:

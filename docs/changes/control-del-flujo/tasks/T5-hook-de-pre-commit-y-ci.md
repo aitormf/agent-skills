@@ -1,7 +1,7 @@
 ---
 id: T5
 title: El gate llega al proyecto como hook de pre-commit del kit y corre en CI con la configuración de la base
-status: todo
+status: done
 depends_on: [T1]
 examples: [E15, E16, E29]
 verification: scripts/check.sh
