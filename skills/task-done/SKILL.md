@@ -34,6 +34,8 @@ If the task lists its examples (`examples: [E1, E2]`) or already has a red commi
 
 `scripts/board.py [docs/changes/<change>]` (default: the change of the current branch) lists each task as `ready`, `blocked by T1, T3`, `doing` or `done`, read-only. **Done means merged:** `status: done` in the base branch. A task is `doing` if it is not merged but its file here says `doing` or `done`, or a branch `<…>/<change>/T<n>` exists, local or remote (someone is on it, or its PR waits for review). It is `ready` if it is `todo` and all its `depends_on` are merged. Only `depends_on` is written; what a task blocks is computed. Exit 2, with one line per problem, if a frontmatter is malformed, a dependency does not exist or there is a cycle: fix the task files before picking a task.
 
+`scripts/board.py --json [docs/changes/<change>]` prints the same board as JSON on stdout, for tools (the Karajan board manager, D-0049): `base` (the git ref it compares against, such as `origin/main`) and, per task, `id`, `title`, `kind`, `branch` (or `null`), `depends_on`, `examples` and `path` (from the repo root). With problems, nothing on stdout, the problems on stderr and exit 2.
+
 ## The review: `--audit`
 
 `review-prepush` and `review-pr` run `task_done.py --audit`, read-only: it runs no verification and edits nothing. Its scope follows the branch:

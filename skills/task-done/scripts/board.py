@@ -17,8 +17,11 @@ else origin/main, origin/master, main or master). A task is
   ready    if it is todo and every task in depends_on is done in the base branch;
   blocked  otherwise, by the dependencies not done in the base branch yet.
 
---json prints {"base": ..., "tasks": [{id, title, kind, branch, depends_on, examples, path}]} instead
-of the text (kind: ready | blocked | doing | done; branch: null if none). Problems go to stderr, exit 2.
+--json prints on stdout {"base": ..., "tasks": [{id, title, kind, branch, depends_on, examples, path}]}
+instead of the text. base is the git ref the board compares against, as found above (origin/main
+with a remote, main without one), not a bare branch name. kind: ready | blocked | doing | done;
+branch: null if none; path: the task file from the repo root, with "/" (docs/changes/<change>/tasks/T1-x.md),
+however CHANGE_DIR is given. Problems go to stderr, nothing to stdout, exit 2.
 
 Read-only. Exit 0; exit 2 if the call is wrong, the folder or the base branch is not
 found, or the tasks are wrong: a malformed frontmatter, a dependency that does not
@@ -282,6 +285,7 @@ def main(argv: list[str]) -> int:
     try:
         base = base_branch(folder)
         merged = statuses_at(base, folder)
+        root = Path(git(folder, "rev-parse", "--show-toplevel").strip()).resolve()
     except (OSError, RuntimeError, ValueError) as error:
         fail(f"cannot read the base branch: {error}")
     branches = task_branches(folder)
@@ -308,7 +312,7 @@ def main(argv: list[str]) -> int:
                 "branch": branches.get(tid),
                 "depends_on": task["depends_on"],
                 "examples": task["examples"],
-                "path": str(task["path"]),
+                "path": task["path"].resolve().relative_to(root).as_posix(),
             }
         )
         if as_json:

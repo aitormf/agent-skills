@@ -461,6 +461,15 @@ assert t["T2"]["depends_on"] == ["T1"] and t["T2"]["examples"] == ["E2"] and t["
 assert t["T1"]["path"].endswith("tasks/T1-t.md"), t["T1"]["path"]
 PY
 board "$bc" --json; [ $rc = 0 ] && grep -q '"tasks"' "$tmp/out" || fail "board.py did not accept --json after the folder"
+boardj() { rc=0; python3 "$bd" --json "$@" >"$tmp/out" 2>"$tmp/err" || rc=$?; return $rc; }
+boardj "$bc"; [ $rc = 0 ] && [ ! -s "$tmp/err" ] && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$tmp/out" \
+  || fail "board --json did not print the JSON on stdout alone (D-0049)"
+rc=0; (cd "$b/docs" && python3 "$OLDPWD/$bd" changes/9-board --json) >"$tmp/out" 2>"$tmp/err" || rc=$?
+[ $rc = 0 ] && python3 -c 'import json,sys; p = json.load(open(sys.argv[1]))["tasks"][0]["path"]; assert p == "docs/changes/9-board/tasks/T1-t.md", p' "$tmp/out" \
+  || fail "board --json from a subfolder did not give the path from the repo root"
+cl="$tmp/board-clone"; git clone -q "$b" "$cl"
+boardj "$cl/docs/changes/9-board"; [ $rc = 0 ] && python3 -c 'import json,sys; d = json.load(open(sys.argv[1])); assert d["base"] == "origin/main", d["base"]' "$tmp/out" \
+  || fail "board --json did not give the base ref (origin/main) in a clone with a remote"
 gb checkout -q -- docs; gb checkout -qb 9-board/plan
 rc=0; (cd "$b" && python3 "$tda" --audit) >"$tmp/out" 2>&1 || rc=$?
 [ $rc = 0 ] && grep -q "audit of the plan" "$tmp/out" || fail "--audit of the plan branch failed on a valid plan"
@@ -468,6 +477,7 @@ rc=0; (cd "$b" && python3 "$tda" --audit) >"$tmp/out" 2>&1 || rc=$?
 task "$bc" T2 E2 todo T9
 board "$bc" || true; [ $rc = 2 ] && grep -q "T2 depends on T9, which does not exist" "$tmp/out" || fail "the board did not exit 2 on a dependency that does not exist"
 board --json "$bc" || true; [ $rc = 2 ] && grep -q "T2 depends on T9, which does not exist" "$tmp/out" && ! grep -q "^{" "$tmp/out" || fail "board --json did not exit 2 with the problems and no JSON"
+boardj "$bc" || true; [ $rc = 2 ] && [ ! -s "$tmp/out" ] && grep -q "T2 depends on T9, which does not exist" "$tmp/err" || fail "board --json did not exit 2 with the problems on stderr and nothing on stdout"
 (cd "$b" && python3 "$tda" --audit) >"$tmp/out" 2>&1 && fail "--audit of the plan branch accepted a dependency that does not exist"
 grep -q "^PROBLEM: T2 depends on T9" "$tmp/out" || fail "--audit of the plan missed a dependency that does not exist"
 task "$bc" T2 E2 todo T3
