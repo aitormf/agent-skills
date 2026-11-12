@@ -903,7 +903,7 @@ gg() { git -C "$gr" -c user.name=t -c user.email=t@t "$@"; }
 gate() { rc=0; (cd "$gr" && python3 "$gate" "$@") >"$tmp/out" 2>&1 || rc=$?; return 0; }
 mkdir -p "$gr/docs/changes/42-cancelar/tasks" "$gr/src"
 printf -- '---\nid: T3\ntitle: t\nstatus: todo\ndepends_on: []\nexamples: []\nverification: true\n---\n' > "$gr/docs/changes/42-cancelar/tasks/T3-reembolso.md"
-echo base > "$gr/README.md"; gg add -A; gg commit -qm base
+echo "# c" > "$gr/docs/changes/42-cancelar/README.md"; echo base > "$gr/README.md"; gg add -A; gg commit -qm base
 gg checkout -qb 42-cancelar/T3
 gate; [ $rc = 0 ] || fail "E1: the branch of a task with its file did not exit 0"
 gg checkout -qb fix/errata main
