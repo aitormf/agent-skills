@@ -903,7 +903,7 @@ gg() { git -C "$gr" -c user.name=t -c user.email=t@t "$@"; }
 gate() { rc=0; (cd "$gr" && python3 "$gate" "$@") >"$tmp/out" 2>&1 || rc=$?; return 0; }
 mkdir -p "$gr/docs/changes/42-cancelar/tasks" "$gr/src"
 printf -- '---\nid: T3\ntitle: t\nstatus: todo\ndepends_on: []\nexamples: []\nverification: true\n---\n' > "$gr/docs/changes/42-cancelar/tasks/T3-reembolso.md"
-echo base > "$gr/README.md"; gg add -A; gg commit -qm base
+echo "# c" > "$gr/docs/changes/42-cancelar/README.md"; echo base > "$gr/README.md"; gg add -A; gg commit -qm base
 gg checkout -qb 42-cancelar/T3
 gate; [ $rc = 0 ] || fail "E1: the branch of a task with its file did not exit 0"
 gg checkout -qb fix/errata main
@@ -922,6 +922,29 @@ gg checkout -q --detach; rc=0; (cd "$gr" && GITHUB_HEAD_REF=42-cancelar/plan pyt
 [ $rc = 1 ] && grep -q "la PR del plan no lleva código" "$tmp/out" || fail "E17: the detached HEAD of CI did not take the branch of GITHUB_HEAD_REF"
 gg branch -q -D main; gg checkout -q 42-cancelar/plan
 gate || true; [ $rc = 2 ] && grep -q "no puedo comprobar: no encuentro la rama base" "$tmp/out" || fail "E18: without a base branch it did not exit 2"
+
+echo "▶ gate: el audit de task-done y el plan intacto (R2, T2 de control-del-flujo)"
+ar="$tmp/audit"; mkdir -p "$ar/docs/changes/42-cancelar/tasks" "$ar/tests"; git -C "$ar" init -q -b main
+ag() { git -C "$ar" -c user.name=t -c user.email=t@t "$@"; }
+agate() { rc=0; (cd "$ar" && python3 "$gate" "$@") >"$tmp/out" 2>&1 || rc=$?; return 0; }
+atask() { printf -- '---\nid: %s\ntitle: t\nstatus: todo\ndepends_on: []\nexamples: %s\nverification: true\n---\n' "$1" "$2" > "$ar/docs/changes/42-cancelar/tasks/$1-x.md"; }
+printf '# c\n  E1: a\n' > "$ar/docs/changes/42-cancelar/README.md"; atask T3 '[E1]'; atask T4 '[]'
+echo base > "$ar/README.md"; ag add -A; ag commit -qm base
+ag checkout -qb 42-cancelar/T3
+echo 'x = 1' > "$ar/a.py"; ag add -A; ag commit -qm "feat(T3): a"
+agate || true; [ $rc = 1 ] && grep -q "PROBLEM" "$tmp/out" || fail "E9: a task with examples and without its red commit did not exit 1 with PROBLEM"
+ag checkout -q -B 42-cancelar/T3 main
+echo '# E1: red' > "$ar/tests/test_a.py"; ag add -A; ag commit -qm "test(T3): E1 red"
+echo 'x = 1' > "$ar/a.py"; ag add -A; ag commit -qm "feat(T3): a"
+agate; [ $rc = 0 ] || fail "E8: the red commit with its tests untouched did not exit 0"
+echo '# E1: changed' > "$ar/tests/test_a.py"; ag add -A; ag commit -qm "fix(T3): b"
+agate || true; [ $rc = 1 ] && grep -q "PROBLEM" "$tmp/out" || fail "E10: a red line changed in a later commit did not exit 1 with PROBLEM"
+ag checkout -qb 42-cancelar/T4 main; echo 'x = 1' > "$ar/a.py"; ag add -A; ag commit -qm "feat(T4): a"
+agate; [ $rc = 0 ] || fail "E11: a task without examples demanded a red commit"
+ag checkout -q -B 42-cancelar/T3 main; atask T3 '[]'; ag add -A; ag commit -qm "docs: T3"
+agate || true; [ $rc = 1 ] && grep -q "el plan aprobado no se cambia en la rama de la tarea" "$tmp/out" || fail "E25: changing examples of the task file did not exit 1"
+ag checkout -q -B 42-cancelar/T3 main; echo more >> "$ar/docs/changes/42-cancelar/tasks/T4-x.md"; ag add -A; ag commit -qm "docs: T4"
+agate || true; [ $rc = 1 ] && grep -q "T4-x.md" "$tmp/out" || fail "E26: touching the file of another task did not exit 1"
 
 echo "▶ hook del kit: kit-gate en pre-push y en CI (R4, D-0052, T5 de control-del-flujo)"
 hooks=.pre-commit-hooks.yaml
@@ -959,5 +982,14 @@ if [ ${#pc[@]} -gt 0 ]; then
   pcr --hook-stage manual
   [ $rc = 1 ] && grep -q "la tarea T9 no existe" "$tmp/out" || fail "E16: the manual stage (CI) did not fail with the same message"
   unset GITHUB_HEAD_REF
+  # E15: a red test changed on a task branch (it needs the audit of T2)
+  hg checkout -q main; mkdir -p "$hk/docs/changes/42-cancelar/tasks" "$hk/tests"
+  printf '# c\n  E1: a\n' > "$hk/docs/changes/42-cancelar/README.md"
+  printf -- '---\nid: T3\ntitle: t\nstatus: todo\ndepends_on: []\nexamples: [E1]\nverification: true\n---\n' > "$hk/docs/changes/42-cancelar/tasks/T3-x.md"
+  hg add -A; hg commit -qm plan; hg checkout -qb 42-cancelar/T3
+  echo '# E1: red' > "$hk/tests/test_a.py"; hg add -A; hg commit -qm "test(T3): E1 red"
+  echo '# E1: changed' > "$hk/tests/test_a.py"; hg add -A; hg commit -qm "fix(T3): b"
+  pcr --hook-stage pre-push --from-ref main --to-ref HEAD
+  [ $rc = 1 ] && grep -q "PROBLEM" "$tmp/out" || fail "E15: the pre-push hook did not exit 1 on a task branch with a red test changed"
 fi
 echo "✔ todo en verde"

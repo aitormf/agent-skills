@@ -1,7 +1,7 @@
 ---
 id: T2
 title: El gate exige el audit de task-done y protege el plan en la rama de la tarea
-status: todo
+status: done
 depends_on: [T1]
 examples: [E8, E9, E10, E11, E25, E26]
 verification: scripts/check.sh
