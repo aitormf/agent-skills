@@ -17,15 +17,17 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 from board import TASK_ID, base_branch, git, parse_frontmatter
 
 PLAN_FIELDS = ("examples", "verification", "depends_on")
-# R7: control files; the project extends the list in CONTROL_LIST, itself a control file.
+# R7: control files. The project adjusts the list in CONFIG ([gate.control] add / remove, globs), read from
+# the base branch; CONFIG itself is always a control file and cannot be removed.
 CONTROL = (".github/**", ".pre-commit-config.yaml", ".claude/settings*.json", ".claude/hooks/**", ".codex/**",
            "opencode.json", "scripts/check.sh", ".gitattributes", "CODEOWNERS")
-CONTROL_LIST = ".kit-control"
+CONFIG = ".harness-config.toml"
 
 
 def changed_files(root: Path, base: str) -> list[str]:
@@ -64,11 +66,18 @@ def task_problems(root: Path, base: str, change: str, task: str, files: list[str
 def control_files(root: Path, base: str, files: list[str]) -> list[str]:
     """R7: files of the diff that match the control list, read from the base branch, never from the branch."""
     try:
-        extra = git(root, "show", f"{base}:{CONTROL_LIST}").splitlines()
+        text = git(root, "show", f"{base}:{CONFIG}")
     except RuntimeError:
-        extra = []  # the base has no project list
-    patterns = CONTROL + tuple(p.strip() for p in extra if p.strip() and not p.lstrip().startswith("#"))
-    return [f for f in files if f == CONTROL_LIST or any(fnmatch.fnmatchcase(f, p) for p in patterns)]
+        text = ""  # the base has no harness config
+    try:
+        control = tomllib.loads(text).get("gate", {}).get("control", {})
+        add, remove = control.get("add", []), control.get("remove", [])
+        if not all(isinstance(v, list) and all(isinstance(p, str) for p in v) for v in (add, remove)):
+            raise ValueError("add y remove son listas de patrones")
+    except (tomllib.TOMLDecodeError, AttributeError, ValueError) as error:
+        raise RuntimeError(f"{CONFIG} de la rama base no es válido: {error}") from error
+    patterns = tuple(p for p in CONTROL if p not in remove) + tuple(add)
+    return [f for f in files if f == CONFIG or any(fnmatch.fnmatchcase(f, p) for p in patterns)]
 
 
 def size_warning(root: Path, base: str) -> str | None:
@@ -156,7 +165,12 @@ def main(argv: list[str]) -> int:
         except (OSError, RuntimeError) as error:
             print(f"gate: no puedo comprobar: {error}", file=sys.stderr)
             return 2
-        if touched := control_files(root, base, files):
+        try:
+            touched = control_files(root, base, files)
+        except RuntimeError as error:
+            print(f"gate: no puedo comprobar: {error}", file=sys.stderr)
+            return 2
+        if touched:
             problems.append(f"una tarea no cambia el arnés: va en su propia PR, revisada por CODEOWNERS ({', '.join(touched)})")
         for problem in problems:
             print(f"gate: {problem}", file=sys.stderr)

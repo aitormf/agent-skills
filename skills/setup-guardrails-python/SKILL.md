@@ -95,7 +95,7 @@ Propose which phases to apply and ask. Default: phases 1 and 2. Phase 3 only for
 ### 5b. Requirements GitHub must enforce (the kit cannot set them)
 Without these the `kit-gate` hook is advisory: `--no-verify` skips it and an agent with the user's credentials can edit the rules. Tell the person to set up:
 - Branch protection on the base branch with the `kit-gate` check required, also applied to administrators.
-- *Require review from Code Owners*, and `CODEOWNERS` covering the control list: the kit's default list plus the project's own `.kit-control`, which must be under CODEOWNERS too.
+- *Require review from Code Owners*, and `CODEOWNERS` covering the control list: the kit's default list adjusted by the project's `.harness-config.toml` (`[gate.control]` with `add` and `remove`, lists of globs), which is always a control file and must be under CODEOWNERS too. The gate reads it from the base branch.
 - The agent with its own identity (bot account or fine-grained token), with no permission to bypass the protection or to approve.
 ### 6. Wrap-up
 
