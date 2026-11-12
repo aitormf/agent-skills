@@ -1,7 +1,7 @@
 ---
 id: T8
 title: Documentar como requisito la branch protection, CODEOWNERS y la identidad del agente
-status: todo
+status: done
 depends_on: [T5]
 examples: []
 verification: scripts/check.sh

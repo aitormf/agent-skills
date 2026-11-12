@@ -1071,4 +1071,10 @@ stop = json.loads(Path("skills/setup-guardrails-python/assets/files/.claude/sett
 cmds = [h["command"] for e in stop for h in e["hooks"]]
 sys.exit(0 if any("check-on-stop.sh" in c for c in cmds) and any("kit-gate-on-stop.sh" in c for c in cmds) else 1)
 EOF2
+echo "▶ requisitos del proyecto documentados: branch protection, CODEOWNERS e identidad del agente (S1, T8 de control-del-flujo)"
+for f in skills/setup-guardrails-python/SKILL.md README.md; do
+  for t in "kit-gate" "Require review from Code Owners" "CODEOWNERS" ".kit-control" "admin" "fine-grained"; do
+    grep -qi -- "$t" "$f" || { echo "S1: $f no menciona '$t'" >&2; exit 1; }
+  done
+done
 echo "✔ todo en verde"

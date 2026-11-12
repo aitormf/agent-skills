@@ -92,12 +92,17 @@ Propose which phases to apply and ask. Default: phases 1 and 2. Phase 3 only for
 - **Changelog:** `cliff.toml` and `release.yml` are already copied. If there is *squash merge*, validate the PR title in CI.
 - **CodeQL:** uncomment the job in `security.yml`. Only in public repos or with GitHub Advanced Security.
 
+### 5b. Requirements GitHub must enforce (the kit cannot set them)
+Without these the `kit-gate` hook is advisory: `--no-verify` skips it and an agent with the user's credentials can edit the rules. Tell the person to set up:
+- Branch protection on the base branch with the `kit-gate` check required, also applied to administrators.
+- *Require review from Code Owners*, and `CODEOWNERS` covering the control list: the kit's default list plus the project's own `.kit-control`, which must be under CODEOWNERS too.
+- The agent with its own identity (bot account or fine-grained token), with no permission to bypass the protection or to approve.
 ### 6. Wrap-up
 
 Summarize what was installed, what was left out and why. Then give the user **the list of what they have to do by hand**:
 
 - [ ] Protect `main`: PR required, ≥ 1 approval, *Require review from Code Owners*, no bypass for administrators.
-- [ ] Required checks: `check`, `secrets`, `dependencies`, `sast`, `workflows`, `guardrails`.
+- [ ] Required checks: `kit-gate` (step 5b), `check`, `secrets`, `dependencies`, `sast`, `workflows`, `guardrails`.
 - [ ] *Settings → Actions*: *Require approval for all external contributors*.
 - [ ] Pin the gitleaks image in `ci.yml` and the actions to a SHA.
 - [ ] Rotate any secret found during the diagnosis.
