@@ -1,7 +1,7 @@
 ---
 id: T1
 title: gate.py reconoce la rama de una tarea y la rama del plan
-status: todo
+status: done
 depends_on: []
 examples: [E1, E2, E3, E4, E5, E6, E7, E17, E18]
 verification: scripts/check.sh
