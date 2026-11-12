@@ -1047,4 +1047,28 @@ if not any(e.get("matcher") == "startup|resume|compact" and any(" run kit-contex
 for b in bad: print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)
 EOF2
+echo "▶ hook Stop: no termina el turno con el gate en rojo, salvo a la segunda parada (R6, T7 de control-del-flujo)"
+stop="$PWD/skills/setup-guardrails-python/assets/files/.claude/hooks/kit-gate-on-stop.sh"
+sb="$tmp/stopbin"; mkdir -p "$sb"
+printf '#!/usr/bin/%s bash\necho "$*" > "%s/stop.args"\nexec python3 "%s"\n' env "$tmp" "$gate" > "$sb/prek"; chmod +x "$sb/prek"
+nb="$tmp/nobin"; mkdir -p "$nb"; for t in jq cat mktemp rm; do ln -s "$(command -v $t)" "$nb/$t"; done
+stopit() { rc=0; (cd "$ar" && printf '%s' "$1" | CLAUDE_PROJECT_DIR="$ar" PATH="${2:-$sb:$PATH}" /bin/bash "$stop") >"$tmp/out" 2>&1 || rc=$?; return 0; }
+ag checkout -q -B 42-cancelar/T3 main; echo 'x = 2' > "$ar/a.py"; ag add -A; ag commit -qm "feat(T3): a"
+stopit '{"stop_hook_active": false}'
+[ $rc = 2 ] && grep -q "PROBLEM" "$tmp/out" && grep -q "^run kit-gate --hook-stage manual$" "$tmp/stop.args" || fail "E22: the Stop hook did not exit 2 with the message of the gate on a red gate"
+stopit '{"stop_hook_active": true}'
+[ $rc = 0 ] && grep -q "PROBLEM" "$tmp/out" && grep -q "sigue en rojo" "$tmp/out" || fail "E23: the second Stop in a row did not let the agent finish warning that the gate is still red"
+ag checkout -q -B fix/errata main
+stopit '{"stop_hook_active": false}'
+[ $rc = 0 ] && ! grep -q "PROBLEM" "$tmp/out" || fail "E24: the Stop hook blocked a branch without a task"
+ag checkout -q 42-cancelar/T3
+stopit '{"stop_hook_active": false}' "$nb"
+[ $rc = 0 ] && grep -q "ni prek ni pre-commit" "$tmp/out" || fail "E22: with no prek nor pre-commit the Stop hook trapped the agent or stayed silent"
+python3 - <<'EOF2' || fail "E22: the Stop hook is not declared in the settings of the template next to check-on-stop.sh"
+import json, sys
+from pathlib import Path
+stop = json.loads(Path("skills/setup-guardrails-python/assets/files/.claude/settings.json").read_text())["hooks"]["Stop"]
+cmds = [h["command"] for e in stop for h in e["hooks"]]
+sys.exit(0 if any("check-on-stop.sh" in c for c in cmds) and any("kit-gate-on-stop.sh" in c for c in cmds) else 1)
+EOF2
 echo "✔ todo en verde"
