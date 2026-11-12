@@ -1,7 +1,7 @@
 ---
 id: T1
 title: Modo --json en el tablero de task-done
-status: todo
+status: done
 depends_on: []
 examples: []
 verification: scripts/check.sh
