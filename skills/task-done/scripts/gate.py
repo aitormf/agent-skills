@@ -4,11 +4,13 @@ Usage: gate.py [--require-task]
 The branch is GITHUB_HEAD_REF if set (CI checks out a detached HEAD), else the current one.
   - <...>/<change>/T<n>: the file docs/changes/<change>/tasks/T<n>-*.md must exist; above 200
     lines of diff it warns (D-0053), it does not fail.
+    It fails if the branch touches a control file (the list of the base branch, R7).
   - <...>/<change>/plan: the plan PR carries no code.
   - any other branch: nothing is checked, unless --require-task: then a change of code
     (anything outside docs/ and the *.md of the root) fails.
 Exit status: 0 passes, 1 a rule is broken, 2 cannot check (no base branch, no branch name).
 """
+import fnmatch
 import os
 import re
 import subprocess
@@ -18,6 +20,10 @@ from pathlib import Path
 from board import TASK_ID, base_branch, git, parse_frontmatter
 
 PLAN_FIELDS = ("examples", "verification", "depends_on")
+# R7: control files; the project extends the list in CONTROL_LIST, itself a control file.
+CONTROL = (".github/**", ".pre-commit-config.yaml", ".claude/settings*.json", ".claude/hooks/**", ".codex/**",
+           "opencode.json", "scripts/check.sh", ".gitattributes", "CODEOWNERS")
+CONTROL_LIST = ".kit-control"
 
 
 def changed_files(root: Path, base: str) -> list[str]:
@@ -51,6 +57,16 @@ def task_problems(root: Path, base: str, change: str, task: str, files: list[str
     if changed := [k for k in PLAN_FIELDS if before.get(k) != now.get(k)]:
         found.append(f"el plan aprobado no se cambia en la rama de la tarea ({', '.join(changed)} de {own})")
     return found
+
+
+def control_files(root: Path, base: str, files: list[str]) -> list[str]:
+    """R7: files of the diff that match the control list, read from the base branch, never from the branch."""
+    try:
+        extra = git(root, "show", f"{base}:{CONTROL_LIST}").splitlines()
+    except RuntimeError:
+        extra = []  # the base has no project list
+    patterns = CONTROL + tuple(p.strip() for p in extra if p.strip() and not p.lstrip().startswith("#"))
+    return [f for f in files if f == CONTROL_LIST or any(fnmatch.fnmatchcase(f, p) for p in patterns)]
 
 
 def size_warning(root: Path, base: str) -> str | None:
@@ -94,6 +110,8 @@ def main(argv: list[str]) -> int:
         except (OSError, RuntimeError) as error:
             print(f"gate: no puedo comprobar: {error}", file=sys.stderr)
             return 2
+        if touched := control_files(root, base, files):
+            problems.append(f"una tarea no cambia el arnés: va en su propia PR, revisada por CODEOWNERS ({', '.join(touched)})")
         for problem in problems:
             print(f"gate: {problem}", file=sys.stderr)
         if warning := size_warning(root, base):

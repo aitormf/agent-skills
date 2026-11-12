@@ -1000,4 +1000,16 @@ ag checkout -q -B 42-cancelar/T4 main; lines 260 > "$ar/big.py"; ag add -A; ag c
 agate; [ $rc = 0 ] && grep -q "260 líneas > 200 (D-0044): parte la tarea en el plan" "$tmp/out" || fail "E13: 260 lines did not exit 0 with the warning"
 ag checkout -q -B 42-cancelar/T4 main; lines 140 > "$ar/big.py"; lines 120 > "$ar/uv.lock"; ag add -A; ag commit -qm "feat(T4): big"
 agate; [ $rc = 0 ] && ! grep -q "parte la tarea" "$tmp/out" || fail "E14: 260 lines with 120 in uv.lock gave a warning"
+echo "▶ gate: la rama de una tarea no toca ficheros de control (R7, T4 de control-del-flujo)"
+for f in .pre-commit-config.yaml .github/workflows/ci.yml .claude/settings.json scripts/check.sh; do
+  ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/$(dirname "$f")"; echo x >> "$ar/$f"; ag add -A; ag commit -qm "feat(T4): $f"
+  agate || true; [ $rc = 1 ] && grep -q "una tarea no cambia el arnés: va en su propia PR, revisada por CODEOWNERS" "$tmp/out" && grep -q "$f" "$tmp/out" || fail "E27: a task branch touching $f did not exit 1 with the message"
+done
+ag checkout -q main; printf 'deploy/**\n' > "$ar/.kit-control"; ag add -A; ag commit -qm "control list"
+ag checkout -q -B 42-cancelar/T4 main; : > "$ar/.kit-control"; mkdir -p "$ar/deploy"; echo x > "$ar/deploy/run.sh"; ag add -A; ag commit -qm "feat(T4): quita el patron"
+agate || true; [ $rc = 1 ] && grep -q "deploy/run.sh" "$tmp/out" && grep -q ".kit-control" "$tmp/out" || fail "E28: a branch removing a pattern from the control list escaped the list of the base"
+ag checkout -q -B 42-cancelar/T4 main; printf 'deploy/**\nsrc/**\n' > "$ar/.kit-control"; ag add -A; ag commit -qm "feat(T4): añade patron"
+agate || true; [ $rc = 1 ] && grep -q ".kit-control" "$tmp/out" || fail "E28: a branch changing the control list did not exit 1"
+ag checkout -q -B 42-cancelar/T4 main; echo x > "$ar/ok.py"; ag add -A; ag commit -qm "feat(T4): ok"
+agate; [ $rc = 0 ] || fail "E27: a task branch with no control file did not exit 0"
 echo "✔ todo en verde"
