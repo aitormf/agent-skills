@@ -2,7 +2,7 @@
 id: D-0054
 title: La configuración del harness que leen sus scripts va en un único .harness-config.toml en la raíz, que es fichero de control y se lee de la rama base
 type: architecture
-status: proposed
+status: accepted
 date: 2026-11-12
 affects: [skills/task-done/scripts/gate.py, .harness-config.toml, skills/setup-guardrails-python/]
 supersedes: null
