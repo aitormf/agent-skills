@@ -1042,8 +1042,8 @@ else:
     if "--context" not in (hook.get("args", []) + hook.get("entry", "").split()): bad.append("kit-context debe llamar al gate con --context")
 settings = json.loads(Path("skills/setup-guardrails-python/assets/files/.claude/settings.json").read_text())
 start = settings["hooks"].get("SessionStart", [])
-if not any(e.get("matcher") == "startup|resume|compact" and any("pre-commit run kit-context" in h["command"] for h in e["hooks"]) for e in start):
-    bad.append("falta el SessionStart startup|resume|compact con pre-commit run kit-context")
+if not any(e.get("matcher") == "startup|resume|compact" and any(" run kit-context --hook-stage manual" in h["command"] for h in e["hooks"]) for e in start):
+    bad.append("falta el SessionStart startup|resume|compact con kit-context")
 for b in bad: print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)
 EOF2

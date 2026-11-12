@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pre-commit run kit-context --hook-stage manual"
+            "command": "\"$(command -v prek || echo pre-commit)\" run kit-context --hook-stage manual"
           }
         ]
       }
