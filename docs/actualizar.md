@@ -8,11 +8,15 @@ La alternativa a seguir los pasos a mano es volver a ejecutar `setup-guardrails-
 
 Qué trae: el hook `harness-review` sustituye al `pre-push` copiado. Corre el gate primero y, si el push es de un agente, lo revisa un revisor de otra familia que el autor (por defecto `claude` y `codex`, el primero instalado que no sea el autor); sin ninguno, el push se bloquea. Por qué: [review-cruzada](changes/8-review-cruzada/README.md), D-0054, D-0055 y D-0056.
 
-- [ ] En `.pre-commit-config.yaml`, añade `- id: harness-review` junto a `harness-gate` y `harness-context`, con la misma `rev` (ahora `v0.10.0`).
+Si el proyecto no tiene aún la 0.9.0, haz antes su sección: `harness-review` se instala igual que el gate.
+
+- [ ] **Plugin:** actualiza `harness@aitormf` (Claude Code y Codex) o `npx skills update`: trae las personas revisoras con su regla nueva.
+- [ ] En `.pre-commit-config.yaml`, sube la `rev` del kit a `v0.10.0` (`prek autoupdate`) y añade `- id: harness-review` junto a `harness-gate` y `harness-context`. Es un fichero de control: va en una PR propia.
+- [ ] Instala el CLI de cada revisor que vayas a usar (`claude`, `codex`): si no queda ninguno de otra familia que el agente, el push del agente se bloquea.
 - [ ] Borra el `.git/hooks/pre-push` que copiaste del kit. Si es de otra cosa, déjalo. `prek install` lo sobrescribe: ejecútalo tras añadir el hook.
 - [ ] Opcional: `[review]` en `.harness-config.toml` (se lee de la rama base): `reviewers = ["claude", "codex"]` en orden de preferencia y `[review.codex]` con `model` y `effort` (por defecto `gpt-6.1-terra` y `medium`).
-- [ ] **Claude Code:** copia `.claude/hooks/deny_skip_hooks.py` de la plantilla y añade su entrada `PreToolUse` a `.claude/settings.json`. **Codex y OpenCode:** copia las reglas de la plantilla (`.codex/rules`, `opencode.json`) que niegan `--no-verify` y `SKIP=`. Frenan las vías normales; la garantía real es la protección de la rama (#77).
-- [ ] Un push de una persona ya no se revisa solo. Un agente ignora `SKIP_CLAUDE_REVIEW` y las variables `REVIEW_KIT_*` del entorno.
+- [ ] **Claude Code:** copia `.claude/hooks/deny_skip_hooks.py` de la plantilla y añade su entrada `PreToolUse` a `.claude/settings.json`. **Codex y OpenCode:** copia las reglas de la plantilla (`.codex/rules`, `opencode.json`) que niegan `--no-verify` y `SKIP=`. Frenan las vías normales, no un script que haga el push; la garantía real será el sandbox de #77.
+- [ ] Un push de una persona ya no se revisa solo. En el push de un agente se ignoran `SKIP_CLAUDE_REVIEW`, `REVIEW_KIT_COMMAND`, `REVIEW_KIT_ALLOWED_TOOLS`, `REVIEW_KIT_MODEL` y `REVIEW_KIT_TIMEOUT`.
 
 ## 0.9.0: el gate del flujo
 
