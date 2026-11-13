@@ -4,6 +4,16 @@ Lo que se instala como plugin (o con `npx skills`) llega al actualizar. Lo que `
 
 La alternativa a seguir los pasos a mano es volver a ejecutar `setup-guardrails-python` en el proyecto: nunca sobrescribe, detecta lo que falta y propone el diff de cada fichero.
 
+## 0.10.0: review cruzada
+
+Qué trae: el hook `harness-review` sustituye al `pre-push` copiado. Corre el gate primero y, si el push es de un agente, lo revisa un revisor de otra familia que el autor (por defecto `claude` y `codex`, el primero instalado que no sea el autor); sin ninguno, el push se bloquea. Por qué: [review-cruzada](changes/8-review-cruzada/README.md), D-0054, D-0055 y D-0056.
+
+- [ ] En `.pre-commit-config.yaml`, añade `- id: harness-review` junto a `harness-gate` y `harness-context`, con la misma `rev` (ahora `v0.10.0`).
+- [ ] Borra el `.git/hooks/pre-push` que copiaste del kit. Si es de otra cosa, déjalo. `prek install` lo sobrescribe: ejecútalo tras añadir el hook.
+- [ ] Opcional: `[review]` en `.harness-config.toml` (se lee de la rama base): `reviewers = ["claude", "codex"]` en orden de preferencia y `[review.codex]` con `model` y `effort` (por defecto `gpt-6.1-terra` y `medium`).
+- [ ] **Claude Code:** copia `.claude/hooks/deny_skip_hooks.py` de la plantilla y añade su entrada `PreToolUse` a `.claude/settings.json`. **Codex y OpenCode:** copia las reglas de la plantilla (`.codex/rules`, `opencode.json`) que niegan `--no-verify` y `SKIP=`. Frenan las vías normales; la garantía real es la protección de la rama (#77).
+- [ ] Un push de una persona ya no se revisa solo. Un agente ignora `SKIP_CLAUDE_REVIEW` y las variables `REVIEW_KIT_*` del entorno.
+
 ## 0.9.0: el gate del flujo
 
 Qué trae: el gate (`harness-gate`) comprueba la rama de cada tarea o del plan en pre-push y en CI (una tarea por rama, commit en rojo, plan aprobado sin cambios, ficheros de control intactos, aviso de tamaño). En Claude Code, la sesión recibe la tarea y las reglas al empezar y no termina el turno con el gate en rojo. Por qué: [control-del-flujo](changes/control-del-flujo/README.md), D-0052, D-0053 y D-0054.

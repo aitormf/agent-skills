@@ -153,14 +153,13 @@ Todo el detalle: [`skills/review-report/SKILL.md`](../../skills/review-report/SK
 
 ---
 
-## Hook pre-push (Claude Code)
+## Hook pre-push (`harness-review`)
 
-[`skills/review-prepush/assets/pre-push`](../../skills/review-prepush/assets/pre-push) ejecuta la review en modo headless con `claude -p`. Se instala copiándolo:
+El hook `harness-review` de [`.pre-commit-hooks.yaml`](../../.pre-commit-hooks.yaml) (script: [`skills/review-prepush/scripts/harness-review.sh`](../../skills/review-prepush/scripts/harness-review.sh)) se declara en `.pre-commit-config.yaml` junto a `harness-gate`, con la misma `rev`, y se instala con `prek install`. Ya no se copia a `.git/hooks/`; si vienes del pre-push copiado, mira [Actualizar](../actualizar.md#0100-review-cruzada).
 
-```bash
-cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
-```
+**Combinación recomendada:** el agente que escribe y un revisor de otra familia (Claude Code revisado por Codex y al revés). Corre el gate primero; un push de una persona no se revisa. `[review] reviewers` en `.harness-config.toml` (rama base; por defecto `["claude", "codex"]`) fija el orden: el primero instalado que no sea el autor. Sin ninguno, bloquea. Codex usa `[review.codex]` (`model`, `effort`; por defecto `gpt-6.1-terra` y `medium`), en solo lectura y sin credenciales de GitHub. OpenCode aún no revisa.
 
+- El veredicto guardado recuerda la familia del revisor: un PASS de una familia autora no se reutiliza; un BLOCK siempre bloquea.
 - Detecta solo si las skills están copiadas en `.claude/skills/` (usa `/review-prepush`) o instaladas como plugin (usa `/harness:review-prepush`).
 - **Solo bloquea si hay al menos un Critical confirmado.** Los Required se muestran pero no bloquean.
 - **Si falla la propia herramienta, el push sale (fail-open):** falta el CLI `claude`, hay un error o un timeout, o la salida no tiene la línea `REVIEW_RESULT`. Con `REVIEW_KIT_FAIL_CLOSED=1` se bloquea en esos casos.
@@ -169,7 +168,7 @@ cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
   - La base es `REVIEW_KIT_BASE` o, si no, `origin/HEAD`, `origin/main`, `origin/master`, `main` o `master`. Sin base no se guarda nada.
   - Si la review falla, no se guarda ningún veredicto.
   - Para revisar de nuevo el mismo diff: `REVIEW_KIT_RERUN=1 git push`.
-- Para saltarlo: `SKIP_CLAUDE_REVIEW=1 git push` o `git push --no-verify`.
+- Para saltarlo, una persona: `SKIP_CLAUDE_REVIEW=1 git push` o `git push --no-verify`. Un agente no puede: ignora `SKIP_CLAUDE_REVIEW` y las `REVIEW_KIT_*`.
 - Otras variables: `REVIEW_KIT_TIMEOUT` (900 s por defecto), `REVIEW_KIT_MODEL`, `REVIEW_KIT_COMMAND` y `REVIEW_KIT_ALLOWED_TOOLS`.
 
 ## GitHub Action (Claude Code)

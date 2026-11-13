@@ -1285,4 +1285,10 @@ import json, sys
 b = json.load(open(sys.argv[1]))["permission"]["bash"]
 sys.exit(0 if b.get("git push *--no-verify*") == "deny" and b.get("git commit *--no-verify*") == "deny" else 1)
 EOF2
+echo "▶ docs de harness-review"
+# T8: los textos clave existen y nadie manda copiar el pre-push antiguo
+grep -q "0.10.0: review cruzada" docs/actualizar.md && grep -q "deny_skip_hooks.py" docs/actualizar.md && grep -q "\.git/hooks/pre-push" docs/actualizar.md || { echo "✘ docs/actualizar.md: falta la sección 0.10.0"; exit 1; }
+grep -q "harness-review" README.md docs/review/README.md skills/review-prepush/SKILL.md || { echo "✘ falta harness-review en la documentación"; exit 1; }
+for f in docs/review/README.md skills/setup-guardrails-python/SKILL.md docs/actualizar.md; do grep -q "\[review\]" "$f" || { echo "✘ $f: falta [review]"; exit 1; }; done
+if grep -rIn "review-prepush/assets/pre-push\|<skill>/assets/pre-push" README.md docs skills --exclude-dir=changes --exclude-dir=decisions; then echo "✘ referencia al pre-push copiado"; exit 1; fi
 echo "✔ todo en verde"
