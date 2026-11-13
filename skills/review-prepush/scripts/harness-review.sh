@@ -161,7 +161,7 @@ done
 # </dev/null: the hook's stdin holds the ref list; claude -p would read it as prompt input.
 # ${runner[@]+...}: empty-array safe under `set -u` on macOS's bash 3.2.
 if [ "$reviewer" = codex ]; then   # the review and the agents of the project, read-only (model, effort and personas from reviewer.py)
-  args=(exec -s read-only "${copts[@]}" "Ejecuta la skill review-prepush ($kit/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Sus skills hermanas (review-context, review-report) están junto a ella en $kit/skills/; no uses las skills ni los subagentes del proyecto. No cambies ningún fichero.")
+  args=(exec -s read-only "${copts[@]}" "Ejecuta la skill review-prepush ($kit/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Sus skills hermanas (review-context, review-report, task-done) están junto a ella en $kit/skills/; no uses otras copias de estas skills. Lanza los subagentes que pide la skill (code-reviewer y, si hay hallazgos, finding-verifier): ya están registrados con las definiciones del kit. No cambies ningún fichero.")
 fi
 ${runner[@]+"${runner[@]}"} "${no_github[@]}" "$reviewer" "${args[@]}" </dev/null >"$report" 2>&1
 status=$?

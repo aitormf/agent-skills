@@ -1116,6 +1116,7 @@ reviewers = ["codex", "claude"]'
 mkdir -p "$hr/.agents/skills/review-prepush"; echo "lenient" > "$hr/.agents/skills/review-prepush/SKILL.md"
 rmarks=(CLAUDECODE=1); rpush fix/e26
 grep -q "$PWD/skills/review-prepush/SKILL.md" "$hr/calls" && ! grep -qE '\.agents/skills|\.codex/agents' "$hr/calls" || { cat "$hr/calls" >&2; fail "E26: the codex prompt did not point to the kit's skill, or still names the project's"; }
+grep -q "Lanza los subagentes que pide la skill" "$hr/calls" && ! grep -q "ni los subagentes" "$hr/calls" || fail "E26: the codex prompt does not ask for the review's subagents (D-0047)"
 rm -rf "$hr/.agents"; mkdir -p "$hr/.claude/skills/review-prepush" "$hr/.claude/agents"
 echo lenient > "$hr/.claude/skills/review-prepush/SKILL.md"; echo lenient > "$hr/.claude/agents/code-reviewer.md"
 rm -f "$hr/.git/calls.args"; rmarks=(CODEX_THREAD_ID=t1); rpush fix/e27
