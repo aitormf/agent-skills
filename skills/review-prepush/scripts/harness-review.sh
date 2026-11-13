@@ -37,7 +37,7 @@ authors=""
 [ "${OPENCODE:-}" = "1" ] && authors="${authors:+$authors }opencode"
 if [ -n "$authors" ]; then
   # An agent cannot turn the review off nor change how it runs.
-  unset SKIP_CLAUDE_REVIEW REVIEW_KIT_COMMAND REVIEW_KIT_ALLOWED_TOOLS REVIEW_KIT_MODEL
+  unset SKIP_CLAUDE_REVIEW REVIEW_KIT_COMMAND REVIEW_KIT_ALLOWED_TOOLS REVIEW_KIT_MODEL REVIEW_KIT_TIMEOUT
   echo "review-kit: autor: $authors" >&2
 elif [ "${SKIP_CLAUDE_REVIEW:-0}" = "1" ]; then
   echo "review-kit: SKIP_CLAUDE_REVIEW=1 — review skipped."; exit 0

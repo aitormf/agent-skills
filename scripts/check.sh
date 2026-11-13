@@ -551,6 +551,8 @@ grep -q "^review-kit: autor: opencode$" "$v/out" || vfail "OPENCODE=1 did not gi
 marks=(CLAUDECODE=1)  # test_E8: an agent cannot turn the review off or change how it runs
 push PASS REVIEW_KIT_RERUN=1 SKIP_CLAUDE_REVIEW=1 REVIEW_KIT_COMMAND=/mine REVIEW_KIT_ALLOWED_TOOLS=Bash REVIEW_KIT_MODEL=cheap
 [ "$calls" = 1 ] && ! grep -qx -e /mine -e Bash -e cheap -e --model "$v/calls.args" || vfail "E8: an agent's push skipped the review or changed how it runs"
+push PASS REVIEW_KIT_RERUN=1 REVIEW_KIT_TIMEOUT=x  # a bogus timeout would make the review fail open
+[ $rc = 0 ] && [ "$calls" = 1 ] || vfail "E8: an agent's REVIEW_KIT_TIMEOUT changed how the review runs"
 marks=(); push PASS REVIEW_KIT_RERUN=1 SKIP_CLAUDE_REVIEW=1
 [ $rc = 0 ] && [ "$calls" = 0 ] && grep -q "SKIP_CLAUDE_REVIEW=1" "$v/out" || vfail "E8: a person's push no longer honours SKIP_CLAUDE_REVIEW"
 marks=(CLAUDECODE=1)
