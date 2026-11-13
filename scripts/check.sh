@@ -1023,15 +1023,17 @@ echo run >> "$CLAUDE_CALLS"
 echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"
 FAKE
 chmod +x "$tmp/review-bin/claude"
+rmarks=(CLAUDECODE=1)  # the agent markers of the push (D-0056): never the real environment of whoever runs this
 rpush() {  # rpush <branch> [env…]: runs the hook on the branch; sets rc and calls (how many times claude ran)
   local b=$1; shift; rm -f "$hr/calls"; hrg checkout -q -B "$b" main; echo "$b" > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"
   (cd "$hr" && echo "refs/heads/$b $(git rev-parse HEAD) refs/heads/$b 0000000000000000000000000000000000000000" \
-    | env "$@" CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" bash "$review") >"$tmp/out" 2>&1 && rc=0 || rc=$?
+    | env -u CLAUDECODE -u CODEX_THREAD_ID -u OPENCODE ${rmarks[@]+"${rmarks[@]}"} "$@" CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" bash "$review") >"$tmp/out" 2>&1 && rc=0 || rc=$?
   calls=$( (cat "$hr/calls" 2>/dev/null || true) | grep -c run || true)
 }
 rpush 42-cancelar/T9   # T9 has no file: the gate exits 1
 [ $rc = 1 ] && [ "$calls" = 0 ] && grep -q "gate en rojo: no se lanza el revisor" "$tmp/out" || { cat "$tmp/out" >&2; fail "E1: a red gate did not block the push without calling the reviewer"; }
-rpush 42-cancelar/T9 SKIP_CLAUDE_REVIEW=1; [ $rc = 0 ] && [ "$calls" = 0 ] || fail "E1: SKIP_CLAUDE_REVIEW=1 did not skip the review"
+rmarks=(); rpush 42-cancelar/T9 SKIP_CLAUDE_REVIEW=1; [ $rc = 0 ] && [ "$calls" = 0 ] || fail "E1: SKIP_CLAUDE_REVIEW=1 did not skip the review of a person's push"
+rmarks=(CLAUDECODE=1)
 rpush fix/errata
 [ $rc = 0 ] && [ "$calls" = 1 ] || { cat "$tmp/out" >&2; fail "E2: a green gate did not launch the reviewer"; }
 python3 - <<'EOF2' || fail "E3: harness-review is not declared in .pre-commit-hooks.yaml"
@@ -1057,7 +1059,7 @@ sys.exit(0 if len(repos) == 1 and {"harness-gate", "harness-context", "harness-r
 EOF2
 grep -q "pre-push" "$cfg/.pre-commit-config.yaml" || fail "E3: the template does not install the pre-push hook"
 if [ ${#pc[@]} -gt 0 ]; then
-  prr() { rm -f "$hr/calls"; rc=0; (cd "$hr" && CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" "${pc[@]}" try-repo "$OLDPWD" harness-review --hook-stage pre-push --from-ref main --to-ref HEAD </dev/null) >"$tmp/out" 2>&1 || rc=$?; calls=$( (cat "$hr/calls" 2>/dev/null || true) | grep -c run || true); }
+  prr() { rm -f "$hr/calls"; rc=0; (cd "$hr" && env -u CLAUDECODE -u CODEX_THREAD_ID -u OPENCODE CLAUDECODE=1 CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" "${pc[@]}" try-repo "$OLDPWD" harness-review --hook-stage pre-push --from-ref main --to-ref HEAD </dev/null) >"$tmp/out" 2>&1 || rc=$?; calls=$( (cat "$hr/calls" 2>/dev/null || true) | grep -c run || true); }
   hrg checkout -q -B 42-cancelar/T9 main; echo x > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"
   prr; [ $rc = 1 ] && [ "$calls" = 0 ] && grep -q "gate en rojo" "$tmp/out" || { cat "$tmp/out" >&2; fail "E3: harness-review through pre-commit did not block on a red gate"; }
   hrg checkout -q -B fix/errata main; echo x > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"

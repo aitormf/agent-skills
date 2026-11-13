@@ -1,7 +1,7 @@
 ---
 id: T2
 title: harness-review distingue el push de un agente del de una persona por el entorno
-status: todo
+status: done
 depends_on: [T1]
 examples: [E4, E5, E6, E7, E8]
 verification: scripts/check.sh
