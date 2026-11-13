@@ -113,8 +113,10 @@ if [ -z "$base" ]; then
   done
 fi
 # Who reviews (D-0056): the list of the base branch, never the branch's own; none left blocks the push.
-reviewer=$(python3 "$(dirname "$0")/reviewer.py" "$base" $authors); rrc=$?
+chosen=$(python3 "$(dirname "$0")/reviewer.py" "$base" $authors); rrc=$?
 [ $rrc -eq 1 ] && exit 1
+reviewer=""; copts=()   # the first line is the reviewer; for codex the rest are its options
+while IFS= read -r line; do if [ -z "$reviewer" ]; then reviewer=$line; else copts+=("$line"); fi; done <<<"$chosen"
 [ $rrc -ne 0 ] && fail "could not choose a reviewer."
 
 key=""
@@ -159,8 +161,8 @@ for t in timeout gtimeout; do   # gtimeout: macOS with coreutils
 done
 # </dev/null: the hook's stdin holds the ref list; claude -p would read it as prompt input.
 # ${runner[@]+...}: empty-array safe under `set -u` on macOS's bash 3.2.
-if [ "$reviewer" = codex ]; then   # the review and the agents of the project, read-only (model and effort: T4)
-  args=(exec -s read-only "Ejecuta la skill review-prepush (.agents/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Usa solo las skills y los subagentes de este proyecto (.agents/skills/, .codex/agents/). No cambies ningún fichero.")
+if [ "$reviewer" = codex ]; then   # the review and the agents of the project, read-only (model, effort and personas from reviewer.py)
+  args=(exec -s read-only "${copts[@]}" "Ejecuta la skill review-prepush (.agents/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Usa solo las skills y los subagentes de este proyecto (.agents/skills/, .codex/agents/). No cambies ningún fichero.")
 fi
 ${runner[@]+"${runner[@]}"} "${no_github[@]}" "$reviewer" "${args[@]}" </dev/null >"$report" 2>&1
 status=$?
@@ -169,7 +171,7 @@ cat "$report"
 echo
 echo "review-kit: report saved to $report" >&2
 
-[ $status -eq 124 ] && [ ${#runner[@]} -gt 0 ] && fail "timed out after ${REVIEW_KIT_TIMEOUT:-900}s."
+[ $status -eq 124 ] && [ ${#runner[@]} -gt 0 ] && fail "$reviewer timed out after ${REVIEW_KIT_TIMEOUT:-900}s."
 [ $status -ne 0 ] && fail "$reviewer exited with code $status."
 
 result=$(grep -E '^REVIEW_RESULT:' "$report" | tail -n 1)

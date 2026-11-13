@@ -1,7 +1,7 @@
 ---
 id: T4
 title: El hook decide con el REVIEW_RESULT de cualquier revisor y nombra al que falla
-status: todo
+status: done
 depends_on: [T3]
 examples: [E17, E18, E19, E20]
 verification: scripts/check.sh
