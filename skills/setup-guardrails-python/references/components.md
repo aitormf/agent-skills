@@ -20,7 +20,7 @@ Summary to decide what to include. The full explanation is in `docs/arnes/` of t
 | Dependabot | `files/.github/dependabot.yml` | Outdated or vulnerable dependencies | From the first dependency |
 | CODEOWNERS | `files/.github/CODEOWNERS` | Someone (or an agent) loosening the harness, weakening tests or adding dependencies without review | If there is more than one person |
 | Claude Code permissions | `files/.claude/settings.json` | The agent reading secrets, using `pip`, skipping hooks or editing the harness or `.gitattributes` (which decides what counts as generated in reviews) | If Claude Code is used |
-| Stop hook | `files/.claude/hooks/check-on-stop.sh`, `files/.claude/hooks/kit-gate-on-stop.sh` | The agent finishing with `check.sh` or the kit gate red (the second stop in a row goes through) | If Claude Code is used |
+| Stop hook | `files/.claude/hooks/check-on-stop.sh`, `files/.claude/hooks/harness-gate-on-stop.sh` | The agent finishing with `check.sh` or the kit gate red (the second stop in a row goes through) | If Claude Code is used |
 | Package hook | `files/.claude/hooks/check_new_package.py` | Hallucinated packages (*slopsquatting*) or packages less than 90 days old | If Claude Code is used |
 | Force-push confirmation | `files/.claude/hooks/ask_on_force_push.py` (Claude Code), `files/.codex/rules/guardrails.rules` (Codex), `files/opencode.json` (OpenCode) | The agent overwriting remote history (`--force`, `--force-with-lease`, `+refspec`) without a person confirming | For each agent the team uses |
 | git-cliff + commitizen | `files/cliff.toml`, `release.yml`, pre-commit | Unreadable commits and manual changelog | Before the first published release |

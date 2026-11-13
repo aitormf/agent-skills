@@ -18,10 +18,10 @@ issue: null
 
 ## Decisión
 
-- El kit publica un `.pre-commit-hooks.yaml` en su raíz con el hook `kit-gate` (`language: script`, `entry: skills/task-done/scripts/gate.py`, `stages: [pre-push, manual]`), sin dependencias de Python.
+- El kit publica un `.pre-commit-hooks.yaml` en su raíz con el hook `harness-gate` (`language: script`, `entry: skills/task-done/scripts/gate.py`, `stages: [pre-push, manual]`), sin dependencias de Python.
 - El proyecto lo declara en su `.pre-commit-config.yaml` con una `rev` fijada (una etiqueta del kit). Actualizarla es una PR del proyecto.
-- En local corre en `pre-push`. CI ejecuta el mismo hook con `pre-commit run kit-gate --hook-stage manual`, y la branch protection lo exige para mergear.
-- Los hooks de Claude Code llaman también a `pre-commit run kit-gate`.
+- En local corre en `pre-push`. CI ejecuta el mismo hook con `pre-commit run harness-gate --hook-stage manual`, y la branch protection lo exige para mergear.
+- Los hooks de Claude Code llaman también a `pre-commit run harness-gate`.
 
 ## Alternativas descartadas
 

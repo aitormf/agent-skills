@@ -946,28 +946,28 @@ agate || true; [ $rc = 1 ] && grep -q "el plan aprobado no se cambia en la rama 
 ag checkout -q -B 42-cancelar/T3 main; echo more >> "$ar/docs/changes/42-cancelar/tasks/T4-x.md"; ag add -A; ag commit -qm "docs: T4"
 agate || true; [ $rc = 1 ] && grep -q "T4-x.md" "$tmp/out" || fail "E26: touching the file of another task did not exit 1"
 
-echo "▶ hook del kit: kit-gate en pre-push y en CI (R4, D-0052, T5 de control-del-flujo)"
+echo "▶ hook del kit: harness-gate en pre-push y en CI (R4, D-0052, T5 de control-del-flujo)"
 hooks=.pre-commit-hooks.yaml
 [ -f "$hooks" ] || fail "E15: there is no $hooks in the root of the kit"
 python3 - <<'EOF2' || fail "E15: .pre-commit-hooks.yaml is not valid"
 import sys, yaml
 from pathlib import Path
-hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("kit-gate")
+hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("harness-gate")
 bad = []
-if not hook: bad.append("falta el hook kit-gate")
+if not hook: bad.append("falta el hook harness-gate")
 else:
-    if hook.get("language") != "script": bad.append("kit-gate debe ser language: script")
-    if not {"pre-push", "manual"} <= set(hook.get("stages", [])): bad.append("kit-gate debe tener stages pre-push y manual")
-    if hook.get("pass_filenames") is not False: bad.append("kit-gate no debe recibir ficheros (pass_filenames: false)")
+    if hook.get("language") != "script": bad.append("harness-gate debe ser language: script")
+    if not {"pre-push", "manual"} <= set(hook.get("stages", [])): bad.append("harness-gate debe tener stages pre-push y manual")
+    if hook.get("pass_filenames") is not False: bad.append("harness-gate no debe recibir ficheros (pass_filenames: false)")
     entry = Path(hook.get("entry", "-"))
     if not entry.is_file() or not entry.stat().st_mode & 0o111: bad.append(f"el entry {entry} no existe o no es ejecutable")
 for b in bad: print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)
 EOF2
 cfg=skills/setup-guardrails-python/assets/files
-grep -q "id: kit-gate" "$cfg/.pre-commit-config.yaml" && grep -q "pre-push" "$cfg/.pre-commit-config.yaml" || fail "E15: the .pre-commit-config.yaml template does not declare kit-gate and install the pre-push hook"
-grep -q "id: kit-context" "$cfg/.pre-commit-config.yaml" || fail "E19: the .pre-commit-config.yaml template does not declare kit-context, which the SessionStart hook runs"
-grep -q "pre-commit run kit-gate --hook-stage manual" "$cfg/.github/workflows/ci.yml" || fail "E16: the ci.yml template does not run kit-gate in the manual stage"
+grep -q "id: harness-gate" "$cfg/.pre-commit-config.yaml" && grep -q "pre-push" "$cfg/.pre-commit-config.yaml" || fail "E15: the .pre-commit-config.yaml template does not declare harness-gate and install the pre-push hook"
+grep -q "id: harness-context" "$cfg/.pre-commit-config.yaml" || fail "E19: the .pre-commit-config.yaml template does not declare harness-context, which the SessionStart hook runs"
+grep -q "pre-commit run harness-gate --hook-stage manual" "$cfg/.github/workflows/ci.yml" || fail "E16: the ci.yml template does not run harness-gate in the manual stage"
 grep -q "git show origin/.*\.pre-commit-config\.yaml" "$cfg/.github/workflows/ci.yml" || fail "E29: the ci.yml template does not take .pre-commit-config.yaml from the base branch"
 if command -v pre-commit >/dev/null; then pc=(pre-commit); elif command -v uvx >/dev/null && uvx --offline pre-commit --version >/dev/null 2>&1; then pc=(uvx --offline pre-commit); else pc=(); echo "  (sin pre-commit ni uvx con pre-commit en la caché: se omite try-repo)"; fi
 if [ ${#pc[@]} -gt 0 ]; then
@@ -976,7 +976,7 @@ if [ ${#pc[@]} -gt 0 ]; then
   hg() { git -C "$hk" -c user.name=t -c user.email=t@t "$@"; }
   echo base > "$hk/README.md"; hg add -A; hg commit -qm base
   hg checkout -qb 42-cancelar/T9; echo x > "$hk/a.txt"; hg add -A; hg commit -qm "feat: a"  # T9 has no file: the gate exits 1
-  pcr() { rc=0; (cd "$hk" && "${pc[@]}" try-repo "$OLDPWD" kit-gate "$@") >"$tmp/out" 2>&1 || rc=$?; }
+  pcr() { rc=0; (cd "$hk" && "${pc[@]}" try-repo "$OLDPWD" harness-gate "$@") >"$tmp/out" 2>&1 || rc=$?; }
   pcr --hook-stage pre-push --from-ref main --to-ref HEAD
   [ $rc = 1 ] && grep -q "la tarea T9 no existe" "$tmp/out" || fail "E15: the pre-push hook did not exit 1 with the message of the gate"
   hg checkout -q --detach; export GITHUB_HEAD_REF=42-cancelar/T9
@@ -1040,33 +1040,33 @@ cg checkout -qb fix/errata
 cgate; [ $rc = 0 ] && grep -q "Reglas del flujo" "$tmp/out" && ! grep -q "Reembolso parcial" "$tmp/out" || fail "E20: the context of a branch without a task is not only the rules"
 cg checkout -qb 42-cancelar/T9
 cgate; [ $rc = 0 ] && grep -q "Reglas del flujo" "$tmp/out" && grep -q "la tarea T9 no existe en docs/changes/42-cancelar/" "$tmp/out" || fail "E21: a task branch without its file did not give the rules and the warning with exit 0"
-python3 - <<'EOF2' || fail "E19: kit-context or the SessionStart hook of the template are not declared"
+python3 - <<'EOF2' || fail "E19: harness-context or the SessionStart hook of the template are not declared"
 import json, sys, yaml
 from pathlib import Path
-hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("kit-context")
+hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("harness-context")
 bad = []
-if not hook: bad.append("falta el hook kit-context")
+if not hook: bad.append("falta el hook harness-context")
 else:
-    if hook.get("stages") != ["manual"]: bad.append("kit-context debe tener solo stages: [manual]")
-    if hook.get("verbose") is not True: bad.append("kit-context debe ser verbose: true")
-    if hook.get("pass_filenames") is not False or hook.get("always_run") is not True: bad.append("kit-context: pass_filenames false y always_run true")
-    if "--context" not in (hook.get("args", []) + hook.get("entry", "").split()): bad.append("kit-context debe llamar al gate con --context")
+    if hook.get("stages") != ["manual"]: bad.append("harness-context debe tener solo stages: [manual]")
+    if hook.get("verbose") is not True: bad.append("harness-context debe ser verbose: true")
+    if hook.get("pass_filenames") is not False or hook.get("always_run") is not True: bad.append("harness-context: pass_filenames false y always_run true")
+    if "--context" not in (hook.get("args", []) + hook.get("entry", "").split()): bad.append("harness-context debe llamar al gate con --context")
 settings = json.loads(Path("skills/setup-guardrails-python/assets/files/.claude/settings.json").read_text())
 start = settings["hooks"].get("SessionStart", [])
-if not any(e.get("matcher") == "startup|resume|compact" and any(" run kit-context --hook-stage manual" in h["command"] for h in e["hooks"]) for e in start):
-    bad.append("falta el SessionStart startup|resume|compact con kit-context")
+if not any(e.get("matcher") == "startup|resume|compact" and any(" run harness-context --hook-stage manual" in h["command"] for h in e["hooks"]) for e in start):
+    bad.append("falta el SessionStart startup|resume|compact con harness-context")
 for b in bad: print(b, file=sys.stderr)
 sys.exit(1 if bad else 0)
 EOF2
 echo "▶ hook Stop: no termina el turno con el gate en rojo, salvo a la segunda parada (R6, T7 de control-del-flujo)"
-stop="$PWD/skills/setup-guardrails-python/assets/files/.claude/hooks/kit-gate-on-stop.sh"
+stop="$PWD/skills/setup-guardrails-python/assets/files/.claude/hooks/harness-gate-on-stop.sh"
 sb="$tmp/stopbin"; mkdir -p "$sb"
 printf '#!/usr/bin/%s bash\necho "$*" > "%s/stop.args"\nexec python3 "%s"\n' env "$tmp" "$gate" > "$sb/prek"; chmod +x "$sb/prek"
 nb="$tmp/nobin"; mkdir -p "$nb"; for t in jq cat mktemp rm; do ln -s "$(command -v $t)" "$nb/$t"; done
 stopit() { rc=0; (cd "$ar" && printf '%s' "$1" | CLAUDE_PROJECT_DIR="$ar" PATH="${2:-$sb:$PATH}" /bin/bash "$stop") >"$tmp/out" 2>&1 || rc=$?; return 0; }
 ag checkout -q -B 42-cancelar/T3 main; echo 'x = 2' > "$ar/a.py"; ag add -A; ag commit -qm "feat(T3): a"
 stopit '{"stop_hook_active": false}'
-[ $rc = 2 ] && grep -q "PROBLEM" "$tmp/out" && grep -q "^run kit-gate --hook-stage manual$" "$tmp/stop.args" || fail "E22: the Stop hook did not exit 2 with the message of the gate on a red gate"
+[ $rc = 2 ] && grep -q "PROBLEM" "$tmp/out" && grep -q "^run harness-gate --hook-stage manual$" "$tmp/stop.args" || fail "E22: the Stop hook did not exit 2 with the message of the gate on a red gate"
 stopit '{"stop_hook_active": true}'
 [ $rc = 0 ] && grep -q "PROBLEM" "$tmp/out" && grep -q "sigue en rojo" "$tmp/out" || fail "E23: the second Stop in a row did not let the agent finish warning that the gate is still red"
 ag checkout -q -B fix/errata main
@@ -1080,11 +1080,11 @@ import json, sys
 from pathlib import Path
 stop = json.loads(Path("skills/setup-guardrails-python/assets/files/.claude/settings.json").read_text())["hooks"]["Stop"]
 cmds = [h["command"] for e in stop for h in e["hooks"]]
-sys.exit(0 if any("check-on-stop.sh" in c for c in cmds) and any("kit-gate-on-stop.sh" in c for c in cmds) else 1)
+sys.exit(0 if any("check-on-stop.sh" in c for c in cmds) and any("harness-gate-on-stop.sh" in c for c in cmds) else 1)
 EOF2
 echo "▶ requisitos del proyecto documentados: branch protection, CODEOWNERS e identidad del agente (S1, T8 de control-del-flujo)"
 for f in skills/setup-guardrails-python/SKILL.md README.md; do
-  for t in "kit-gate" "Require review from Code Owners" "CODEOWNERS" ".harness-config.toml" "admin" "fine-grained"; do
+  for t in "harness-gate" "Require review from Code Owners" "CODEOWNERS" ".harness-config.toml" "admin" "fine-grained"; do
     grep -qi -- "$t" "$f" || { echo "S1: $f no menciona '$t'" >&2; exit 1; }
   done
 done
