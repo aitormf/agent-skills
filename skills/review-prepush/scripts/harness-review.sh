@@ -37,7 +37,7 @@ authors=""
 [ "${OPENCODE:-}" = "1" ] && authors="${authors:+$authors }opencode"
 if [ -n "$authors" ]; then
   # An agent cannot turn the review off nor change how it runs.
-  unset SKIP_CLAUDE_REVIEW REVIEW_KIT_COMMAND REVIEW_KIT_ALLOWED_TOOLS REVIEW_KIT_MODEL
+  unset SKIP_CLAUDE_REVIEW REVIEW_KIT_COMMAND REVIEW_KIT_ALLOWED_TOOLS REVIEW_KIT_MODEL REVIEW_KIT_TIMEOUT
   echo "review-kit: autor: $authors" >&2
 elif [ "${SKIP_CLAUDE_REVIEW:-0}" = "1" ]; then
   echo "review-kit: SKIP_CLAUDE_REVIEW=1 — review skipped."; exit 0
@@ -78,8 +78,6 @@ if [ -z "$authors" ]; then
   exit 0
 fi
 
-command -v claude >/dev/null 2>&1 || fail "'claude' CLI not found on PATH; review skipped."
-
 repo_root=$(git rev-parse --show-toplevel) || fail "could not determine the repo root."
 cd "$repo_root" || fail "could not cd into $repo_root."
 
@@ -114,6 +112,11 @@ if [ -z "$base" ]; then
     git rev-parse -q --verify "$b^{commit}" >/dev/null 2>&1 && base=$b
   done
 fi
+# Who reviews (D-0056): the list of the base branch, never the branch's own; none left blocks the push.
+reviewer=$(python3 "$(dirname "$0")/reviewer.py" "$base" $authors); rrc=$?
+[ $rrc -eq 1 ] && exit 1
+[ $rrc -ne 0 ] && fail "could not choose a reviewer."
+
 key=""
 if [ -n "$base" ] && git merge-base "$base" HEAD >/dev/null 2>&1; then   # no common history: no diff to key on
   for h in sha256sum "shasum -a 256"; do
@@ -156,7 +159,10 @@ for t in timeout gtimeout; do   # gtimeout: macOS with coreutils
 done
 # </dev/null: the hook's stdin holds the ref list; claude -p would read it as prompt input.
 # ${runner[@]+...}: empty-array safe under `set -u` on macOS's bash 3.2.
-${runner[@]+"${runner[@]}"} "${no_github[@]}" claude "${args[@]}" </dev/null >"$report" 2>&1
+if [ "$reviewer" = codex ]; then   # the review and the agents of the project, read-only (model and effort: T4)
+  args=(exec -s read-only "Ejecuta la skill review-prepush (.agents/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Usa solo las skills y los subagentes de este proyecto (.agents/skills/, .codex/agents/). No cambies ningún fichero.")
+fi
+${runner[@]+"${runner[@]}"} "${no_github[@]}" "$reviewer" "${args[@]}" </dev/null >"$report" 2>&1
 status=$?
 
 cat "$report"
@@ -164,7 +170,7 @@ echo
 echo "review-kit: report saved to $report" >&2
 
 [ $status -eq 124 ] && [ ${#runner[@]} -gt 0 ] && fail "timed out after ${REVIEW_KIT_TIMEOUT:-900}s."
-[ $status -ne 0 ] && fail "claude exited with code $status."
+[ $status -ne 0 ] && fail "$reviewer exited with code $status."
 
 result=$(grep -E '^REVIEW_RESULT:' "$report" | tail -n 1)
 [ -z "$result" ] && fail "output has no REVIEW_RESULT line; cannot decide."
