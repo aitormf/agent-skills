@@ -1,0 +1,36 @@
+{
+ "expected_model": "gpt-6.1-terra",
+ "expected_effort": "medium",
+ "root_thread": "01a1d4a2-afbe-7a61-a2c5-cfedb0f499ab",
+ "turn_completed_usage": {
+  "input_tokens": 143672,
+  "cached_input_tokens": 117248,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 1905,
+  "reasoning_output_tokens": 68
+ },
+ "agents": {
+  "01a1d4a2-afbe-7a61-a2c5-cfedb0f499ab": {
+   "role": "main",
+   "api_calls": 5,
+   "input_tokens": 143672,
+   "cached_input_tokens": 117248,
+   "output_tokens": 1905,
+   "reasoning_output_tokens": 68,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ]
+  }
+ },
+ "problems": [],
+ "total": {
+  "input_tokens": 143672,
+  "cached_input_tokens": 117248,
+  "output_tokens": 1905,
+  "reasoning_output_tokens": 68
+ },
+ "subagents": 0,
+ "models_seen": [
+  "gpt-6.1-terra"
+ ]
+}

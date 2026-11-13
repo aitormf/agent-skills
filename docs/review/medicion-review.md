@@ -4,6 +4,56 @@ Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal co
 
 Hay cuatro mediciones, cada una válida para su esfuerzo. **La de T20** (`medium`, la primera sección) es la referencia para T10 en `review-prepush`; en `review-pr` no tiene ejecuciones válidas. **La de T17** (`low`) sigue siendo válida para ese esfuerzo. La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
 
+## Review cruzada con el sandbox (T9, cambio `8-review-cruzada`)
+
+Mide la review que lanza el hook del kit (`harness-review.sh`) cuando empuja un agente Claude (`CLAUDECODE=1`): el hook elige `codex`, con `gpt-6.1-terra` y `medium`, y la skill y las personas del kit (S2). Kit `255e4ea` (`origin/main` con T1 a T8 y T10), `codex-cli 0.167.0`, 2026-11-13. Esta sección no sustituye a las anteriores: la review es la de hoy, con un prompt distinto (apunta al `SKILL.md` del kit y no usa las skills del proyecto).
+
+**Resumen.** **No se cumple el criterio (6 de 6 en todas y ningún señuelo)**: dos ejecuciones dan 6 de 6 y una da 5 de 6 (falta B5, el TODO, un Nit); media 5,7 frente a 6,0 de T20 (T10: 5,3). Ningún señuelo sobrevive. Gasta mucho menos que la base (entrada media 140.076 frente a 650.935, -78%; 47 s frente a 137 s), pero **en ninguna de las tres ejecuciones se lanzó un subagente**: la sesión principal hizo sola la review y los informes dicen «Source: code-reviewer» y «Findings refuted by the verifier: 0» sin que haya habido ni `code-reviewer` ni `finding-verifier`. Por eso la tarea T9 **no se marca como hecha**. La comparación de tokens no es entre cosas iguales (la base lanza 2 subagentes; aquí 0).
+
+### Cómo se midió
+
+| | |
+|---|---|
+| Sandbox | `tests/review-sandbox/build.sh --codex`; `repo/` con un remoto local vacío como `origin` (`main` subido con `--no-verify`) y `origin/HEAD` -> `main`. Sin cambios en los scripts del sandbox |
+| Ejecución | `git push -u origin feature/orders-pagination-invoices` con `CLAUDECODE=1 REVIEW_KIT_RERUN=1`, por el hook `.git/hooks/pre-push` que instala `build.sh` (llama a `harness-review.sh` del kit). Salida del hook: `autor: claude`, la puerta no comprueba nada (la rama no nombra una tarea) y el revisor elegido fue `codex` (el primero de `[review] reviewers` por defecto que no es autor) |
+| Comando de codex | el que construye el hook, tal cual (`exec -s read-only -m gpt-6.1-terra -c model_reasoning_effort="medium"`, las cuatro personas del kit con `-c agents.<rol>.*` y el prompt que apunta a `skills/review-prepush/SKILL.md` del kit). Para medir tokens un envoltorio `codex` en el `PATH` añade `--json` y `-o`: guarda los eventos y devuelve al hook el último mensaje como salida (`docs/review/medicion-review/t9/codex-shim.sh`, `run.sh`) |
+| Tokens | `summarize.py` sobre `events.jsonl` y los registros de sesión de Codex; `problems` vacío en las tres (modelo y esfuerzo correctos) |
+| Duración | reloj del `git push` completo (incluye la puerta y el envoltorio) |
+| Resultados | `report.md` y `summary.json` de cada ejecución en `docs/review/medicion-review/t9/run-<n>/` (sin `events.jsonl`; la ruta del sandbox sustituida por `repo/`) |
+
+Límites: n = 3; el envoltorio de medición no está en el hook real; el sandbox no tiene `AGENTS.md`. Los tres empujes terminaron en `rc=1` (el hook bloquea por Critical confirmados, como se espera).
+
+### Tokens
+
+Solo hay sesión principal (0 subagentes, 5 llamadas a la API en las tres).
+
+| Ejecución | Entrada | En caché | Sin caché | Salida | Razonamiento | Duración (s) | Veredicto |
+|---|---:|---:|---:|---:|---:|---:|---|
+| run-1 | 139.686 | 113.664 | 26.022 | 2.102 | 100 | 51 | `BLOCK critical=3 required=4` |
+| run-2 | 136.870 | 124.160 | 12.710 | 1.789 | 92 | 45 | `BLOCK critical=3 required=2` |
+| run-3 | 143.672 | 117.248 | 26.424 | 1.905 | 68 | 45 | `BLOCK critical=3 required=2` |
+| **Media** | **140.076** | **118.357** | **21.719** | **1.932** | **87** | **47** | |
+| T20 (`medium`, base) | 650.935 | 586.880 | 64.055 | 6.497 | 252 | 137 | |
+| T10 (unificado) | 597.210 | 509.397 | 87.813 | 6.167 | 256 | 123 | |
+
+### Qué encuentra
+
+Puntuado a mano contra `tests/review-sandbox/EXPECTED.md` con el criterio de T17/T20.
+
+| | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | D1 | D2 | D3 | B1–B6 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| run-1 | sí | sí | sí | sí | sí | sí | sí | no | no | no | no | no | 6/6 |
+| run-2 | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/6 |
+| run-3 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/6 |
+
+B1 es C2, B3 es C1 y B6 es C3 en las tres. B2 lo señalan R1 (run-1) y R2 (run-2 y run-3): el test pasa con el offset incorrecto. B4 es R3 en run-1 y R1 en run-2 y run-3. B5 sale como N1 en run-1 y run-3 y falta en run-2. B7 solo en run-1 (R4). No aparecen B8 ni B9. Ningún señuelo sobrevive.
+
+### Lo que queda abierto
+
+- **Sin subagentes.** En `exec --json` no hay ningún evento de lanzamiento de agentes y sale un solo registro de sesión por ejecución. Los informes atribuyen los hallazgos a `code-reviewer` y dicen que el verifier refutó 0: no hubo verifier. Es una desviación respecto a la skill (contexto fresco y verificación adversarial), quizá por el prompt del hook («no uses las skills ni los subagentes del proyecto»), que el modelo puede leer como «no uses subagentes». No se ha comprobado la causa ni se ha cambiado el prompt: es decisión de otra tarea.
+- **6 de 6 no es estable**: media 5,7 en 3 ejecuciones; lo que se pierde es B5 (un Nit), como en la medición de T10.
+- **Ruta de Claude** (revisor `claude` con `--plugin-dir <kit>` frente a un plugin `harness` instalado): no se ejecutó ni se comprobó que `--plugin-dir` tenga prioridad sobre un `harness` instalado.
+
 ## Reviewer unificado frente a la base (T10)
 
 Mide el kit de `origin/main` tras T4, T5, T11, T12, T13, T15, T16 y T21 (commit `28b00c5`), con Codex, `gpt-6.1-terra` y esfuerzo `medium` (2026-11-04, `codex-cli 0.165.0`). Es la medición de T10: comprueba si el reviewer unificado gasta menos sin perder hallazgos (S3).
