@@ -49,7 +49,7 @@ Lo que el kit hace cumplir, sin depender de que el modelo siga sus instrucciones
 - `pre-commit` y el hook pre-push se saltan con `--no-verify`. Solo Claude Code lo impide en la sesión; por eso CI repite todas las comprobaciones.
 - Una garantía es de `setup-guardrails-python` o del hook pre-push solo si están instalados en el repo.
 
-¿El proyecto ya usaba la v1? Sigue [Actualizar un repositorio a la v2](docs/actualizar-a-v2.md).
+¿El proyecto ya usaba el kit? Sigue [Actualizar un proyecto que ya usa el kit](docs/actualizar.md).
 
 ### Claude Code
 
