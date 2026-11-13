@@ -2,7 +2,7 @@
 id: T9
 title: Medir la review cruzada con el sandbox
 status: todo
-depends_on: [T7, T8]
+depends_on: [T7, T8, T10]
 examples: []
 verification: scripts/check.sh
 ---
