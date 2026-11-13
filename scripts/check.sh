@@ -500,7 +500,7 @@ FAKE
 chmod +x "$tmp/bin/claude"
 hook="$PWD/skills/review-prepush/scripts/harness-review.sh"
 (cd "$r" && echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x 0000000000000000000000000000000000000000" \
-  | GH_TOKEN=t GITHUB_TOKEN=t GH_ENTERPRISE_TOKEN=t GITHUB_ENTERPRISE_TOKEN=t REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" CLAUDE_ENV="$tmp/env" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
+  | env -u CODEX_THREAD_ID -u OPENCODE CLAUDECODE=1 GH_TOKEN=t GITHUB_TOKEN=t GH_ENTERPRISE_TOKEN=t GITHUB_ENTERPRISE_TOKEN=t REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" CLAUDE_ENV="$tmp/env" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
 grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "the pre-push hook does not deny Bash(gh:*)" >&2; exit 1; }
 # The real control: claude runs with no token variables and an empty gh config directory, removed afterwards.
 gh_dir=$(sed -n 2p "$tmp/env")
@@ -512,15 +512,16 @@ gv() { git -C "$v" -c user.name=t -c user.email=t@t "$@"; }
 echo a > "$v/f"; gv add f; gv commit -qm base; gv checkout -qb feat; echo b >> "$v/f"; gv commit -qam change
 cat > "$v/bin/claude" <<'FAKE'
 #!/usr/bin/env bash
-echo run >> "$CLAUDE_CALLS"
+echo run >> "$CLAUDE_CALLS"; printf '%s\n' "$@" > "$CLAUDE_CALLS.args"
 [ "$FAKE_RESULT" = fail ] && exit 1
 echo "REVIEW_RESULT: $FAKE_RESULT critical=0 required=0 uncertain=0"
 FAKE
 chmod +x "$v/bin/claude"
+marks=(CLAUDECODE=1)  # the agent markers of the push: the tests set them, never the real environment of whoever runs this (D-0056)
 push() {  # push <PASS|BLOCK|fail> [env…]: runs the hook; sets rc and calls (how many times claude ran)
-  local result=$1; shift; rm -f "$v/calls"
+  local result=$1; shift; rm -f "$v/calls" "$v/calls.args"
   (cd "$v" && echo "refs/heads/feat $(git rev-parse HEAD) refs/heads/feat 0000000000000000000000000000000000000000" \
-    | env "$@" FAKE_RESULT="$result" CLAUDE_CALLS="$v/calls" PATH="$v/bin:$PATH" bash "$hook") >"$v/out" 2>&1 && rc=0 || rc=$?
+    | env -u CLAUDECODE -u CODEX_THREAD_ID -u OPENCODE ${marks[@]+"${marks[@]}"} "$@" FAKE_RESULT="$result" CLAUDE_CALLS="$v/calls" PATH="$v/bin:$PATH" bash "$hook") >"$v/out" 2>&1 && rc=0 || rc=$?
   calls=$(cat "$v/calls" 2>/dev/null || true); calls=$(printf %s "$calls" | grep -c run || true)
 }
 vfail() { echo "pre-push verdict cache: $1" >&2; cat "$v/out" >&2; exit 1; }
@@ -535,6 +536,24 @@ echo c >> "$v/f"; gv commit -qam more
 push fail;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a changed diff did not run the review"
 push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "a failed review was saved as a verdict"
 push PASS REVIEW_KIT_BASE=nope; push PASS REVIEW_KIT_BASE=nope; [ "$calls" = 1 ] || vfail "a push without a base branch reused a verdict"
+
+echo "▶ review: the hook tells an agent's push from a person's by the environment (E4-E8, D-0056)"
+marks=(); push PASS REVIEW_KIT_RERUN=1  # test_E4: no marker, a person
+[ $rc = 0 ] && [ "$calls" = 0 ] && grep -q "push de una persona: sin review automática" "$v/out" || vfail "E4: a push without agent markers was reviewed or did not say it is a person's"
+marks=(CLAUDECODE=1); push PASS REVIEW_KIT_RERUN=1  # test_E5
+[ "$calls" = 1 ] && grep -q "^review-kit: autor: claude$" "$v/out" || vfail "E5: CLAUDECODE=1 did not give the family claude"
+marks=(CODEX_THREAD_ID=t CLAUDE_CODE_ENTRYPOINT=cli CLAUDE_CODE_SSE_PORT=1); push PASS REVIEW_KIT_RERUN=1  # test_E6
+grep -q "^review-kit: autor: codex$" "$v/out" || vfail "E6: CODEX_THREAD_ID with inherited CLAUDE_CODE_* did not give only codex"
+marks=(CLAUDECODE=1 CODEX_THREAD_ID=t); push PASS REVIEW_KIT_RERUN=1  # test_E7
+grep -q "^review-kit: autor: claude codex$" "$v/out" || vfail "E7: both markers did not give both families as authors"
+marks=(OPENCODE=1); push PASS REVIEW_KIT_RERUN=1  # OpenCode sets OPENCODE=1 in the shell of its tool
+grep -q "^review-kit: autor: opencode$" "$v/out" || vfail "OPENCODE=1 did not give the family opencode"
+marks=(CLAUDECODE=1)  # test_E8: an agent cannot turn the review off or change how it runs
+push PASS REVIEW_KIT_RERUN=1 SKIP_CLAUDE_REVIEW=1 REVIEW_KIT_COMMAND=/mine REVIEW_KIT_ALLOWED_TOOLS=Bash REVIEW_KIT_MODEL=cheap
+[ "$calls" = 1 ] && ! grep -qx -e /mine -e Bash -e cheap -e --model "$v/calls.args" || vfail "E8: an agent's push skipped the review or changed how it runs"
+marks=(); push PASS REVIEW_KIT_RERUN=1 SKIP_CLAUDE_REVIEW=1
+[ $rc = 0 ] && [ "$calls" = 0 ] && grep -q "SKIP_CLAUDE_REVIEW=1" "$v/out" || vfail "E8: a person's push no longer honours SKIP_CLAUDE_REVIEW"
+marks=(CLAUDECODE=1)
 
 echo "▶ review: Semgrep only reports findings on the lines the diff adds"
 s="$tmp/semgrep"; mkdir -p "$s/bin"; git -C "$s" init -q -b main
