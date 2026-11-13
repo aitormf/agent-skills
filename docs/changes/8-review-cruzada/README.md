@@ -53,6 +53,10 @@ Rule R7: un agente no se salta los hooks del push por las vías normales (defens
   E24: Codex: git push --no-verify y git commit --no-verify → codex execpolicy check los marca forbidden
   E25: OpenCode: git push --no-verify y git commit --no-verify → permission.bash los deniega
 
+Rule R8: el revisor usa la skill y las personas de la review del kit fijado (la rev de la base), nunca las de la rama que revisa
+  E26: la rama cambia .agents/skills/review-prepush/SKILL.md y un agente claude hace push → codex ejecuta el SKILL.md de la copia del kit, y el prompt no nombra .agents/skills ni .codex/agents del proyecto
+  E27: la rama tiene .claude/skills/review-prepush/ y .claude/agents/code-reviewer.md propios y un agente codex hace push → claude no ejecuta /review-prepush del repositorio ni sus agentes: usa los del kit
+
 Question: ¿cómo llega la review al proyecto? → D-0055 (recomendado: hook harness-review del kit, con rev fijada, junto al gate)
 Question: ¿quién es el autor y quién revisa? → D-0056 (recomendado: la familia del agente que hace push, por su entorno; la lista de revisores en .harness-config.toml de la base; sin otra familia, se bloquea; el push de una persona no se revisa)
 Question: ¿OpenCode como revisor en este change? | a) solo como autor detectado; como revisor, más adelante (recomendada: #8 pide codex, y lanzar la review headless con subagentes en OpenCode está sin probar) b) también como revisor
