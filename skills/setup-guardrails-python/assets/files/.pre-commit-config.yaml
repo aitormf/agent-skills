@@ -44,6 +44,7 @@ repos:
     hooks:
       - id: harness-gate
       - id: harness-context
+      - id: harness-review   # pre-push: the gate first, then the reviewer (REVIEW_KIT_* knobs in the script)
   # mypy and import-linter with `uv run` to use the versions in uv.lock.
   - repo: local
     hooks:

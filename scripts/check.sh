@@ -498,7 +498,7 @@ printf '%s\n' "$@" > "$CLAUDE_ARGS"
 echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"
 FAKE
 chmod +x "$tmp/bin/claude"
-hook="$PWD/skills/review-prepush/assets/pre-push"
+hook="$PWD/skills/review-prepush/scripts/harness-review.sh"
 (cd "$r" && echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x 0000000000000000000000000000000000000000" \
   | GH_TOKEN=t GITHUB_TOKEN=t GH_ENTERPRISE_TOKEN=t GITHUB_ENTERPRISE_TOKEN=t REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" CLAUDE_ENV="$tmp/env" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
 grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "the pre-push hook does not deny Bash(gh:*)" >&2; exit 1; }

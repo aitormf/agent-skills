@@ -16,3 +16,11 @@
   pass_filenames: false
   always_run: true
   verbose: true
+- id: harness-review
+  name: harness-review (review del push, tras el gate)
+  description: Ejecuta el gate y, si no está en rojo, lanza el revisor; bloquea solo con un Crítico confirmado (D-0055).
+  entry: skills/review-prepush/scripts/harness-review.sh
+  language: script
+  stages: [pre-push]
+  pass_filenames: false
+  always_run: true

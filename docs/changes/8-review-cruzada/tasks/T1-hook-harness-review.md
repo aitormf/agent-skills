@@ -1,7 +1,7 @@
 ---
 id: T1
 title: La review llega como hook harness-review del kit y no lanza el revisor con el gate en rojo
-status: todo
+status: done
 depends_on: []
 examples: [E1, E2, E3]
 verification: scripts/check.sh
