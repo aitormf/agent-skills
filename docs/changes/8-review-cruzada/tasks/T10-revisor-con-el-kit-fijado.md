@@ -1,7 +1,7 @@
 ---
 id: T10
 title: El revisor usa la skill y las personas del kit fijado, no las de la rama revisada
-status: todo
+status: done
 depends_on: []
 examples: [E26, E27]
 verification: scripts/check.sh

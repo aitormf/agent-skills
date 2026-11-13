@@ -12,8 +12,9 @@
 # The review runs only on the push of an agent (CLAUDECODE=1, CODEX_THREAD_ID, OPENCODE=1); the
 # four variables below that change or skip it are ignored then, and only a person's push honours them.
 #   SKIP_CLAUDE_REVIEW=1        skip the review for this push (or use `git push --no-verify`)
-#   REVIEW_KIT_COMMAND=...      skill to run (auto: /review-prepush if the skill is in
-#                               .claude/skills, e.g. via npx skills; else the plugin's /harness:review-prepush)
+#   REVIEW_KIT_COMMAND=...      skill to run (default /harness:review-prepush)
+# The review comes from the kit copy next to this script (the pinned rev), never from the branch under
+# review (R8): claude loads it with --plugin-dir, codex gets the path of its SKILL.md and personas.
 #   REVIEW_KIT_TIMEOUT=900      seconds before giving up (fail-open)
 #   REVIEW_KIT_FAIL_CLOSED=1    block the push when the review itself fails
 #   REVIEW_KIT_ALLOWED_TOOLS    override --allowedTools (see README "Permisos en modo headless")
@@ -82,13 +83,8 @@ fi
 repo_root=$(git rev-parse --show-toplevel) || fail "could not determine the repo root."
 cd "$repo_root" || fail "could not cd into $repo_root."
 
-if [ -n "${REVIEW_KIT_COMMAND:-}" ]; then
-  cmd="$REVIEW_KIT_COMMAND"
-elif [ -f .claude/skills/review-prepush/SKILL.md ]; then
-  cmd="/review-prepush"
-else
-  cmd="/harness:review-prepush"
-fi
+kit=$(cd "$(dirname "$0")/../../.." && pwd) || fail "could not find the kit."   # the pinned copy of the kit, never the branch under review
+cmd="${REVIEW_KIT_COMMAND:-/harness:review-prepush}"   # an agent push always gets the default (the variable is unset above)
 
 # Read-only by design: no Edit/Write. Bash stays allowed because the repo's own check
 # commands (declared in AGENTS.md) are arbitrary; the prompt forbids state-changing
@@ -155,7 +151,7 @@ gh_config=$(mktemp -d) || fail "could not create an empty gh config directory."
 trap 'rm -rf "$gh_config"' EXIT
 no_github=(env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u GITHUB_ENTERPRISE_TOKEN GH_CONFIG_DIR="$gh_config")
 
-args=(-p "$cmd" --output-format text --allowedTools "$allowed" --disallowedTools "$denied")
+args=(--plugin-dir "$kit" -p "$cmd" --output-format text --allowedTools "$allowed" --disallowedTools "$denied")
 [ -n "${REVIEW_KIT_MODEL:-}" ] && args+=(--model "$REVIEW_KIT_MODEL")
 
 runner=()
@@ -165,7 +161,7 @@ done
 # </dev/null: the hook's stdin holds the ref list; claude -p would read it as prompt input.
 # ${runner[@]+...}: empty-array safe under `set -u` on macOS's bash 3.2.
 if [ "$reviewer" = codex ]; then   # the review and the agents of the project, read-only (model, effort and personas from reviewer.py)
-  args=(exec -s read-only "${copts[@]}" "Ejecuta la skill review-prepush (.agents/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Usa solo las skills y los subagentes de este proyecto (.agents/skills/, .codex/agents/). No cambies ningún fichero.")
+  args=(exec -s read-only "${copts[@]}" "Ejecuta la skill review-prepush ($kit/skills/review-prepush/SKILL.md) con los argumentos: $base, estando en la rama actual. Sus skills hermanas (review-context, review-report) están junto a ella en $kit/skills/; no uses las skills ni los subagentes del proyecto. No cambies ningún fichero.")
 fi
 ${runner[@]+"${runner[@]}"} "${no_github[@]}" "$reviewer" "${args[@]}" </dev/null >"$report" 2>&1
 status=$?
