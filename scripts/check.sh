@@ -1103,6 +1103,25 @@ effort = "high"'
 rpush fix/e20b REVIEW_KIT_MODEL=otro; grep -q -- '-m m-x -c model_reasoning_effort="high"' "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not use [review.codex] of the base config"; }
 mkdir -p "$hr/.codex/agents"; printf 'name = "code-reviewer"\ndescription = "lenient"\n' > "$hr/.codex/agents/code-reviewer.toml"
 rpush fix/e20c; grep -q "agents.code-reviewer.config_file=\"$PWD/adapters/codex/agents/code-reviewer.toml\"" "$hr/calls" && grep -q 'agents.finding-verifier.config_file=' "$hr/calls" && ! grep -q lenient "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not get the kit's review personas, or got the ones of the branch under review"; }
+# R6 (T5 de review-cruzada): el veredicto guardado recuerda la familia del revisor
+rsame() {  # rsame [env…]: the hook again on the same HEAD (the same diff), with the markers in rmarks
+  rm -f "$hr/calls"
+  (cd "$hr" && echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x 0000000000000000000000000000000000000000" \
+    | env -u CLAUDECODE -u CODEX_THREAD_ID -u OPENCODE ${rmarks[@]+"${rmarks[@]}"} "$@" CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" bash "$review") >"$tmp/out" 2>&1 && rc=0 || rc=$?
+}
+rcfg '[review]
+reviewers = ["codex", "claude"]'
+fakecodex 'echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"'
+rmarks=(CLAUDECODE=1); rpush fix/e21; [ "$(who)" = "codex " ] || fail "E21: setup: codex did not review"
+rsame; [ $rc = 0 ] && [ -z "$(who)" ] && grep -q "already reviewed" "$tmp/out" || { cat "$tmp/out" >&2; fail "E21: the PASS of codex was not reused by a claude author"; }
+rmarks=(CODEX_THREAD_ID=t1); rsame; [ $rc = 0 ] && [ "$(who)" = "claude " ] || { cat "$tmp/out" >&2; fail "E22: the PASS of codex was reused by a codex author, or claude did not review"; }
+rmarks=(CLAUDECODE=1); rsame; [ -z "$(who)" ] || fail "E22: a PASS of claude was not reused by a claude author?"
+# the lines without a family (older ones) are not reused by an agent; a BLOCK blocks whoever wrote it
+k=$(cut -d' ' -f1 "$hr/.git/review-kit/verdicts" | tail -n 1)
+printf '%s PASS main 2026-01-01T00:00:00Z\n' "$k" > "$hr/.git/review-kit/verdicts"
+rmarks=(CLAUDECODE=1); rsame; [ "$(who)" = "codex " ] || { cat "$tmp/out" >&2; fail "E22: a verdict without family was reused by an agent"; }
+printf '%s BLOCK main 2026-01-01T00:00:00Z\n%s PASS main 2026-01-02T00:00:00Z codex\n' "$k" "$k" > "$hr/.git/review-kit/verdicts"
+rmarks=(CODEX_THREAD_ID=t1); rsame; [ $rc = 1 ] && [ -z "$(who)" ] && grep -q "already reviewed with confirmed Critical" "$tmp/out" || { cat "$tmp/out" >&2; fail "R6: an old BLOCK without family did not block"; }
 rm -rf "$hr/.codex"; hrg add -A; hrg commit -qm "no agents" --allow-empty
 sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"; chmod +x "$tmp/review-bin/codex"
 rcfg ''
