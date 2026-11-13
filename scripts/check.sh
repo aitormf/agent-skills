@@ -992,6 +992,58 @@ if [ ${#pc[@]} -gt 0 ]; then
   echo '# E1: changed' > "$hk/tests/test_a.py"; hg add -A; hg commit -qm "fix(T3): b"
   pcr --hook-stage pre-push --from-ref main --to-ref HEAD
   [ $rc = 1 ] && grep -q "PROBLEM" "$tmp/out" || fail "E15: the pre-push hook did not exit 1 on a task branch with a red test changed"
+
+echo "▶ hook del kit: harness-review ejecuta el gate antes del revisor (R1, D-0055, T1 de review-cruzada)"
+review="$PWD/skills/review-prepush/scripts/harness-review.sh"
+hr="$tmp/review-hook"; mkdir -p "$hr" "$tmp/review-bin"; git -C "$hr" init -q -b main
+hrg() { git -C "$hr" -c user.name=t -c user.email=t@t "$@"; }
+echo base > "$hr/README.md"; hrg add -A; hrg commit -qm base
+cat > "$tmp/review-bin/claude" <<'FAKE'
+#!/usr/bin/env bash
+echo run >> "$CLAUDE_CALLS"
+echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"
+FAKE
+chmod +x "$tmp/review-bin/claude"
+rpush() {  # rpush <branch> [env…]: runs the hook on the branch; sets rc and calls (how many times claude ran)
+  local b=$1; shift; rm -f "$hr/calls"; hrg checkout -q -B "$b" main; echo "$b" > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"
+  (cd "$hr" && echo "refs/heads/$b $(git rev-parse HEAD) refs/heads/$b 0000000000000000000000000000000000000000" \
+    | env "$@" CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" bash "$review") >"$tmp/out" 2>&1 && rc=0 || rc=$?
+  calls=$( (cat "$hr/calls" 2>/dev/null || true) | grep -c run || true)
+}
+rpush 42-cancelar/T9   # T9 has no file: the gate exits 1
+[ $rc = 1 ] && [ "$calls" = 0 ] && grep -q "gate en rojo: no se lanza el revisor" "$tmp/out" || { cat "$tmp/out" >&2; fail "E1: a red gate did not block the push without calling the reviewer"; }
+rpush 42-cancelar/T9 SKIP_CLAUDE_REVIEW=1; [ $rc = 0 ] && [ "$calls" = 0 ] || fail "E1: SKIP_CLAUDE_REVIEW=1 did not skip the review"
+rpush fix/errata
+[ $rc = 0 ] && [ "$calls" = 1 ] || { cat "$tmp/out" >&2; fail "E2: a green gate did not launch the reviewer"; }
+python3 - <<'EOF2' || fail "E3: harness-review is not declared in .pre-commit-hooks.yaml"
+import sys, yaml
+from pathlib import Path
+hook = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}.get("harness-review")
+bad = []
+if not hook: bad.append("falta el hook harness-review")
+else:
+    if hook.get("language") != "script": bad.append("harness-review debe ser language: script")
+    if hook.get("stages") != ["pre-push"]: bad.append("harness-review debe tener solo stages: [pre-push]")
+    if hook.get("pass_filenames") is not False or hook.get("always_run") is not True: bad.append("harness-review: pass_filenames false y always_run true")
+    entry = Path(hook.get("entry", "-"))
+    if not entry.is_file() or not entry.stat().st_mode & 0o111: bad.append(f"el entry {entry} no existe o no es ejecutable")
+for b in bad: print(b, file=sys.stderr)
+sys.exit(1 if bad else 0)
+EOF2
+python3 - "$cfg/.pre-commit-config.yaml" <<'EOF2' || fail "E3: the template does not declare harness-gate, harness-context and harness-review in the same repo and rev"
+import sys, yaml
+repos = [r for r in yaml.safe_load(open(sys.argv[1]))["repos"] if r["repo"] == "https://github.com/aitormf/agent-skills"]
+ids = {h["id"] for r in repos for h in r["hooks"]}
+sys.exit(0 if len(repos) == 1 and {"harness-gate", "harness-context", "harness-review"} <= ids else 1)
+EOF2
+grep -q "pre-push" "$cfg/.pre-commit-config.yaml" || fail "E3: the template does not install the pre-push hook"
+if [ ${#pc[@]} -gt 0 ]; then
+  prr() { rm -f "$hr/calls"; rc=0; (cd "$hr" && CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" "${pc[@]}" try-repo "$OLDPWD" harness-review --hook-stage pre-push --from-ref main --to-ref HEAD </dev/null) >"$tmp/out" 2>&1 || rc=$?; calls=$( (cat "$hr/calls" 2>/dev/null || true) | grep -c run || true); }
+  hrg checkout -q -B 42-cancelar/T9 main; echo x > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"
+  prr; [ $rc = 1 ] && [ "$calls" = 0 ] && grep -q "gate en rojo" "$tmp/out" || { cat "$tmp/out" >&2; fail "E3: harness-review through pre-commit did not block on a red gate"; }
+  hrg checkout -q -B fix/errata main; echo x > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"
+  prr; [ $rc = 0 ] && [ "$calls" = 1 ] || { cat "$tmp/out" >&2; fail "E3: harness-review through pre-commit did not launch the reviewer on a green gate"; }
+fi
 fi
 echo "▶ gate: aviso de tamaño sin bloquear (R3, D-0053, T3 de control-del-flujo)"
 lines() { seq 1 "$1" | sed 's/^/x = /'; }
