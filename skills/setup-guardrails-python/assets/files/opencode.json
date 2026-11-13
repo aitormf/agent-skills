@@ -4,7 +4,9 @@
     "bash": {
       "git push *-f*": "ask",
       "git push *-?f*": "ask",
-      "git push *+*": "ask"
+      "git push *+*": "ask",
+      "git push *--no-verify*": "deny",
+      "git commit *--no-verify*": "deny"
     }
   }
 }

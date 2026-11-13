@@ -21,3 +21,20 @@ prefix_rule(
     match = ["git push origin --force", "git push origin -f main"],
     not_match = ["git push origin main", "git push -u origin main"],
 )
+
+# Skipping the hooks of a push or commit (defence in depth; the guarantee is the check outside the agent).
+prefix_rule(
+    pattern = ["git", ["push", "commit"], "--no-verify"],
+    decision = "forbidden",
+    justification = "Skipping the hooks is not allowed.",
+    match = ["git push --no-verify", "git commit --no-verify -m x"],
+    not_match = ["git push origin main", "git commit -m x"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["origin", "upstream"], "--no-verify"],
+    decision = "forbidden",
+    justification = "Skipping the hooks is not allowed.",
+    match = ["git push origin --no-verify"],
+    not_match = ["git push origin main"],
+)

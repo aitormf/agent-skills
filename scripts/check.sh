@@ -1250,4 +1250,33 @@ for f in skills/setup-guardrails-python/SKILL.md README.md; do
     grep -qi -- "$t" "$f" || { echo "S1: $f no menciona '$t'" >&2; exit 1; }
   done
 done
+echo "▶ los agentes no se saltan los hooks del push: Claude Code, Codex y OpenCode (E23 a E25, T6 de review-cruzada)"
+tpl=skills/setup-guardrails-python/assets/files
+python3 - "$tpl" <<'EOF2' || fail "E23: the Claude Code hook does not deny the ways of skipping the hooks of a push or commit (or denies a normal one)"
+import json, subprocess, sys
+hook = f"{sys.argv[1]}/.claude/hooks/deny_skip_hooks.py"
+def decision(cmd):
+    p = subprocess.run([sys.executable, hook], input=json.dumps({"tool_input": {"command": cmd}}), capture_output=True, text=True)
+    return json.loads(p.stdout)["hookSpecificOutput"]["permissionDecision"] if p.stdout.strip() else ""
+bad = ["git push --no-verify", "git push origin main --no-verify", "git commit --no-verify -m x", "git commit -n -m x", "git commit -nm x",
+       "SKIP=harness-review git push", "SKIP=a,b git commit -m x", "git -c core.hooksPath=/dev/null push", "git -C . -c core.hooksPath=/dev/null commit -m x",
+       "SKIP_CLAUDE_REVIEW=1 git push", "env SKIP_CLAUDE_REVIEW=1 git push origin main", "git status && git push --no-verify", "git add . ; SKIP=x git commit -m y"]
+good = ["git push origin main", "git push -n", "git push --dry-run origin main", "git commit -m 'fix --no-verify docs'", "git -C sub push", "git log -n 3 && git push", "git status"]
+fails = [c for c in bad if decision(c) != "deny"] + [c for c in good if decision(c)]
+sys.exit(f"E23: {fails}" if fails else 0)
+EOF2
+python3 -c 'import json,sys; s=json.load(open(sys.argv[1]+"/.claude/settings.json"))["hooks"]["PreToolUse"]; sys.exit(0 if any("deny_skip_hooks.py" in h["command"] for e in s for h in e["hooks"]) else 1)' "$tpl" || fail "E23: deny_skip_hooks.py is not a PreToolUse hook of the template"
+if command -v codex >/dev/null; then
+  for c in "git push --no-verify" "git push origin --no-verify" "git commit --no-verify -m x"; do
+    codex execpolicy check --rules "$tpl/.codex/rules/guardrails.rules" -- $c | grep -q '"forbidden"' || fail "E24: Codex does not forbid: $c"
+  done
+  [ "$(codex execpolicy check --rules "$tpl/.codex/rules/guardrails.rules" -- git push origin main)" = '{"matchedRules":[]}' ] || fail "E24: Codex matches a normal push"
+else
+  echo "  (codex no está instalado: se omite E24)"
+fi
+python3 - "$tpl/opencode.json" <<'EOF2' || fail "E25: opencode.json does not deny --no-verify in git push and git commit"
+import json, sys
+b = json.load(open(sys.argv[1]))["permission"]["bash"]
+sys.exit(0 if b.get("git push *--no-verify*") == "deny" and b.get("git commit *--no-verify*") == "deny" else 1)
+EOF2
 echo "✔ todo en verde"

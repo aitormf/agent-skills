@@ -10,24 +10,34 @@ SEPARATORS = {"&&", "||", ";", "|", "&"}
 GIT_FLAGS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 
 
-def is_force_push(command: str) -> bool:
+def git_invocations(command: str):
+    """Yields (words before `git` in its segment, git options, subcommand, its args) per `git` found."""
     lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     try:
         tokens = list(lexer)  # splits ";", "&&", "|"… even when not space-separated
     except ValueError:
-        return False
+        return
     for i, word in enumerate(tokens):
         if word != "git":
             continue
+        start = i
+        while start > 0 and tokens[start - 1] not in SEPARATORS:
+            start -= 1
         j = i + 1
         while j < len(tokens) and tokens[j].startswith("-"):  # git -C <dir> push …
             j += 2 if tokens[j] in GIT_FLAGS_WITH_VALUE else 1
-        if j >= len(tokens) or tokens[j] != "push":
+        if j >= len(tokens):
             continue
-        for arg in tokens[j + 1 :]:
-            if arg in SEPARATORS:
-                break
+        end = next((k for k in range(j + 1, len(tokens)) if tokens[k] in SEPARATORS), len(tokens))
+        yield tokens[start:i], tokens[i + 1 : j], tokens[j], tokens[j + 1 : end]
+
+
+def is_force_push(command: str) -> bool:
+    for _, _, sub, args in git_invocations(command):
+        if sub != "push":
+            continue
+        for arg in args:
             if arg.startswith(("--force", "+")):  # --force, --force-with-lease, +refspec
                 return True
             if arg.startswith("-") and not arg.startswith("--") and "f" in arg:  # -f, -uf
