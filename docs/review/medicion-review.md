@@ -61,6 +61,18 @@ B1 es C2, B3 es C1 y B6 es C3 en las tres; B4 es R3 (run-1) y R1 (run-2 y run-3)
 - **B5 se pierde siempre** (3 de 3), como en T10: un Nit sin ticket. Quizá la regla «Max Nits» de la skill o el recorte del prompt lo explique; no se ha investigado, y reforzarlo es otra tarea.
 - **Ruta de Claude** (revisor `claude` con `--plugin-dir <kit>` frente a un plugin `harness` instalado): no se ejecutó ni se comprobó que `--plugin-dir` tenga prioridad sobre un `harness` instalado.
 
+### Diagnóstico de B5: la misma review sin el hook
+
+Una sola ejecución del método de la base (T20), sin el hook: `build.sh --codex` y `measure.sh review-prepush 1` con `KIT` en un worktree limpio de `origin/main` (`255e4ea`), `gpt-6.1-terra` y `medium`, `codex-cli 0.167.0`. Pregunta: ¿se pierde B5 por el hook y su prompt, o por la evolución del kit desde T20?
+
+| | B1–B6 | Señuelos | Subagentes | Entrada / en caché / sin caché | Salida | Duración |
+|---|---|---|---|---|---:|---:|
+| `measure.sh` sin hook | 5/6 (falta B5) | ninguno | `code-reviewer` y `finding-verifier` | 546.053 / 474.624 / 71.429 | 5.262 | 112 s |
+
+Por agente (entrada / salida): sesión principal 337.281 / 3.135 (11 llamadas), `code-reviewer` 131.020 / 1.474 (5), `finding-verifier` 77.752 / 653 (3). `problems` vacío. Hallazgos: C1 (B3), C2 (B1), C3 (B6), R1 (B2), R2 (falta de test de `/invoices`), R3 (B4); ni el TODO ni B7 a B9.
+
+**Lectura (n = 1, no es concluyente).** La pérdida de B5 **no es del hook ni del prompt de la review cruzada**: aparece también con el método de la base. El brief que recibe el `code-reviewer` sigue pidiendo «new TODO/FIXME without a ticket» (`skills/review-prepush/SKILL.md`, paso 3, punto 4) y ese punto es igual que en `20c832c`; `agents/code-reviewer.md` no menciona TODO ni lo mencionaba. Lo que sí cambió desde la base en esas skills y personas: T15 (los subagentes arrancan sin el historial), T16 (la sesión principal solo lee lo que usa), T12 y T13 (formato del informe y plantillas de salida fuera de las personas) y T21 (`agent_type`); T3, T4 y T11 se revirtieron. La medición de T10 (kit `28b00c5`, antes del hook) ya perdía B5 en 4 de 9 ejecuciones y T20 (kit `20c832c`) lo encontraba en 3 de 3, así que lo más verosímil es la evolución del kit entre T20 y T10, y no la review cruzada. Con una ejecución no se puede atribuir a un commit concreto; para eso haría falta medir `20c832c` frente a `255e4ea` con varias repeticiones.
+
 ## Reviewer unificado frente a la base (T10)
 
 Mide el kit de `origin/main` tras T4, T5, T11, T12, T13, T15, T16 y T21 (commit `28b00c5`), con Codex, `gpt-6.1-terra` y esfuerzo `medium` (2026-11-04, `codex-cli 0.165.0`). Es la medición de T10: comprueba si el reviewer unificado gasta menos sin perder hallazgos (S3).
