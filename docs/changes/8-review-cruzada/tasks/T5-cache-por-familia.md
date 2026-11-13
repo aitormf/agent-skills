@@ -1,7 +1,7 @@
 ---
 id: T5
 title: El veredicto guardado recuerda la familia del revisor
-status: todo
+status: done
 depends_on: [T3]
 examples: [E21, E22]
 verification: scripts/check.sh

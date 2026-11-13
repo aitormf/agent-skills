@@ -526,7 +526,7 @@ push() {  # push <PASS|BLOCK|fail> [env…]: runs the hook; sets rc and calls (h
 }
 vfail() { echo "pre-push verdict cache: $1" >&2; cat "$v/out" >&2; exit 1; }
 push PASS;  [ $rc = 0 ] && [ "$calls" = 1 ] || vfail "the first push did not run the review"
-grep -Eq "^[0-9a-f]{64} PASS main [0-9TZ:-]+$" "$v/.git/review-kit/verdicts" || vfail "the verdict was not saved with its hash, base and date"
+grep -Eq "^[0-9a-f]{64} PASS main [0-9TZ:-]+ [a-z]+$" "$v/.git/review-kit/verdicts" || vfail "the verdict was not saved with its hash, base and date"
 push BLOCK; [ $rc = 0 ] && [ "$calls" = 0 ] || vfail "a second push of the same diff ran the review again"
 push BLOCK REVIEW_KIT_RERUN=1; [ $rc = 1 ] && [ "$calls" = 1 ] || vfail "REVIEW_KIT_RERUN=1 did not review again"
 push PASS;  [ $rc = 1 ] && [ "$calls" = 0 ] || vfail "a blocked diff was let through without a review"

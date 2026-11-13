@@ -25,7 +25,8 @@
 # Verdict cache: the result is saved in .git/review-kit/verdicts with the sha256 of
 # `git diff <base>...HEAD`. A later push of the same diff (a retry after a network error,
 # another remote) reuses it instead of paying for the review again; any change to the
-# diff invalidates it. Without a base branch nothing is cached.
+# diff invalidates it. Each line ends with the family of the reviewer (R6): a PASS is reused only if
+# that family is not an author of the push. Without a base branch nothing is cached.
 
 set -u
 
@@ -128,7 +129,9 @@ if [ -n "$base" ] && git merge-base "$base" HEAD >/dev/null 2>&1; then   # no co
 fi
 
 if [ -n "$key" ] && [ "${REVIEW_KIT_RERUN:-0}" != "1" ] && [ -f "$verdicts" ]; then
-  saved=$(grep "^$key " "$verdicts" | tail -n 1)
+  # A PASS counts only from a reviewer of another family than the authors of this push, and an old line
+  # without family does not (R6); a BLOCK blocks whoever wrote it: stopping is never a self-review.
+  saved=$(awk -v k="$key" -v a=" $authors " '$1 == k && ($2 == "BLOCK" || ($5 != "" && index(a, " " $5 " ") == 0))' "$verdicts" | tail -n 1)
   case "$saved" in
     *" BLOCK "*)
       echo "review-kit: ✋ push blocked — this diff was already reviewed with confirmed Critical findings (${saved#* BLOCK })." >&2
@@ -141,7 +144,7 @@ if [ -n "$key" ] && [ "${REVIEW_KIT_RERUN:-0}" != "1" ] && [ -f "$verdicts" ]; t
 fi
 remember() {  # remember PASS|BLOCK: the verdict for this diff, with its base and date, and its report
   [ -n "$key" ] || return 0
-  echo "$key $1 $base $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$verdicts"
+  echo "$key $1 $base $(date -u +%Y-%m-%dT%H:%M:%SZ) $reviewer" >> "$verdicts"
   [ "$1" = BLOCK ] && cp "$report" "$out_dir/$key.md"
   return 0
 }
