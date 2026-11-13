@@ -1,5 +1,7 @@
 # Plan de la v3
 
+> **Desactualizado** (2026-11-13): este plan ya no vale. Se conserva solo como registro histórico; no lo uses como guía del estado actual del kit.
+
 Fecha: 2026-10-28. Estado: **aprobado** (PR #25). Fase 1 hecha, versión 0.6.0 ([D-0040](decisions/0040-review-de-pr-en-linea.md)). Fase 2 hecha, versión 0.7.0 ([D-0041](decisions/0041-restricciones-de-agentes-para-rulesync.md)), probada de punta a punta (§3.5). Fase 3 hecha, versión 0.8.0 ([D-0042](decisions/0042-veredicto-del-pre-push-ligado-al-diff.md), [D-0043](decisions/0043-semgrep-solo-en-lineas-anadidas.md)).
 
 Sale de usar la v2 (versión 0.5.0) y de repasar el [plan de mejoras](plan-de-mejoras.md). Tres mejoras pedidas y unas cuantas pequeñas que siguen pendientes.
