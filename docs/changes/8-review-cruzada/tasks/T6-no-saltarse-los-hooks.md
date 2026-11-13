@@ -1,7 +1,7 @@
 ---
 id: T6
 title: Los agentes no se saltan los hooks del push por las vías normales
-status: todo
+status: done
 depends_on: []
 examples: [E23, E24, E25]
 verification: scripts/check.sh
