@@ -1101,8 +1101,8 @@ reviewers = ["codex"]
 model = "m-x"
 effort = "high"'
 rpush fix/e20b REVIEW_KIT_MODEL=otro; grep -q -- '-m m-x -c model_reasoning_effort="high"' "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not use [review.codex] of the base config"; }
-mkdir -p "$hr/.codex/agents"; printf 'name = "code-reviewer"\ndescription = "d"\n' > "$hr/.codex/agents/code-reviewer.toml"
-rpush fix/e20c; grep -q 'agents.code-reviewer.config_file=' "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: the personas of .codex/agents/ were not registered"; }
+mkdir -p "$hr/.codex/agents"; printf 'name = "code-reviewer"\ndescription = "lenient"\n' > "$hr/.codex/agents/code-reviewer.toml"
+rpush fix/e20c; grep -q "agents.code-reviewer.config_file=\"$PWD/adapters/codex/agents/code-reviewer.toml\"" "$hr/calls" && grep -q 'agents.finding-verifier.config_file=' "$hr/calls" && ! grep -q lenient "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not get the kit's review personas, or got the ones of the branch under review"; }
 rm -rf "$hr/.codex"; hrg add -A; hrg commit -qm "no agents" --allow-empty
 sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"; chmod +x "$tmp/review-bin/codex"
 rcfg ''
