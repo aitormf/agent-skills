@@ -9,6 +9,8 @@
 # workflow gate first: with the gate red (exit 1) it blocks the push without launching the reviewer.
 #
 # Environment knobs:
+# The review runs only on the push of an agent (CLAUDECODE=1, CODEX_THREAD_ID, OPENCODE=1); the
+# four variables below that change or skip it are ignored then, and only a person's push honours them.
 #   SKIP_CLAUDE_REVIEW=1        skip the review for this push (or use `git push --no-verify`)
 #   REVIEW_KIT_COMMAND=...      skill to run (auto: /review-prepush if the skill is in
 #                               .claude/skills, e.g. via npx skills; else the plugin's /harness:review-prepush)
@@ -27,7 +29,19 @@
 
 set -u
 
-[ "${SKIP_CLAUDE_REVIEW:-0}" = "1" ] && { echo "review-kit: SKIP_CLAUDE_REVIEW=1 — review skipped."; exit 0; }
+# Who pushes (D-0056): the families of the agent, by concrete markers of the environment the hook
+# inherits (never prefixes: a Codex launched from Claude Code inherits CLAUDE_CODE_* but not CLAUDECODE).
+authors=""
+[ "${CLAUDECODE:-}" = "1" ] && authors="claude"
+[ -n "${CODEX_THREAD_ID:-}" ] && authors="${authors:+$authors }codex"
+[ "${OPENCODE:-}" = "1" ] && authors="${authors:+$authors }opencode"
+if [ -n "$authors" ]; then
+  # An agent cannot turn the review off nor change how it runs.
+  unset SKIP_CLAUDE_REVIEW REVIEW_KIT_COMMAND REVIEW_KIT_ALLOWED_TOOLS REVIEW_KIT_MODEL
+  echo "review-kit: autor: $authors" >&2
+elif [ "${SKIP_CLAUDE_REVIEW:-0}" = "1" ]; then
+  echo "review-kit: SKIP_CLAUDE_REVIEW=1 — review skipped."; exit 0
+fi
 
 # Skip pushes that only delete refs.
 # (prek and pre-commit give the hook no ref list: no lines is not a delete.)
@@ -58,6 +72,11 @@ if [ $gate_rc -eq 1 ]; then
   exit 1
 fi
 [ $gate_rc -ne 0 ] && fail "the gate could not check the branch (exit $gate_rc); the review continues without it."
+
+if [ -z "$authors" ]; then
+  echo "review-kit: push de una persona: sin review automática." >&2
+  exit 0
+fi
 
 command -v claude >/dev/null 2>&1 || fail "'claude' CLI not found on PATH; review skipped."
 
