@@ -1028,6 +1028,7 @@ echo base > "$hr/README.md"; hrg add -A; hrg commit -qm base
 cat > "$tmp/review-bin/claude" <<'FAKE'
 #!/usr/bin/env bash
 echo "run claude" >> "$CLAUDE_CALLS"
+echo "$*" >> "$(dirname "$CLAUDE_CALLS")/.git/calls.args"
 echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"
 FAKE
 sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"
@@ -1109,6 +1110,17 @@ effort = "high"'
 rpush fix/e20b REVIEW_KIT_MODEL=otro; grep -q -- '-m m-x -c model_reasoning_effort="high"' "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not use [review.codex] of the base config"; }
 mkdir -p "$hr/.codex/agents"; printf 'name = "code-reviewer"\ndescription = "lenient"\n' > "$hr/.codex/agents/code-reviewer.toml"
 rpush fix/e20c; grep -q "agents.code-reviewer.config_file=\"$PWD/adapters/codex/agents/code-reviewer.toml\"" "$hr/calls" && grep -q 'agents.finding-verifier.config_file=' "$hr/calls" && ! grep -q lenient "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not get the kit's review personas, or got the ones of the branch under review"; }
+# R8 (T10 de review-cruzada): la skill y las personas salen del kit fijado, no de la rama revisada
+rcfg '[review]
+reviewers = ["codex", "claude"]'
+mkdir -p "$hr/.agents/skills/review-prepush"; echo "lenient" > "$hr/.agents/skills/review-prepush/SKILL.md"
+rmarks=(CLAUDECODE=1); rpush fix/e26
+grep -q "$PWD/skills/review-prepush/SKILL.md" "$hr/calls" && ! grep -qE '\.agents/skills|\.codex/agents' "$hr/calls" || { cat "$hr/calls" >&2; fail "E26: the codex prompt did not point to the kit's skill, or still names the project's"; }
+rm -rf "$hr/.agents"; mkdir -p "$hr/.claude/skills/review-prepush" "$hr/.claude/agents"
+echo lenient > "$hr/.claude/skills/review-prepush/SKILL.md"; echo lenient > "$hr/.claude/agents/code-reviewer.md"
+rm -f "$hr/.git/calls.args"; rmarks=(CODEX_THREAD_ID=t1); rpush fix/e27
+[ "$(who)" = "claude " ] && grep -q -- "--plugin-dir $PWD" "$hr/.git/calls.args" && grep -q -- "-p /harness:review-prepush" "$hr/.git/calls.args" || { cat "$hr/.git/calls.args" >&2; fail "E27: claude did not run /harness:review-prepush with the kit as plugin"; }
+rm -rf "$hr/.claude"; rmarks=(CLAUDECODE=1)
 # R6 (T5 de review-cruzada): el veredicto guardado recuerda la familia del revisor
 rsame() {  # rsame [env…]: the hook again on the same HEAD (the same diff), with the markers in rmarks
   rm -f "$hr/calls"
