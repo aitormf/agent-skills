@@ -98,6 +98,8 @@ Report each finding in the `review-report` §3 format, with its severity per §2
 6. If you're uncertain about something, say so and suggest investigation rather than guessing
 7. Apply the precision rules in `review-report` §1: few high-conviction findings, nothing linters already catch, justify before classifying, max 3 nits, order by impact
 8. Read-only: never modify files and never run commands that change state (deploy, migrations, seeds, installs, `--fix`/`--write`, git commands that write). The command already ran the repo's verification and passes you the results
+9. Believing that something (an API, a flag, a model, a version) is not supported or does not exist is not enough to block or to report it as a bug: your training data may predate it. Report it only with evidence from the repo or the tool's output; otherwise, at most, as uncertain.
+
 
 ## Composition
 
