@@ -1019,15 +1019,17 @@ hrg() { git -C "$hr" -c user.name=t -c user.email=t@t "$@"; }
 echo base > "$hr/README.md"; hrg add -A; hrg commit -qm base
 cat > "$tmp/review-bin/claude" <<'FAKE'
 #!/usr/bin/env bash
-echo run >> "$CLAUDE_CALLS"
+echo "run claude" >> "$CLAUDE_CALLS"
 echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"
 FAKE
-chmod +x "$tmp/review-bin/claude"
+sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"
+chmod +x "$tmp/review-bin/claude" "$tmp/review-bin/codex"
 rmarks=(CLAUDECODE=1)  # the agent markers of the push (D-0056): never the real environment of whoever runs this
 rpush() {  # rpush <branch> [env…]: runs the hook on the branch; sets rc and calls (how many times claude ran)
-  local b=$1; shift; rm -f "$hr/calls"; hrg checkout -q -B "$b" main; echo "$b" > "$hr/a.txt"; hrg add -A; hrg commit -qm "feat: a"
+  local b=$1; shift; rm -f "$hr/calls"; hrg checkout -q -B "$b" main; echo "$b" > "$hr/a.txt"
+  [ -z "${rbcfg:-}" ] || printf '%s\n' "$rbcfg" > "$hr/.harness-config.toml"; hrg add -A; hrg commit -qm "feat: a"
   (cd "$hr" && echo "refs/heads/$b $(git rev-parse HEAD) refs/heads/$b 0000000000000000000000000000000000000000" \
-    | env -u CLAUDECODE -u CODEX_THREAD_ID -u OPENCODE ${rmarks[@]+"${rmarks[@]}"} "$@" CLAUDE_CALLS="$hr/calls" PATH="$tmp/review-bin:$PATH" bash "$review") >"$tmp/out" 2>&1 && rc=0 || rc=$?
+    | env -u CLAUDECODE -u CODEX_THREAD_ID -u OPENCODE ${rmarks[@]+"${rmarks[@]}"} "$@" CLAUDE_CALLS="$hr/calls" PATH="${rpath:-$tmp/review-bin:$PATH}" bash "$review") >"$tmp/out" 2>&1 && rc=0 || rc=$?
   calls=$( (cat "$hr/calls" 2>/dev/null || true) | grep -c run || true)
 }
 rpush 42-cancelar/T9   # T9 has no file: the gate exits 1
@@ -1036,6 +1038,46 @@ rmarks=(); rpush 42-cancelar/T9 SKIP_CLAUDE_REVIEW=1; [ $rc = 0 ] && [ "$calls" 
 rmarks=(CLAUDECODE=1)
 rpush fix/errata
 [ $rc = 0 ] && [ "$calls" = 1 ] || { cat "$tmp/out" >&2; fail "E2: a green gate did not launch the reviewer"; }
+# R3/R4 (D-0056, T3 de review-cruzada): quién revisa, según [review] reviewers de la base
+rcfg() {  # rcfg <toml>: the config of the base branch (empty: none)
+  rm -f "$hr/calls"; hrg checkout -q main; rm -f "$hr/.harness-config.toml"; [ -z "$1" ] || printf '%s\n' "$1" > "$hr/.harness-config.toml"
+  hrg add -A -- .harness-config.toml; hrg commit -qm "config" --allow-empty
+}
+who() { sed -n 's/^run \([a-z]*\).*/\1/p' "$hr/calls" 2>/dev/null | tr '\n' ' '; }
+mkdir -p "$tmp/nocodex-bin"  # a PATH without codex: the dirs that have one are replaced by links to all their other executables
+nocodex="$tmp/nocodex-bin"
+for d in ${PATH//:/ }; do
+  if [ -x "$d/codex" ]; then for f in "$d"/*; do [ -x "$f" ] && [ "${f##*/}" != codex ] && ln -sf "$f" "$tmp/nocodex-bin/" || true; done
+  else nocodex="$nocodex:$d"; fi
+done
+rcfg '[review]
+reviewers = ["codex", "claude"]'
+rpush fix/e9; [ $rc = 0 ] && [ "$(who)" = "codex " ] || { cat "$tmp/out" >&2; fail "E9: CLAUDECODE=1 and [codex, claude] did not review with codex only"; }
+grep -q -- "-s read-only" "$hr/calls" || fail "E9: codex did not run read-only"
+rcfg '[review]
+reviewers = ["claude", "codex"]'
+rpush fix/e10; [ $rc = 0 ] && [ "$(who)" = "codex " ] || { cat "$tmp/out" >&2; fail "E10: claude was not skipped as the author"; }
+rmarks=(CODEX_THREAD_ID=t1 CLAUDE_CODE_ENTRYPOINT=cli)
+rcfg '[review]
+reviewers = ["codex", "claude"]'
+rpush fix/e11; [ $rc = 0 ] && [ "$(who)" = "claude " ] || { cat "$tmp/out" >&2; fail "E11: a codex author was not reviewed by claude"; }
+rmarks=(CLAUDECODE=1 CODEX_THREAD_ID=t1)
+rpush fix/e12; [ $rc = 1 ] && [ -z "$(who)" ] && grep -q "no hay revisor de otra familia" "$tmp/out" || { cat "$tmp/out" >&2; fail "E12: two author families did not block"; }
+rmarks=(CLAUDECODE=1)
+rcfg '[review]
+reviewers = ["claude"]'
+rbcfg='[review]
+reviewers = ["codex"]'; rpush fix/e13; rbcfg=""
+[ $rc = 1 ] && [ -z "$(who)" ] && grep -q "no hay revisor de otra familia" "$tmp/out" || { cat "$tmp/out" >&2; fail "E13: the list of the branch was used instead of the base's"; }
+rcfg ''
+rpush fix/e14; [ $rc = 0 ] && [ "$(who)" = "codex " ] || { cat "$tmp/out" >&2; fail "E14: without [review] the default list was not used"; }
+rcfg '[review]
+reviewers = ["claude"]'
+rpush fix/e15 REVIEW_KIT_FAIL_CLOSED=0; [ $rc = 1 ] && [ -z "$(who)" ] && grep -q "no hay revisor de otra familia: el agente es claude y reviewers solo tiene claude" "$tmp/out" || { cat "$tmp/out" >&2; fail "E15: no reviewer of another family did not block with the message"; }
+rcfg '[review]
+reviewers = ["codex"]'
+rpath="$nocodex"; rpush fix/e16; rpath=""; [ $rc = 1 ] && [ -z "$(who)" ] && grep -q "codex no está instalado" "$tmp/out" || { cat "$tmp/out" >&2; fail "E16: a reviewer not installed did not block"; }
+rcfg ''
 python3 - <<'EOF2' || fail "E3: harness-review is not declared in .pre-commit-hooks.yaml"
 import sys, yaml
 from pathlib import Path
