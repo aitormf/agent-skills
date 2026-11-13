@@ -160,7 +160,7 @@ El hook `harness-review` de [`.pre-commit-hooks.yaml`](../../.pre-commit-hooks.y
 **Combinación recomendada:** el agente que escribe y un revisor de otra familia (Claude Code revisado por Codex y al revés). Corre el gate primero; un push de una persona no se revisa. `[review] reviewers` en `.harness-config.toml` (rama base; por defecto `["claude", "codex"]`) fija el orden: el primero instalado que no sea el autor. Sin ninguno, bloquea. Codex usa `[review.codex]` (`model`, `effort`; por defecto `gpt-6.1-terra` y `medium`), en solo lectura y sin credenciales de GitHub. OpenCode aún no revisa.
 
 - El veredicto guardado recuerda la familia del revisor: un PASS de una familia autora no se reutiliza; un BLOCK siempre bloquea.
-- Detecta solo si las skills están copiadas en `.claude/skills/` (usa `/review-prepush`) o instaladas como plugin (usa `/harness:review-prepush`).
+- La skill y las personas salen de la copia del kit que fija la base, no de la rama revisada: `claude` carga el kit con `--plugin-dir` y ejecuta `/harness:review-prepush`; `codex` lee el `SKILL.md` del kit. Las skills y agentes del proyecto (`.claude/`, `.agents/`, `.codex/`) no se usan, así que un agente no puede rebajar la review desde su rama.
 - **Solo bloquea si hay al menos un Critical confirmado.** Los Required se muestran pero no bloquean.
 - **Si falla la propia herramienta, el push sale (fail-open):** falta el CLI `claude`, hay un error o un timeout, o la salida no tiene la línea `REVIEW_RESULT`. Con `REVIEW_KIT_FAIL_CLOSED=1` se bloquea en esos casos.
 - El informe se imprime y se guarda en `.git/review-kit/last-prepush.md`.
