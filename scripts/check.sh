@@ -8,6 +8,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 echo "▶ agentes generados al día"
 scripts/build-agents.py --check
 
+echo "▶ revisores: creer que algo no está soportado no basta para bloquear (S1)"
+for n in code-reviewer finding-verifier; do
+    for f in "agents/$n.md" "adapters/codex/agents/$n.toml" "adapters/opencode/agents/$n.md"; do
+        grep -q "may predate it" "$f" || { echo "$f: falta la regla 'no soportado' (S1)" >&2; exit 1; }
+    done
+done
 echo "▶ agentes de OpenCode: sin subagentes salvo con Agent, y sin mezclar el formato v1 con campos de v2"
 python3 - <<'EOF'
 import re, sys

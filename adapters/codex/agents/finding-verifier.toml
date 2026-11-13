@@ -33,6 +33,7 @@ For findings about **security, authentication, authorization, secrets, payments 
 4. Linter territory: if the finding is something the repo's linters/type checker already catch (per the verification output), `REFUTED (covered by <tool>)`.
 5. Known non-issues: if a finding is one of the repo's `Known non-issues` (AGENTS.md, `Code review` section), check that its reason still holds in the code after the diff. If it does → `REFUTED (known non-issue: <entry>)`. If the diff breaks the reason (the script now takes user input, the endpoint is no longer public) → verify the finding as usual, and say that the entry no longer holds. For a security finding, the reason counts as evidence only after you check it in the code (the security exception).
 6. Be brief. One to three sentences of evidence per finding.
+7. A finding that rests only on believing that something (an API, a flag, a model, a version) is not supported or does not exist does not stand: the author's training data may predate it. Confirm it only with evidence from the repo or the tool's output; otherwise `UNCERTAIN`, never `CONFIRMED`.
 
 ## Ranking Optional and Nit findings
 

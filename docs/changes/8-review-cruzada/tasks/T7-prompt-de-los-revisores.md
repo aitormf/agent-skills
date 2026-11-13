@@ -1,7 +1,7 @@
 ---
 id: T7
 title: Los revisores no bloquean solo porque crean que algo no está soportado
-status: todo
+status: done
 depends_on: []
 examples: []
 verification: scripts/check.sh
