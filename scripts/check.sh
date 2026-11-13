@@ -1079,6 +1079,32 @@ rpush fix/e15 REVIEW_KIT_FAIL_CLOSED=0; [ $rc = 1 ] && [ -z "$(who)" ] && grep -
 rcfg '[review]
 reviewers = ["codex"]'
 rpath="$nocodex"; rpush fix/e16; rpath=""; [ $rc = 1 ] && [ -z "$(who)" ] && grep -q "codex no está instalado" "$tmp/out" || { cat "$tmp/out" >&2; fail "E16: a reviewer not installed did not block"; }
+# R5 (T4 de review-cruzada): el resultado y los fallos de codex como revisor, y cómo se lanza
+fakecodex() {  # fakecodex <script body>: a codex that does that; the call is saved in $hr/calls
+  printf '#!/usr/bin/env bash\necho "run codex $*" >> "$CLAUDE_CALLS"\n%s\n' "$1" > "$tmp/review-bin/codex"; chmod +x "$tmp/review-bin/codex"
+}
+rcfg '[review]
+reviewers = ["codex"]'
+fakecodex 'echo "informe"; echo "REVIEW_RESULT: BLOCK critical=1 required=0 uncertain=0"'
+rpush fix/e17; [ $rc = 1 ] && grep -q "informe" "$hr/.git/review-kit/last-prepush.md" && grep -q " BLOCK " "$hr/.git/review-kit/verdicts" || { cat "$tmp/out" >&2; fail "E17: a BLOCK of codex did not exit 1 and keep the report"; }
+fakecodex 'echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"'
+rpush fix/e18; [ $rc = 0 ] && grep -q "no confirmed Critical" "$tmp/out" || { cat "$tmp/out" >&2; fail "E18: a PASS of codex did not exit 0"; }
+fakecodex 'echo "quota exceeded"; exit 3'
+rpush fix/e19; [ $rc = 0 ] && grep -q "codex exited with code 3" "$tmp/out" || { cat "$tmp/out" >&2; fail "E19: a failure of codex did not warn naming codex and continue (fail-open)"; }
+rpush fix/e19b REVIEW_KIT_FAIL_CLOSED=1; [ $rc = 1 ] && grep -q "codex exited with code 3" "$tmp/out" || { cat "$tmp/out" >&2; fail "E19: a failure of codex with REVIEW_KIT_FAIL_CLOSED=1 did not block"; }
+fakecodex 'echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"; env | grep -E "^(GH_TOKEN|GITHUB_TOKEN)=" >> "$CLAUDE_CALLS" || true'
+rpush fix/e20 GH_TOKEN=secret GITHUB_TOKEN=secret REVIEW_KIT_MODEL=otro
+grep -q "run codex exec -s read-only -m gpt-6.1-terra -c model_reasoning_effort=\"medium\"" "$hr/calls" && ! grep -q "secret\|otro" "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not run with the default model and effort, read-only, without GitHub credentials"; }
+rcfg '[review]
+reviewers = ["codex"]
+[review.codex]
+model = "m-x"
+effort = "high"'
+rpush fix/e20b REVIEW_KIT_MODEL=otro; grep -q -- '-m m-x -c model_reasoning_effort="high"' "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: codex did not use [review.codex] of the base config"; }
+mkdir -p "$hr/.codex/agents"; printf 'name = "code-reviewer"\ndescription = "d"\n' > "$hr/.codex/agents/code-reviewer.toml"
+rpush fix/e20c; grep -q 'agents.code-reviewer.config_file=' "$hr/calls" || { cat "$hr/calls" >&2; fail "E20: the personas of .codex/agents/ were not registered"; }
+rm -rf "$hr/.codex"; hrg add -A; hrg commit -qm "no agents" --allow-empty
+sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"; chmod +x "$tmp/review-bin/codex"
 rcfg ''
 python3 - <<'EOF2' || fail "E3: harness-review is not declared in .pre-commit-hooks.yaml"
 import sys, yaml
