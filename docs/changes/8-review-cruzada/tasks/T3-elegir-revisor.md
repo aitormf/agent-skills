@@ -1,7 +1,7 @@
 ---
 id: T3
 title: harness-review elige un revisor de otra familia de la lista de la base, o bloquea si no hay ninguno
-status: todo
+status: done
 depends_on: [T2]
 examples: [E9, E10, E11, E12, E13, E14, E15, E16]
 verification: scripts/check.sh

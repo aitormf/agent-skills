@@ -500,7 +500,7 @@ FAKE
 chmod +x "$tmp/bin/claude"
 hook="$PWD/skills/review-prepush/scripts/harness-review.sh"
 (cd "$r" && echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x 0000000000000000000000000000000000000000" \
-  | env -u CODEX_THREAD_ID -u OPENCODE CLAUDECODE=1 GH_TOKEN=t GITHUB_TOKEN=t GH_ENTERPRISE_TOKEN=t GITHUB_ENTERPRISE_TOKEN=t REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" CLAUDE_ENV="$tmp/env" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
+  | env -u CLAUDECODE -u OPENCODE CODEX_THREAD_ID=t GH_TOKEN=t GITHUB_TOKEN=t GH_ENTERPRISE_TOKEN=t GITHUB_ENTERPRISE_TOKEN=t REVIEW_KIT_FAIL_CLOSED=1 CLAUDE_ARGS="$tmp/args" CLAUDE_ENV="$tmp/env" PATH="$tmp/bin:$PATH" bash "$hook") >/dev/null 2>&1 || { echo "the pre-push hook failed with a passing review" >&2; exit 1; }
 grep -A1 -x -- --disallowedTools "$tmp/args" | grep -q 'Bash(gh:\*)' || { echo "the pre-push hook does not deny Bash(gh:*)" >&2; exit 1; }
 # The real control: claude runs with no token variables and an empty gh config directory, removed afterwards.
 gh_dir=$(sed -n 2p "$tmp/env")
@@ -516,7 +516,7 @@ echo run >> "$CLAUDE_CALLS"; printf '%s\n' "$@" > "$CLAUDE_CALLS.args"
 [ "$FAKE_RESULT" = fail ] && exit 1
 echo "REVIEW_RESULT: $FAKE_RESULT critical=0 required=0 uncertain=0"
 FAKE
-chmod +x "$v/bin/claude"
+chmod +x "$v/bin/claude"; ln -s claude "$v/bin/codex"  # claude authors are reviewed by codex now (D-0056): the same fake
 marks=(CLAUDECODE=1)  # the agent markers of the push: the tests set them, never the real environment of whoever runs this (D-0056)
 push() {  # push <PASS|BLOCK|fail> [env…]: runs the hook; sets rc and calls (how many times claude ran)
   local result=$1; shift; rm -f "$v/calls" "$v/calls.args"
