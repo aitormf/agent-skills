@@ -84,7 +84,7 @@ Read `../review-report/references/report-format.md` (the `review-report` skill's
 
 Output only the report (`report-format.md`): no preamble, no closing remarks.
 
-The last line of the output must be exactly (for the git hook):
+The last line of the output must be exactly (for the `harness-review` git hook, installed from `.pre-commit-config.yaml`, not copied):
 
 ```
 REVIEW_RESULT: <BLOCK|PASS> critical=<confirmed Critical count> required=<Required count> uncertain=<UNCERTAIN count>

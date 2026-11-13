@@ -1,7 +1,7 @@
 ---
 id: T8
 title: Documentar harness-review, [review] y cómo pasar del pre-push copiado al hook
-status: todo
+status: done
 depends_on: [T1, T2, T3, T4, T5, T6]
 examples: []
 verification: scripts/check.sh

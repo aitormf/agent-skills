@@ -37,7 +37,7 @@ Todo fichero derivado lleva una cabecera `Origin:` con la ruta upstream. Esta ta
 
 ## Originales de review-kit
 
-`agents/finding-verifier.md`, `skills/review-context/` (con `assets/`), `skills/review-report/SKILL.md`, `skills/review-prepush/assets/pre-push`, `skills/review-pr/assets/claude-review.yml`, `docs/review/orchestration-addendum.md`, `docs/review/README.md`, `tests/review-sandbox/`, `NOTICE.md`, este fichero.
+`agents/finding-verifier.md`, `skills/review-context/` (con `assets/`), `skills/review-report/SKILL.md`, `skills/review-prepush/scripts/harness-review.sh`, `skills/review-pr/assets/claude-review.yml`, `docs/review/orchestration-addendum.md`, `docs/review/README.md`, `tests/review-sandbox/`, `NOTICE.md`, este fichero.
 
 ## No incluido de upstream (y por qué)
 

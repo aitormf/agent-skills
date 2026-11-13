@@ -97,6 +97,8 @@ Without these the `harness-gate` hook is advisory: `--no-verify` skips it and an
 - Branch protection on the base branch with the `harness-gate` check required, also applied to administrators.
 - *Require review from Code Owners*, and `CODEOWNERS` covering the control list: the kit's default list adjusted by the project's `.harness-config.toml` (`[gate.control]` with `add` and `remove`, lists of globs), which is always a control file and must be under CODEOWNERS too. The gate reads it from the base branch.
 - The agent with its own identity (bot account or fine-grained token), with no permission to bypass the protection or to approve.
+`.harness-config.toml` may also hold `[review]`, read from the base branch: `reviewers = ["claude", "codex"]` (preference order; the first installed one that is not the author reviews a push) and `[review.codex]` with `model` and `effort`. The template `.pre-commit-config.yaml` already declares `harness-review`; no pre-push file is copied into `.git/hooks/`.
+
 ### 6. Wrap-up
 
 Summarize what was installed, what was left out and why. Then give the user **the list of what they have to do by hand**:

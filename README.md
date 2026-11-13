@@ -39,13 +39,14 @@ Lo que el kit hace cumplir, sin depender de que el modelo siga sus instrucciones
 | | No terminar con `check.sh` en rojo | ✅ hook `Stop` | — | — | — |
 | | Agentes de review de solo lectura | ✅ `tools:` | — heredan el sandbox de la sesión | ✅ `permission:` | — sin subagentes |
 | **Commit y push** (cualquier herramienta) | ruff, mypy, gitleaks, Unicode oculto, zizmor, formato de commit | ✅ pre-commit | ✅ | ✅ | ✅ |
-| | Review antes del push; bloquea con un Critical confirmado | ✅ hook pre-push, si está el CLI `claude` | ✅ | ✅ | ✅ |
+| | Review antes del push; bloquea con un Critical confirmado | ✅ hook `harness-review` (pre-push): lo revisa otra familia que el autor; sin revisor instalado, bloquea | ✅ | ✅ | ✅ |
 | **CI** (la autoridad final) | `check.sh`, gitleaks, pip-audit, Semgrep, zizmor | ✅ | ✅ | ✅ | ✅ |
 | | Review de la PR con comentarios en línea | ✅ Action con Claude Code | ✅ | ✅ | ✅ |
 | **Merge** (lo pone el proyecto en GitHub, el kit no puede) | El gate (`harness-gate`) obligatorio para mergear, y los ficheros de control (los del kit, ajustados en `.harness-config.toml`) bajo `CODEOWNERS` con "Require review from Code Owners" | ✅ | ✅ | ✅ | ✅ |
 - **El gate solo obliga con la protección de la rama puesta:** rama base protegida con el check `harness-gate` obligatorio y aplicada también a admins, "Require review from Code Owners" con `CODEOWNERS` sobre la lista de control (incluido `.harness-config.toml`), y el agente con identidad propia (cuenta bot o fine-grained token), sin permiso para saltarse la protección ni aprobar. Sin eso el gate es solo un aviso. `setup-guardrails-python` lo recuerda al terminar.
 - La regla `Edit` no frena un comando de shell (`echo >> .gitattributes`). En Codex, `.codex/rules` cubre comandos, no ediciones; sus perfiles de permisos tienen reglas de ficheros (`deny_read` en la 0.165), pero no hemos comprobado que haya una de solo escritura, así que no damos ninguna por buena.
 - **Lo que se pierde fuera de Claude Code** son las barreras de la sesión: allí solo quedan las instrucciones. Lo que falle se para en el commit (si el agente no se salta los hooks) y, en última instancia, en CI.
+- La review del push (`harness-review`) solo corre con el hook instalado y solo en pushes de agentes; la de una persona es opcional. Se configura con `[review]` en `.harness-config.toml`; ver [Actualizar](docs/actualizar.md#0100-review-cruzada).
 - `pre-commit` y el hook pre-push se saltan con `--no-verify`. Solo Claude Code lo impide en la sesión; por eso CI repite todas las comprobaciones.
 - Una garantía es de `setup-guardrails-python` o del hook pre-push solo si están instalados en el repo.
 
