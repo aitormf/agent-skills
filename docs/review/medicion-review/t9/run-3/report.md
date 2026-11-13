@@ -1,7 +1,7 @@
 Reading additional input from stdin...
 ## Summary and verdict
 
-The branch adds order pagination and invoice downloads, but the first page skips the newest orders, an existing caller now returns the wrong first order, and the invoice endpoint permits reading files outside the invoice directory.
+The branch adds order pagination, newest-first ordering, and invoice downloads. The review confirmed three critical defects: invoice requests can read files outside the invoice directory, pagination skips the first page, and an existing caller now selects the wrong order.
 
 **Verdict:** BLOCK
 
@@ -10,47 +10,56 @@ The branch adds order pagination and invoice downloads, but the first page skips
 #### C1 Path traversal exposes server files
 
 - **Location:** [src/invoices.js](repo/src/invoices.js:10)
-- **Problem:** The invoice path is constructed directly from the request parameter without restricting it to the invoice directory.
-- **Why it fails / scenario:** A caller can request `/invoices?file=../../package.json` and receive that file. Other files readable by the server process can be exposed in the same way.
-- **Fix:** Restrict invoice names to an allowed filename format and ensure the resolved file remains within the invoice directory, including protection against symlink escapes. Add traversal tests.
+- **Problem:** The request’s `file` parameter is joined directly to the invoice directory and read from disk.
+- **Why it fails / scenario:** `/invoices?file=../../package.json` returns a readable file outside the invoice directory. Other readable server files can also be exposed.
+- **Fix:** Restrict input to allowed invoice filenames and verify that the resolved file remains inside the invoice directory, including after resolving symlinks.
 - **Confidence:** high
 - **Source:** code-reviewer
 
-#### C2 The first page skips the newest orders
+#### C2 Pagination skips the first page
 
 - **Location:** [src/orders.js](repo/src/orders.js:32)
-- **Problem:** The offset treats a one-indexed page number as zero-indexed.
-- **Why it fails / scenario:** `/orders?page=1&size=10` starts at offset 10 and returns IDs 15–6, omitting IDs 25–16 entirely from accessible pages.
-- **Fix:** Calculate the offset as `(page - 1) * pageSize` and test the exact contents of the first and subsequent pages.
+- **Problem:** The slice offset treats the 1-indexed page number as zero-indexed.
+- **Why it fails / scenario:** `GET /orders?page=1&size=10` skips the ten newest orders. With `size=50`, the first page is empty.
+- **Fix:** Calculate the offset as `(page - 1) * pageSize`.
 - **Confidence:** high
 - **Source:** code-reviewer
 
-#### C3 Reversing `listOrders` breaks the oldest-order caller
+#### C3 Customer-since now uses the newest order
 
-- **Location:** [src/orders.js](repo/src/orders.js:16)
-- **Problem:** The changed ordering alters the contract used by `firstOrder()`.
-- **Why it fails / scenario:** [src/stats.js](repo/src/stats.js:7) takes the first element as the oldest order; it now returns ID 25 instead of ID 1, producing an incorrect “customer since” value.
-- **Fix:** Update that caller to select the oldest order under the new ordering and add a regression test.
+- **Location:** [src/stats.js](repo/src/stats.js:7)
+- **Problem:** This existing caller relies on the former oldest-first order of `listOrders()`.
+- **Why it fails / scenario:** `firstOrder()` now returns order 25 instead of order 1, so its customer-since result is wrong.
+- **Fix:** Select the oldest order explicitly in `firstOrder()`.
 - **Confidence:** high
 - **Source:** code-reviewer
 
 ## Required
 
-#### R1 Remove pagination debug output
+#### R1 Remove debug output from pagination
 
 - **Location:** [src/orders.js](repo/src/orders.js:33)
-- **Problem:** A debug log remains in the request path.
-- **Why it fails / scenario:** Every `/orders` request emits `DEBUG pageOrders` to the server output.
+- **Problem:** Every pagination request emits a debug log.
+- **Why it fails / scenario:** Normal traffic produces `DEBUG pageOrders` output on the server.
 - **Fix:** Remove the debug statement.
 - **Confidence:** high
 - **Source:** code-reviewer
 
-#### R2 The pagination test does not verify the returned page
+#### R2 Test the pagination and ordering contracts
 
 - **Location:** [test/orders.test.js](repo/test/orders.test.js:11)
-- **Problem:** The test checks only the array type, maximum length and total count.
-- **Why it fails / scenario:** It passes with the incorrect offset in C2, and would also pass if the page were empty.
-- **Fix:** Assert exact items and totals for representative first, later and empty pages.
+- **Problem:** The pagination test checks only the maximum length and total, and the existing list test checks only length.
+- **Why it fails / scenario:** Both tests pass with the incorrect page offset, and neither would fail if `listOrders()` stopped returning newest-first.
+- **Fix:** Assert exact order IDs for the first and subsequent pages, the size cap, and newest-first ordering.
+- **Confidence:** high
+- **Source:** code-reviewer
+
+#### R3 Cover invoice retrieval and traversal
+
+- **Location:** [src/server.js](repo/src/server.js:17)
+- **Problem:** The new invoice endpoint and its security boundary have no tests.
+- **Why it fails / scenario:** The suite passes even though a request can read a file outside the invoice directory.
+- **Fix:** Add endpoint tests for a valid invoice, a missing invoice, and rejected traversal.
 - **Confidence:** high
 - **Source:** code-reviewer
 
@@ -60,29 +69,19 @@ None.
 
 ## Nits
 
-#### N1 Cache TODO has no tracking reference
-
-- **Location:** [src/invoices.js](repo/src/invoices.js:8)
-- **Problem:** The new TODO has no ticket or other tracking reference.
-- **Why it fails / scenario:** The proposed caching work has no identifiable owner or follow-up.
-- **Fix:** Link the TODO to a tracking item or remove it.
-- **Confidence:** high
-- **Source:** code-reviewer
-- **Impact / cost:** low / S
+None.
 
 ## What's done well
 
-- [src/orders.js](repo/src/orders.js:31) caps the requested page size at 50.
+- [src/orders.js](repo/src/orders.js:32) applies the page-size cap before slicing and reports the capped size in the response.
 
 ## Verification
 
-- Commands found in AGENTS.md: `npm test`; `npm start` is a server launch command, not a verification command.
-- Run: `npm test` → passed; Node reported 1 test file, 0 failures.
-- Reproduced the pagination offset and file traversal through the HTTP handler.
-- Semgrep: skipped; its process could not create a temporary directory in the read-only environment. No Semgrep MCP tool was available.
-- Personas were run in the main session, not in a fresh context, as requested; findings were checked against the code and concrete scenarios.
-- Callers: `firstOrder()` is affected by the changed ordering; other identified callers were checked.
+- Commands found in AGENTS.md: `npm test`.
+- Run: `npm test` → passed, 1 test and 0 failures.
+- Semgrep: the added-lines script exited 2 because no usable temporary directory was available; no Semgrep MCP tool was available.
+- Callers: 1 changed symbol, 3 call sites outside the diff read; none unchecked.
 - Findings refuted by the verifier: 0.
 - Optional/Nit findings dropped by the limit (Max Optional=3, Max Nits=3): 0.
 
-REVIEW_RESULT: BLOCK critical=3 required=2 uncertain=0
+REVIEW_RESULT: BLOCK critical=3 required=3 uncertain=0

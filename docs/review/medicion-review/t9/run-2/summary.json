@@ -1,35 +1,75 @@
 {
  "expected_model": "gpt-6.1-terra",
  "expected_effort": "medium",
- "root_thread": "01a1d4a1-fe2f-7b52-97cc-03dcd6cb3a41",
+ "root_thread": "01a1d4a7-b6c6-7503-a559-11e30f24c73e",
  "turn_completed_usage": {
-  "input_tokens": 136870,
-  "cached_input_tokens": 124160,
+  "input_tokens": 344873,
+  "cached_input_tokens": 330112,
   "cache_write_input_tokens": 0,
-  "output_tokens": 1789,
-  "reasoning_output_tokens": 92
+  "output_tokens": 3396,
+  "reasoning_output_tokens": 24
  },
  "agents": {
-  "01a1d4a1-fe2f-7b52-97cc-03dcd6cb3a41": {
+  "01a1d4a7-b6c6-7503-a559-11e30f24c73e": {
    "role": "main",
-   "api_calls": 5,
-   "input_tokens": 136870,
-   "cached_input_tokens": 124160,
-   "output_tokens": 1789,
-   "reasoning_output_tokens": 92,
+   "api_calls": 11,
+   "input_tokens": 344873,
+   "cached_input_tokens": 330112,
+   "output_tokens": 3396,
+   "reasoning_output_tokens": 24,
    "models": [
     "gpt-6.1-terra (effort medium)"
    ]
+  },
+  "01a1d4a8-2871-7433-94c7-97caae4f2455": {
+   "role": "code-reviewer",
+   "api_calls": 5,
+   "input_tokens": 130149,
+   "cached_input_tokens": 121472,
+   "output_tokens": 1585,
+   "reasoning_output_tokens": 90,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": "none",
+   "first_call_input_tokens": 21925,
+   "persona": {
+    "sandbox_match": true,
+    "global_match": false,
+    "distinguishable": true,
+    "detail": "cargó la del sandbox",
+    "body_chars": 8293
+   }
+  },
+  "01a1d4a8-f8b4-70c1-915c-da1f7816ddef": {
+   "role": "finding-verifier",
+   "api_calls": 3,
+   "input_tokens": 77775,
+   "cached_input_tokens": 69760,
+   "output_tokens": 792,
+   "reasoning_output_tokens": 85,
+   "models": [
+    "gpt-6.1-terra (effort medium)"
+   ],
+   "fork_turns": "none",
+   "first_call_input_tokens": 21897,
+   "persona": {
+    "sandbox_match": true,
+    "global_match": false,
+    "distinguishable": true,
+    "detail": "cargó la del sandbox",
+    "body_chars": 6358
+   }
   }
  },
  "problems": [],
  "total": {
-  "input_tokens": 136870,
-  "cached_input_tokens": 124160,
-  "output_tokens": 1789,
-  "reasoning_output_tokens": 92
+  "input_tokens": 552797,
+  "cached_input_tokens": 521344,
+  "output_tokens": 5773,
+  "reasoning_output_tokens": 199
  },
- "subagents": 0,
+ "subagents": 2,
  "models_seen": [
   "gpt-6.1-terra"
  ]

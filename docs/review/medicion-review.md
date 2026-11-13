@@ -6,35 +6,43 @@ Hay cuatro mediciones, cada una válida para su esfuerzo. **La de T20** (`medium
 
 ## Review cruzada con el sandbox (T9, cambio `8-review-cruzada`)
 
-Mide la review que lanza el hook del kit (`harness-review.sh`) cuando empuja un agente Claude (`CLAUDECODE=1`): el hook elige `codex`, con `gpt-6.1-terra` y `medium`, y la skill y las personas del kit (S2). Kit `255e4ea` (`origin/main` con T1 a T8 y T10), `codex-cli 0.167.0`, 2026-11-13. Esta sección no sustituye a las anteriores: la review es la de hoy, con un prompt distinto (apunta al `SKILL.md` del kit y no usa las skills del proyecto).
+Mide la review que lanza el hook del kit (`harness-review.sh`) cuando empuja un agente Claude (`CLAUDECODE=1`): el hook elige `codex`, con `gpt-6.1-terra` y `medium`, y la skill y las personas del kit (S2). Kit `844dda6` (`origin/main` con T1 a T8 y T10, más la corrección del prompt de codex), `codex-cli 0.167.0`, 2026-11-13. No sustituye a las secciones de abajo: el prompt es otro (apunta al `SKILL.md` del kit).
 
-**Resumen.** **No se cumple el criterio (6 de 6 en todas y ningún señuelo)**: dos ejecuciones dan 6 de 6 y una da 5 de 6 (falta B5, el TODO, un Nit); media 5,7 frente a 6,0 de T20 (T10: 5,3). Ningún señuelo sobrevive. Gasta mucho menos que la base (entrada media 140.076 frente a 650.935, -78%; 47 s frente a 137 s), pero **en ninguna de las tres ejecuciones se lanzó un subagente**: la sesión principal hizo sola la review y los informes dicen «Source: code-reviewer» y «Findings refuted by the verifier: 0» sin que haya habido ni `code-reviewer` ni `finding-verifier`. Por eso la tarea T9 **no se marca como hecha**. La comparación de tokens no es entre cosas iguales (la base lanza 2 subagentes; aquí 0).
+**Primer intento (descartado).** Con el prompt de `255e4ea`, que decía «no uses las skills ni los subagentes del proyecto», las tres ejecuciones no lanzaron ningún subagente: la sesión principal hizo sola la review (entrada media 140.076, 47 s, B1–B6 6, 5 y 6 de 6) y los informes citaban un `code-reviewer` y un verifier que no existieron. Se corrigió el prompt (pide lanzar `code-reviewer` y, si hay hallazgos, `finding-verifier`) y se repitió todo; lo que sigue es la repetición.
+
+**Resumen.** **No se cumple el criterio**: las tres ejecuciones dan **5 de 6** (B1, B2, B3, B4 y B6; falta B5, el TODO sin ticket, un Nit, en las tres), ningún señuelo sobrevive y los subagentes sí se lanzaron (`code-reviewer` y `finding-verifier` en las tres, con la persona cargada). Frente a la base de T20 (6,0 de 6): un hallazgo menos, el mismo que perdía el unificado en T10. Gasta algo menos: entrada media 501.326 frente a 650.935 (-23%), sin caché 41.294 frente a 64.055 (-36%), 120 s frente a 137 s. Por eso T9 **no se marca como hecha**.
 
 ### Cómo se midió
 
 | | |
 |---|---|
 | Sandbox | `tests/review-sandbox/build.sh --codex`; `repo/` con un remoto local vacío como `origin` (`main` subido con `--no-verify`) y `origin/HEAD` -> `main`. Sin cambios en los scripts del sandbox |
-| Ejecución | `git push -u origin feature/orders-pagination-invoices` con `CLAUDECODE=1 REVIEW_KIT_RERUN=1`, por el hook `.git/hooks/pre-push` que instala `build.sh` (llama a `harness-review.sh` del kit). Salida del hook: `autor: claude`, la puerta no comprueba nada (la rama no nombra una tarea) y el revisor elegido fue `codex` (el primero de `[review] reviewers` por defecto que no es autor) |
-| Comando de codex | el que construye el hook, tal cual (`exec -s read-only -m gpt-6.1-terra -c model_reasoning_effort="medium"`, las cuatro personas del kit con `-c agents.<rol>.*` y el prompt que apunta a `skills/review-prepush/SKILL.md` del kit). Para medir tokens un envoltorio `codex` en el `PATH` añade `--json` y `-o`: guarda los eventos y devuelve al hook el último mensaje como salida (`docs/review/medicion-review/t9/codex-shim.sh`, `run.sh`) |
-| Tokens | `summarize.py` sobre `events.jsonl` y los registros de sesión de Codex; `problems` vacío en las tres (modelo y esfuerzo correctos) |
+| Ejecución | `git push -u origin feature/orders-pagination-invoices` con `CLAUDECODE=1 REVIEW_KIT_RERUN=1`, por el hook `.git/hooks/pre-push` que instala `build.sh` (llama a `harness-review.sh` del kit). El hook dijo `autor: claude`, la puerta no comprueba nada (la rama no nombra una tarea) y eligió `codex` |
+| Comando de codex | el que construye el hook, tal cual (`exec -s read-only -m gpt-6.1-terra -c model_reasoning_effort="medium"`, las cuatro personas del kit con `-c agents.<rol>.*` y el prompt). Para medir, un envoltorio `codex` en el `PATH` añade `--json` y `-o`: guarda los eventos y devuelve al hook el último mensaje (`docs/review/medicion-review/t9/codex-shim.sh`, `run.sh`) |
+| Tokens y subagentes | `summarize.py` sobre `events.jsonl` y los registros de sesión de Codex; `problems` vacío en las tres (modelo y esfuerzo correctos en todos los agentes) y persona cargada en los dos subagentes de cada ejecución (`sandbox_match`: las copias del sandbox y las del kit son iguales) |
 | Duración | reloj del `git push` completo (incluye la puerta y el envoltorio) |
-| Resultados | `report.md` y `summary.json` de cada ejecución en `docs/review/medicion-review/t9/run-<n>/` (sin `events.jsonl`; la ruta del sandbox sustituida por `repo/`) |
+| Resultados | `report.md` y `summary.json` de cada ejecución en `docs/review/medicion-review/t9/run-<n>/` (sin `events.jsonl`; ruta del sandbox sustituida por `repo/`) |
 
-Límites: n = 3; el envoltorio de medición no está en el hook real; el sandbox no tiene `AGENTS.md`. Los tres empujes terminaron en `rc=1` (el hook bloquea por Critical confirmados, como se espera).
+Límites: n = 3; el envoltorio de medición no está en el hook real; el sandbox no tiene `AGENTS.md`. Los tres empujes terminaron en `rc=1` (el hook bloquea por Critical confirmados, como se espera). Los informes de run-1 y run-2 están en español y el de run-3 en inglés, sin que el hook lo pida.
 
 ### Tokens
 
-Solo hay sesión principal (0 subagentes, 5 llamadas a la API en las tres).
+Entrada / en caché / sin caché / salida / razonamiento (llamadas a la API entre paréntesis). `code-reviewer` y `finding-verifier` lanzados: sí y sí en las tres.
 
-| Ejecución | Entrada | En caché | Sin caché | Salida | Razonamiento | Duración (s) | Veredicto |
-|---|---:|---:|---:|---:|---:|---:|---|
-| run-1 | 139.686 | 113.664 | 26.022 | 2.102 | 100 | 51 | `BLOCK critical=3 required=4` |
-| run-2 | 136.870 | 124.160 | 12.710 | 1.789 | 92 | 45 | `BLOCK critical=3 required=2` |
-| run-3 | 143.672 | 117.248 | 26.424 | 1.905 | 68 | 45 | `BLOCK critical=3 required=2` |
-| **Media** | **140.076** | **118.357** | **21.719** | **1.932** | **87** | **47** | |
-| T20 (`medium`, base) | 650.935 | 586.880 | 64.055 | 6.497 | 252 | 137 | |
-| T10 (unificado) | 597.210 | 509.397 | 87.813 | 6.167 | 256 | 123 | |
+| Agente | run-1 | run-2 | run-3 |
+|---|---|---|---|
+| sesión principal | 304.633 / 278.528 / 26.105 / 3.375 / 40 (10) | 344.873 / 330.112 / 14.761 / 3.396 / 24 (11) | 258.574 / 246.144 / 12.430 / 3.105 / 26 (9) |
+| code-reviewer | 129.996 / 108.160 / 21.836 / 1.360 / 82 (5) | 130.149 / 121.472 / 8.677 / 1.585 / 90 (5) | 130.209 / 121.600 / 8.609 / 1.508 / 63 (5) |
+| finding-verifier | 78.111 / 62.592 / 15.519 / 795 / 90 (3) | 77.775 / 69.760 / 8.015 / 792 / 85 (3) | 49.657 / 41.728 / 7.929 / 1.123 / 41 (2) |
+| **Total** | **512.740 / 449.280 / 63.460 / 5.530 / 212** | **552.797 / 521.344 / 31.453 / 5.773 / 199** | **438.440 / 409.472 / 28.968 / 5.736 / 130** |
+| Duración (s) | 114 | 124 | 121 |
+| Veredicto | `BLOCK critical=3 required=3` | `BLOCK critical=3 required=4` | `BLOCK critical=3 required=3` |
+
+| | Entrada | En caché | Sin caché | Salida | Razonamiento | Duración (s) | B1–B6 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **Media de T9** | **501.326** | **460.032** | **41.294** | **5.680** | **180** | **120** | **5,0** |
+| T20 (`medium`, base) | 650.935 | 586.880 | 64.055 | 6.497 | 252 | 137 | 6,0 |
+| T10 (unificado) | 597.210 | 509.397 | 87.813 | 6.167 | 256 | 123 | 5,3 |
 
 ### Qué encuentra
 
@@ -42,16 +50,15 @@ Puntuado a mano contra `tests/review-sandbox/EXPECTED.md` con el criterio de T17
 
 | | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | D1 | D2 | D3 | B1–B6 |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| run-1 | sí | sí | sí | sí | sí | sí | sí | no | no | no | no | no | 6/6 |
+| run-1 | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/6 |
 | run-2 | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/6 |
-| run-3 | sí | sí | sí | sí | sí | sí | no | no | no | no | no | no | 6/6 |
+| run-3 | sí | sí | sí | sí | no | sí | no | no | no | no | no | no | 5/6 |
 
-B1 es C2, B3 es C1 y B6 es C3 en las tres. B2 lo señalan R1 (run-1) y R2 (run-2 y run-3): el test pasa con el offset incorrecto. B4 es R3 en run-1 y R1 en run-2 y run-3. B5 sale como N1 en run-1 y run-3 y falta en run-2. B7 solo en run-1 (R4). No aparecen B8 ni B9. Ningún señuelo sobrevive.
+B1 es C2, B3 es C1 y B6 es C3 en las tres; B4 es R3 (run-1) y R1 (run-2 y run-3); B2 es R1 (run-1) y R2 (run-2 y run-3), todos diciendo que el test acepta resultados incorrectos. Ni el TODO de `src/invoices.js` ni B7, B8 y B9 aparecen en ninguna (ni siquiera como Nit); el verifier refutó 0 hallazgos en las tres. Fuera de `EXPECTED.md`: falta de test de `/invoices` (discutible, las tres); run-2 añade la falta de test del nuevo orden.
 
 ### Lo que queda abierto
 
-- **Sin subagentes.** En `exec --json` no hay ningún evento de lanzamiento de agentes y sale un solo registro de sesión por ejecución. Los informes atribuyen los hallazgos a `code-reviewer` y dicen que el verifier refutó 0: no hubo verifier. Es una desviación respecto a la skill (contexto fresco y verificación adversarial), quizá por el prompt del hook («no uses las skills ni los subagentes del proyecto»), que el modelo puede leer como «no uses subagentes». No se ha comprobado la causa ni se ha cambiado el prompt: es decisión de otra tarea.
-- **6 de 6 no es estable**: media 5,7 en 3 ejecuciones; lo que se pierde es B5 (un Nit), como en la medición de T10.
+- **B5 se pierde siempre** (3 de 3), como en T10: un Nit sin ticket. Quizá la regla «Max Nits» de la skill o el recorte del prompt lo explique; no se ha investigado, y reforzarlo es otra tarea.
 - **Ruta de Claude** (revisor `claude` con `--plugin-dir <kit>` frente a un plugin `harness` instalado): no se ejecutó ni se comprobó que `--plugin-dir` tenga prioridad sobre un `harness` instalado.
 
 ## Reviewer unificado frente a la base (T10)
