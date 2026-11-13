@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# review-kit — git pre-push hook
+# review-kit — harness-review, pre-push hook of the kit (D-0055)
 #
 # Runs /review-prepush headless with Claude Code and blocks the push ONLY when the
 # review reports at least one confirmed Critical finding. Anything else (Required,
 # Optional, tool errors, missing claude CLI) lets the push through with a message.
 #
-# Install:  cp <skill>/assets/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+# Install:  the `harness-review` hook of .pre-commit-hooks.yaml (prek install). It runs the
+# workflow gate first: with the gate red (exit 1) it blocks the push without launching the reviewer.
 #
 # Environment knobs:
 #   SKIP_CLAUDE_REVIEW=1        skip the review for this push (or use `git push --no-verify`)
@@ -29,10 +30,12 @@ set -u
 [ "${SKIP_CLAUDE_REVIEW:-0}" = "1" ] && { echo "review-kit: SKIP_CLAUDE_REVIEW=1 — review skipped."; exit 0; }
 
 # Skip pushes that only delete refs.
-only_deletes=1
+# (prek and pre-commit give the hook no ref list: no lines is not a delete.)
+only_deletes=0
 while read -r _local_ref local_sha _remote_ref _remote_sha; do
   case "$local_sha" in
     *[!0]*) only_deletes=0 ;;
+    *) only_deletes=1 ;;
   esac
 done
 [ "$only_deletes" = "1" ] && exit 0
@@ -46,6 +49,15 @@ fail() {
   echo "review-kit: push continues (fail-open)." >&2
   exit 0
 }
+
+# The gate first (D-0055): a red gate means the push is blocked anyway, so the reviewer is not paid for.
+gate="$(cd "$(dirname "$0")" && pwd)/../../task-done/scripts/gate.py"
+python3 "$gate" </dev/null; gate_rc=$?
+if [ $gate_rc -eq 1 ]; then
+  echo "review-kit: gate en rojo: no se lanza el revisor." >&2
+  exit 1
+fi
+[ $gate_rc -ne 0 ] && fail "the gate could not check the branch (exit $gate_rc); the review continues without it."
 
 command -v claude >/dev/null 2>&1 || fail "'claude' CLI not found on PATH; review skipped."
 

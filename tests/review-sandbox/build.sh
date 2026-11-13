@@ -40,7 +40,7 @@ if [ "$CODEX" = 1 ]; then
   done
   cp "$KIT"/adapters/codex/agents/{code-reviewer,security-auditor,test-engineer,finding-verifier}.toml .codex/agents/
 fi
-cp "$KIT/skills/review-prepush/assets/pre-push" .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+printf '#!/usr/bin/env bash\nexec bash "%s/skills/review-prepush/scripts/harness-review.sh"\n' "$KIT" > .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 git add -A && git commit -q -m "Install review skills"
 
 git switch -q -c feature/orders-pagination-invoices
