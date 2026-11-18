@@ -220,9 +220,9 @@ if any(len(c) != 1 for c in copies.values()) or len(texts) != 1:
     sys.exit(1)
 EOF
 
-echo "▶ atomic tasks E20-E24: the four texts say the same (D-0044)"
+echo "▶ tareas por objetivo E1-E5 E8 E9: los cuatro textos dicen lo mismo (D-0058, D-0059)"
 python3 - <<'EOF'
-import sys
+import re, sys
 from pathlib import Path
 T = {f: Path(f).read_text(encoding="utf-8") for f in (
     "skills/idea-to-change/SKILL.md", "skills/plan-to-tasks/SKILL.md",
@@ -233,26 +233,28 @@ def need(ok, msg):
     if not ok:
         bad.append(msg)
 for f, t in T.items():
-    need("D-0044" in t, f"{f}: cites D-0044")
-    need("D-0033" not in t, f"{f}: still cites D-0033")
-    need("150 lines" not in t and "150 changed" not in t, f"{f}: still says 150")
-    need("200 lines" in t or "200 changed lines" in t, f"{f}: says 200 lines")
-    need("with the tests" in t and "without the tests" not in t, f"{f}: counts the tests in")
-for f in splitters:  # E20, E21, E22
+    need("D-0033" not in t and "150 lines" not in t, f"{f}: old limits")
+    need(not re.search(r"200 (changed )?lines|beyond 200|more than 200", t), f"{f}: still says 200 lines")
+    need("give the count" not in t and "git diff --shortstat" not in t, f"{f}: still counts the size")
+for f in splitters:  # E1, E3, E5
     t = T[f]
-    need("at most 200 lines of diff with the tests" in t and "split" in t, f"E20 {f}")
-    need('without "and"' in t and "two tasks" in t, f"E21 {f}")
-    need("one behaviour" in t, f"E22 {f}")
-c = T["agents/code-reviewer.md"]  # E23
-need("diff_size.py" in c and "Optional" in c and "give the count" in c, "E23 code-reviewer")
-need("git diff --shortstat" not in c, "E23 code-reviewer: still counts without the tests")
-i = T["agents/implement.md"]  # E24
-need("beyond 200 lines" in i and "stop and report" in i, "E24 implement")
+    need("D-0058" in t and "one goal" in t.lower(), f"E1 {f}: the goal criterion")
+    need("endpoint" in t and "table" in t, f"E1 {f}: the endpoint / table example")
+    need('without "and"' in t and "two tasks" in t, f"E3 {f}: two goals, two tasks")
+    need("no line limit" in t, f"E1 {f}: no line limit")
+    need("GET /invoices" in t and "two rules" in t, f"E2 {f}: several rules, one goal")
+    need("D-0044" in t and "feature flag" in t, f"E5 {f}: the flag stays")
+i = T["agents/implement.md"]  # E4
+need("D-0059" in i and "never stop or report because of the size" in i, "E4 implement")
+need("D-0044" in i and "feature flag" in i and "second purpose" in i, "E4 implement: flag and second purpose stay")
+c = T["agents/code-reviewer.md"]  # E8, E9
+need("D-0059" in c and "never report the size alone" in c, "E8 code-reviewer")
+need("diff_size.py" not in c, "E8 code-reviewer: counts the size")
+need("Optional" in c and "mixes goals" in c and "name the files of each" in c, "E9 code-reviewer")
 if bad:
-    print("atomic tasks (D-0044) not said in: " + "; ".join(bad), file=sys.stderr)
+    print("tasks by goal (D-0058, D-0059) not said in: " + "; ".join(bad), file=sys.stderr)
     sys.exit(1)
 EOF
-
 echo "▶ task-done"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 td=skills/task-done/scripts/task_done.py
@@ -1174,14 +1176,10 @@ if [ ${#pc[@]} -gt 0 ]; then
   prr; [ $rc = 0 ] && [ "$calls" = 1 ] || { cat "$tmp/out" >&2; fail "E3: harness-review through pre-commit did not launch the reviewer on a green gate"; }
 fi
 fi
-echo "▶ gate: aviso de tamaño sin bloquear (R3, D-0053, T3 de control-del-flujo)"
+echo "▶ gate: el tamaño no avisa ni bloquea (R2, E6 de tareas-por-objetivo, D-0059)"
 lines() { seq 1 "$1" | sed 's/^/x = /'; }
-ag checkout -q -B 42-cancelar/T4 main; lines 180 > "$ar/big.py"; ag add -A; ag commit -qm "feat(T4): big"
-agate; [ $rc = 0 ] && ! grep -q "parte la tarea" "$tmp/out" || fail "E12: 180 lines gave a warning or did not exit 0"
-ag checkout -q -B 42-cancelar/T4 main; lines 260 > "$ar/big.py"; ag add -A; ag commit -qm "feat(T4): big"
-agate; [ $rc = 0 ] && grep -q "260 líneas > 200 (D-0044): parte la tarea en el plan" "$tmp/out" || fail "E13: 260 lines did not exit 0 with the warning"
-ag checkout -q -B 42-cancelar/T4 main; lines 140 > "$ar/big.py"; lines 120 > "$ar/uv.lock"; ag add -A; ag commit -qm "feat(T4): big"
-agate; [ $rc = 0 ] && ! grep -q "parte la tarea" "$tmp/out" || fail "E14: 260 lines with 120 in uv.lock gave a warning"
+ag checkout -q -B 42-cancelar/T4 main; lines 450 > "$ar/big.py"; ag add -A; ag commit -qm "feat(T4): big"
+agate; [ $rc = 0 ] && ! grep -q "líneas\|parte la tarea" "$tmp/out" || { cat "$tmp/out" >&2; fail "E6: 450 lines did not exit 0 without a size warning"; }
 echo "▶ gate: la rama de una tarea no toca ficheros de control (R7, T4 de control-del-flujo)"
 for f in .pre-commit-config.yaml .github/workflows/ci.yml .claude/settings.json scripts/check.sh; do
   ag checkout -q -B 42-cancelar/T4 main; mkdir -p "$ar/$(dirname "$f")"; echo x >> "$ar/$f"; ag add -A; ag commit -qm "feat(T4): $f"

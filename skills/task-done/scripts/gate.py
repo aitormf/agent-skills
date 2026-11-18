@@ -2,8 +2,7 @@
 """The flow gate: decides what to check from the branch (R1 of control-del-flujo).
 Usage: gate.py [--require-task | --context]
 The branch is GITHUB_HEAD_REF if set (CI checks out a detached HEAD), else the current one.
-  - <...>/<change>/T<n>: the file docs/changes/<change>/tasks/T<n>-*.md must exist; above 200
-    lines of diff it warns (D-0053), it does not fail.
+  - <...>/<change>/T<n>: the file docs/changes/<change>/tasks/T<n>-*.md must exist.
     It fails if the branch touches a control file (the list of the base branch, R7).
   - <...>/<change>/plan: the plan PR carries no code.
   - any other branch: nothing is checked, unless --require-task: then a change of code
@@ -80,20 +79,12 @@ def control_files(root: Path, base: str, files: list[str]) -> list[str]:
     return [f for f in files if f == CONFIG or any(fnmatch.fnmatchcase(f, p) for p in patterns)]
 
 
-def size_warning(root: Path, base: str) -> str | None:
-    """R3 (D-0053): the size counted by diff_size.py (D-0047); above 200 lines it warns, it never blocks."""
-    script = Path(__file__).resolve().parents[2] / "review-context" / "scripts" / "diff_size.py"
-    run = subprocess.run([sys.executable, str(script), f"{base}...HEAD"], cwd=root, capture_output=True, text=True)
-    count = re.match(r"(\d+) lines, large", run.stdout)
-    return f"{count[1]} líneas > 200 (D-0044): parte la tarea en el plan" if count else None
-
-
 RULES = """Reglas del flujo (las comprueba el gate, no se saltan):
 - Una tarea, una rama (<cambio>/T<n>), una PR; las dependencias, ya integradas.
 - Antes del código, el commit test(T<n>) en rojo con los tests de sus ejemplos; después no se tocan.
 - El plan aprobado (examples, verification, depends_on) y el fichero de otra tarea no se cambian en la rama.
 - Una tarea no cambia el arnés (hooks, CI, ajustes de los agentes): va en su propia PR.
-- Hasta 200 líneas con los tests; si no cabe, para y pide partir la tarea.
+- Una tarea, un objetivo: si hace falta un segundo objetivo, para y pide partir la tarea. El tamaño no es un motivo (D-0059).
 - El estado se marca con task-done, nunca a mano."""
 
 
@@ -174,8 +165,6 @@ def main(argv: list[str]) -> int:
             problems.append(f"una tarea no cambia el arnés: va en su propia PR, revisada por CODEOWNERS ({', '.join(touched)})")
         for problem in problems:
             print(f"gate: {problem}", file=sys.stderr)
-        if warning := size_warning(root, base):
-            print(f"gate: aviso: {warning}", file=sys.stderr)
         return 1 if problems else 0
     if "--require-task" in argv and code:
         print(f"gate: la rama no nombra una tarea y cambia código: {', '.join(code[:5])}", file=sys.stderr)

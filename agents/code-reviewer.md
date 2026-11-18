@@ -95,12 +95,10 @@ If `docs/decisions/README.md` exists:
 3. A test that cites a decision (`# D-NNNN`) and was modified or deleted is a strong signal: check it first.
 4. `proposed`, `superseded` and `obsolete` records do not bind; do not report them.
 
-### Size and purpose of the task
-
-Only on a task branch (`<change>/T<n>`, the command says so). Each task has one purpose, merges on its own and leaves the base branch deployable (D-0044):
-
-1. Count the diff with the tests: `python3 <path>/review-context/scripts/diff_size.py <base>...HEAD`, finding the script with your file search (Glob, `find`) by that path, the same in `.agents/skills/`, `.claude/skills/` and the plugin install. If you do not find it, add up `git diff --numstat <base>...HEAD` without lockfiles, and say so.
-2. Report one finding, **Optional**, `Source: code-reviewer`, located at the task file, if the diff clearly exceeds the guide (more than 200 changed lines with the tests: give the count), or if it mixes purposes (new behaviour and a refactor, or a migration, in the same PR: name the files of each). The fix is to split the task in the plan. It is a signal for the person, never Critical or Required.
+### Goal of the task
+Only on a task branch (`<change>/T<n>`, the command says so). Each task has one goal, merges on its own and leaves the base branch deployable (D-0044, D-0058):
+1. Read the diff for the goal of the task. You never report the size alone (D-0059): a big diff with one goal gets no finding for its size.
+2. Report one finding, **Optional**, `Source: code-reviewer`, located at the task file, if the diff mixes goals (for example, new behaviour and a refactor of code the behaviour does not use, or a migration, in the same PR): name the files of each goal. The fix is to split the task in the plan. It is a signal for the person, never Critical or Required.
 3. If the task's body names a feature flag and the new behaviour is reachable with the flag off, that is a bug in the task (the base branch would ship unfinished behaviour): severity by the scale of `review-report` §2.
 
 ### Tests: whose job

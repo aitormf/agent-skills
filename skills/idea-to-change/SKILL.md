@@ -56,8 +56,7 @@ Apply their corrections to the README. Set the records they accepted to `accepte
 
 Write one file per task, `tasks/T<n>-<slug>.md`, from `assets/task.md`. Each one becomes a branch and a PR of its own, merged on its own into the base branch, so split by these rules (D-0044):
 
-- **One purpose and one behaviour per task:** new behaviour, or a refactor, or preparation (plumbing, a migration). Never mixed, and one behaviour (one rule of the example map). The purpose fits in one sentence without "and" (if it needs "and", they are two tasks), in the body of the file.
-- **Small:** at most 200 lines of diff with the tests (counted as in D-0047). A task that promises more is split.
+- **One goal per task (D-0058):** each task is a part of a feature that makes sense by itself and has one goal, said in one sentence without "and" (if it needs "and", they are two tasks). Split by usefulness, not by size: the endpoint that exposes the data is one task and the table that shows it is another; a task "expose invoices in `GET /invoices`" covers filtering by date and paging (two rules of the map) and is one task, but "add the endpoint and also refactor the HTTP client" is two. There is no line limit: the size is a consequence of the goal, and nothing blocks or warns because of it (D-0059).
 - **The base branch stays green and deployable after each task.** If the behaviour is unfinished until a later task, it goes behind a feature flag, off by default, with the mechanism `AGENTS.md` names. If `AGENTS.md` names none and a flag is needed, ask the person which one to use; do not invent one.
 - **A change with a flag ends with a task that removes it**, with the dead code and the tests of the old path. It depends on every other task.
 - **T1 is the thinnest slice that works end to end** (behind the flag if there is one). Each task goes through every layer it needs.
