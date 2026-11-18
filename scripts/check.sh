@@ -1483,4 +1483,44 @@ tr7="$tmp/tramos7"; tramos_repo "$tr7" 300
 for i in $(seq 2000); do echo "dep $i"; done > "$tr7/uv.lock"; git -C "$tr7" add -A; git -C "$tr7" -c user.name=t -c user.email=t@t commit -qm "chore: lock"
 tramos_commit "$tr7" a.txt 250 "feat: c1"
 tramos_out "$tr7" E16; tramos_has E16 "^tamaño: 250 líneas (1 tramo)\$"
+echo "▶ review: review-prepush revisa por tramos con una pasada de costuras (R4, E18-E24 de tareas-por-objetivo, D-0060)"
+python3 - <<'EOF2' || { echo "E18-E24: review-prepush or the agents do not say how a branch with several tramos is reviewed (D-0060)" >&2; exit 1; }
+import re
+from pathlib import Path
+pre = Path("skills/review-prepush/SKILL.md").read_text(encoding="utf-8")
+cr = Path("agents/code-reviewer.md").read_text(encoding="utf-8")
+fv = Path("agents/finding-verifier.md").read_text(encoding="utf-8")
+bad = []
+def sec(t, h):  # a "## ..." section up to the next one
+    m = re.search(rf"^## {h}.*?(?=^## |\Z)", t, re.S | re.M)
+    return m.group(0) if m else ""
+def has(t, pat):
+    return bool(re.search(pat, t, re.S | re.I))
+step3, step4, step5 = sec(pre, "Step 3"), sec(pre, "Step 4"), sec(pre, "Step 5")
+tramos = step3  # the by-tramo review is described in Step 3
+for name, ok in {
+    "E18 one code-reviewer per tramo, in parallel": has(tramos, r"one `code-reviewer` per tramo") and has(tramos, r"in parallel"),
+    "E18 each brief carries the diff a..b of its tramo": has(tramos, r"git diff <a>\^\.\.<b>"),
+    "E18 each brief carries the task and the whole facts": has(tramos, r"every tramo brief.*task.*facts|brief of each tramo.*task.*facts"),
+    "E18 each brief orders to read git diff <base>...HEAD": has(tramos, r"git diff <base>\.\.\.HEAD.*(before|if).*(missing|absent)|(missing|absent).*git diff <base>\.\.\.HEAD"),
+    "E18 one tramo is today's review": has(tramos, r"(single|one|1) tramo.*(today|as before|unchanged)|(today|as before|unchanged).*(single|one|1) tramo"),
+    "E19 code-reviewer reads the branch diff before reporting something absent": has(cr, r"tramo") and has(cr, r"git diff <base>\.\.\.HEAD") and has(cr, r"absent|missing"),
+    "E20 finding-verifier confirms only what is true in HEAD": has(fv, r"true in `?HEAD`?") and has(fv, r"tramo"),
+    "E20 Step 4 gives the verifier HEAD (the whole-branch diff)": has(step4, r"HEAD") and has(step4, r"tramo"),
+    "E21 findings repeated across tramos appear once": has(step4, r"same finding.*(once|merge)|(merge|once).*same finding|repeated.*tramo.*(once|merge)"),
+    "E22 a seams pass by one more code-reviewer without history, for 2 or more tramos": has(tramos, r"one more `code-reviewer`") and has(tramos, r"seams") and has(tramos, r"2 or more tramos|two or more tramos|several tramos"),
+    "E22 the seams brief: what each tramo exposes, who uses it in another, the examples of the task": has(tramos, r"expose") and has(tramos, r"examples of the task"),
+    "E22 no seams pass with one tramo": has(tramos, r"(single|one|1) tramo.*no seams|no seams.*(single|one|1) tramo|without (a )?seams"),
+    "E22 the report has a Seams section": has(step5, r"Seams"),
+    "E22 the code-reviewer knows its seams role": has(cr, r"seams"),
+    "E23 a confirmed Critical in a tramo or in the seams blocks": has(step5, r"confirmed Critical.*(any tramo|tramo).*seams|confirmed Critical.*seams"),
+    "E24 without subagents the tramos go one after another in the main session": has(step3, r"without subagents.*tramos.*one after another|tramos.*one after another.*main session"),
+    "E24 and Verification says it": has(pre, r"tramos (were )?reviewed one after another|tramos.*Verification"),
+}.items():
+    if not ok:
+        bad.append(name)
+if bad:
+    print("\n".join(bad))
+    raise SystemExit(1)
+EOF2
 echo "✔ todo en verde"
