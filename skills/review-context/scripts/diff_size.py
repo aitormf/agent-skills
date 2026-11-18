@@ -55,21 +55,28 @@ def generated_by_attrs(range_, paths):
     return {attrs[i] for i in range(0, len(attrs) - 2, 3) if attrs[i + 2] in ("set", "true")}
 
 
-def main():
-    if len(sys.argv) != 2:
-        sys.exit("usage: diff_size.py <base>...<head>")
-    try:
-        items = changes(sys.argv[1])
-    except SystemExit as e:
-        print(e, file=sys.stderr)
-        return 2
-    generated = generated_by_attrs(sys.argv[1], [p for p, *_ in items])
+def counted_lines(range_, attrs_range=None):
+    """Lines added + deleted in `range_` without lockfiles, snapshots and generated files; the attributes are
+    those of the merge base of `attrs_range` (default: `range_`)."""
+    items = changes(range_)
+    generated = generated_by_attrs(attrs_range or range_, [p for p, *_ in items])
     total = 0
     for path, added, deleted in items:
         name = path.rsplit("/", 1)[-1]
         if name in LOCKFILES or name.endswith(".snap") or "__snapshots__/" in f"/{path}" or path in generated:
             continue
         total += added + deleted
+    return total
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: diff_size.py <base>...<head>")
+    try:
+        total = counted_lines(sys.argv[1])
+    except SystemExit as e:
+        print(e, file=sys.stderr)
+        return 2
     print(f"{total} lines, " + ("small (at most 200)" if total <= SMALL else "large (more than 200)"))
     return 0
 

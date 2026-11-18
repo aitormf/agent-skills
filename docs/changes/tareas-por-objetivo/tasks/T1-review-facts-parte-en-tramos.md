@@ -1,7 +1,7 @@
 ---
 id: T1
 title: review_facts.py parte la rama en tramos de commits
-status: todo
+status: done
 depends_on: []
 examples: [E7, E10, E11, E12, E13, E14, E15, E16, E17]
 verification: scripts/check.sh
