@@ -1,7 +1,7 @@
 ---
 id: T2
 title: review-prepush revisa por tramos con una pasada de costuras
-status: todo
+status: done
 depends_on: [T1]
 examples: [E18, E19, E20, E21, E22, E23, E24]
 verification: scripts/check.sh
