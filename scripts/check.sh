@@ -1354,6 +1354,29 @@ for name, ok in {
     if not ok: bad.append(name)
 if bad: print("\n".join(bad)); raise SystemExit(1)
 EOF2
+echo "▶ review: review-prepush reúne los hechos con una llamada al script (R4, E14 de 95-hechos-de-la-review, D-0057)"
+python3 - <<'EOF2' || { echo "E14: steps 1 and 2 of review-prepush do not gather the facts with review_facts.py" >&2; exit 1; }
+import re
+from pathlib import Path
+pre = Path("skills/review-prepush/SKILL.md").read_text(encoding="utf-8")
+def sec(h):  # a "## ..." section up to the next one
+    m = re.search(rf"^## {h}.*?(?=^## |\Z)", pre, re.S | re.M)
+    return m.group(0) if m else ""
+s1, s2, s3 = sec("Step 1"), sec("Step 2"), sec("Step 3")
+both = s1 + s2
+bad = [name for name, ok in {
+    "one call to review_facts.py in steps 1 and 2": both.count("review_facts.py") == 1,
+    "no git command list (rev-parse, log, diff --stat)": not re.search(r"git (rev-parse|log|diff|symbolic-ref)", both),
+    "no direct call to task_done.py --audit": "task_done.py" not in both,
+    "the script output goes as is in the brief of Step 3": bool(re.search(r"(as is|verbatim|unchanged)", s3)) and "review_facts.py" in s3,
+    "stops with OK on 'sin cambios frente a'": "sin cambios frente a" in s1 and "OK" in s1,
+    "keeps the AGENTS.md verification commands and Semgrep": "review-context` §2" in s2 and "Semgrep" in s2,
+    "keeps reading the task file, README, spec.md and plan.md": all(w in both for w in ("README", "spec.md", "plan.md")),
+    "keeps the audit reading (exit 3, no comprobada, Test protection: not checked)": all(w in both for w in ("exit 3", "auditoría: no comprobada", "Test protection: not checked")),
+    "keeps the D-0057 rule for the TODO": "D-0057" in both,
+}.items() if not ok]
+if bad: print("\n".join(bad)); raise SystemExit(1)
+EOF2
 echo "▶ review: base, rama, log, diff y estado (review_facts.py, R3, E9 E10 E12 de 95-hechos-de-la-review, D-0057)"
 gf config log.showSignature true; gf config log.decorate full; gf config format.pretty short; gf config status.short true; gf config diff.mnemonicPrefix true
 (cd "$fr" && python3 "$rf") > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E12: review_facts.py failed without an argument" >&2; exit 1; }
