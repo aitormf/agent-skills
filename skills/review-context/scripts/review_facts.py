@@ -97,14 +97,14 @@ def main():
     dirty = git("status", "--porcelain", "--untracked-files=normal").stdout.strip()
     if dirty:
         print("hay cambios sin commit: los cambios sin commit no se revisan ni se suben")
-    log = git("log", "--no-show-signature", "--no-decorate", "--format=%h %s", f"{base}..HEAD", "--")
+    log = git("log", "--no-show-signature", "--no-decorate", "--format=%h %s%n%b", f"{base}..HEAD", "--")
     if log.returncode:
         sys.exit(f"review_facts: git log failed: {log.stderr.strip()}")
     if not log.stdout.strip():
         print(f"sin cambios frente a {base}")
         return 0
     print("log base..HEAD:\n" + log.stdout.rstrip())
-    stat = git("diff", "--stat", "--no-ext-diff", "--no-color", f"{base}...HEAD", "--")
+    stat = git("diff", "--stat=1000", "--no-ext-diff", "--no-color", f"{base}...HEAD", "--")
     if stat.returncode:
         sys.exit(f"review_facts: git diff failed: {stat.stderr.strip()}")
     print("diff --stat:\n" + stat.stdout.rstrip())
