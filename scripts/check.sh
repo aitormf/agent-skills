@@ -1431,4 +1431,58 @@ iso="$tmp/facts-iso/review-context/scripts"; mkdir -p "$iso"; cp "$rf" "$iso/"
 (cd "$ft" && python3 "$iso/review_facts.py" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E13: failed when the audit cannot run" >&2; exit 1; }
 grep -q "^auditoría: no comprobada (.\+)\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E13: auditoría: no comprobada (<motivo>) is missing" >&2; exit 1; }
 grep -q "^b.js:1\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E13: the rest of the facts were lost" >&2; exit 1; }
+echo "▶ review: el tamaño y los tramos de commits (review_facts.py, R3, E7 E10-E17 de tareas-por-objetivo, D-0060)"
+# tramos_repo <dir> <threshold|none>: a repo with main (and .harness-config.toml, with the key unless "none"), checked out on a branch "feat"
+tramos_repo() {
+  git init -q -b main "$1"; echo base > "$1/README.md"
+  [ "$2" = none ] && echo '[gate.control]' > "$1/.harness-config.toml" || printf '[review]\nmax_lines_per_reviewer = %s\n' "$2" > "$1/.harness-config.toml"
+  git -C "$1" add -A; git -C "$1" -c user.name=t -c user.email=t@t commit -qm base; git -C "$1" checkout -qb feat
+}
+# tramos_commit <dir> <file> <lines> <message>: a commit that adds <lines> lines to <file>
+tramos_commit() {
+  for i in $(seq "$3"); do echo "line $i of $4"; done >> "$1/$2"
+  git -C "$1" add -A; git -C "$1" -c user.name=t -c user.email=t@t commit -qm "$4"
+}
+tramos_out() { (cd "$1" && python3 "$rf" main) > "$tmp/tramos.out" 2>&1 || { cat "$tmp/tramos.out" >&2; echo "$2: review_facts.py failed" >&2; exit 1; }; }
+tramos_has() { grep -q -- "$2" "$tmp/tramos.out" || { cat "$tmp/tramos.out" >&2; echo "$1: expected '$2'" >&2; exit 1; }; }
+tr1="$tmp/tramos1"; tramos_repo "$tr1" 300
+tramos_commit "$tr1" a.txt 120 "feat: c1"; tramos_commit "$tr1" b.txt 90 "feat: c2"; tramos_commit "$tr1" c.txt 150 "feat: c3"
+tramos_commit "$tr1" d.txt 60 "feat: c4"; tramos_commit "$tr1" e.txt 100 "feat: c5"
+tramos_out "$tr1" E11
+hs() { git -C "$tr1" log --reverse --format=%h main..HEAD; }
+mapfile -t h < <(hs)
+tramos_has E7 "^tamaño: 520 líneas (3 tramos)\$"
+tramos_has E11 "^tramo 1: ${h[0]}\.\.${h[1]} (210 líneas)\$"
+tramos_has E17 "^tramo 2: ${h[2]}\.\.${h[3]} (210 líneas)\$"
+tramos_has E17 "^tramo 3: ${h[4]}\.\.${h[4]} (100 líneas)\$"
+[ "$(grep -c '^tramo [0-9]*:' "$tmp/tramos.out")" = 3 ] || { cat "$tmp/tramos.out" >&2; echo "E17: expected exactly 3 tramos" >&2; exit 1; }
+# E10: the branch fits in one tramo, base..HEAD as today
+tr2="$tmp/tramos2"; tramos_repo "$tr2" 300; tramos_commit "$tr2" a.txt 90 "feat: c1"; tramos_commit "$tr2" b.txt 90 "feat: c2"
+tramos_out "$tr2" E10
+tramos_has E10 "^tamaño: 180 líneas (1 tramo)\$"; tramos_has E10 "^tramo 1: origin/main\.\.HEAD (180 líneas)\$\|^tramo 1: main\.\.HEAD (180 líneas)\$"
+# E12: test(T2) and the commit after it stay in one tramo although together they pass the threshold
+tr3="$tmp/tramos3"; tramos_repo "$tr3" 300
+tramos_commit "$tr3" a.txt 50 "docs: c1"; tramos_commit "$tr3" t.txt 200 "test(T2): E1 red"; tramos_commit "$tr3" f.txt 200 "feat(T2): green"
+tramos_out "$tr3" E12; mapfile -t h < <(git -C "$tr3" log --reverse --format=%h main..HEAD)
+tramos_has E12 "^tramo 2: ${h[1]}\.\.${h[2]} (400 líneas)"; tramos_has E12 "^tamaño: 450 líneas (2 tramos)\$"
+# E13: a commit over the threshold is a tramo of its own, marked
+tr4="$tmp/tramos4"; tramos_repo "$tr4" 300
+tramos_commit "$tr4" a.txt 100 "feat: c1"; tramos_commit "$tr4" b.txt 400 "feat: big"; tramos_commit "$tr4" c.txt 100 "feat: c3"
+tramos_out "$tr4" E13; mapfile -t h < <(git -C "$tr4" log --reverse --format=%h main..HEAD)
+tramos_has E13 "^tramo 2: ${h[1]}\.\.${h[1]} (400 líneas) tramo grande\$"
+[ "$(grep -c 'tramo grande' "$tmp/tramos.out")" = 1 ] || { cat "$tmp/tramos.out" >&2; echo "E13: only the big one is marked" >&2; exit 1; }
+# E14: without the key there is one tramo, whatever the size
+tr5="$tmp/tramos5"; tramos_repo "$tr5" none; tramos_commit "$tr5" a.txt 400 "feat: c1"; tramos_commit "$tr5" b.txt 120 "feat: c2"
+tramos_out "$tr5" E14; tramos_has E14 "^tamaño: 520 líneas (1 tramo)\$"
+[ "$(grep -c '^tramo [0-9]*:' "$tmp/tramos.out")" = 1 ] || { cat "$tmp/tramos.out" >&2; echo "E14: expected a single tramo" >&2; exit 1; }
+# E15: the threshold of the branch is not used: the base one (300) is
+tr6="$tmp/tramos6"; tramos_repo "$tr6" 300
+printf '[review]\nmax_lines_per_reviewer = 10000\n' > "$tr6/.harness-config.toml"; git -C "$tr6" -c user.name=t -c user.email=t@t commit -qam "chore: raise the threshold"
+tramos_commit "$tr6" a.txt 200 "feat: c1"; tramos_commit "$tr6" b.txt 200 "feat: c2"
+tramos_out "$tr6" E15; tramos_has E15 "^tamaño: 402 líneas (2 tramos)\$"
+# E16: lockfiles, snapshots and generated files do not count
+tr7="$tmp/tramos7"; tramos_repo "$tr7" 300
+for i in $(seq 2000); do echo "dep $i"; done > "$tr7/uv.lock"; git -C "$tr7" add -A; git -C "$tr7" -c user.name=t -c user.email=t@t commit -qm "chore: lock"
+tramos_commit "$tr7" a.txt 250 "feat: c1"
+tramos_out "$tr7" E16; tramos_has E16 "^tamaño: 250 líneas (1 tramo)\$"
 echo "✔ todo en verde"

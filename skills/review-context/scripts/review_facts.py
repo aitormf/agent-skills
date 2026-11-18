@@ -11,6 +11,12 @@ base it prints "sin cambios frente a <base>" and exits 0. Then the task of the b
 `task_done.py --audit` (../../task-done/scripts, next to this skill); "tarea: ninguna" with no change folder,
 and "auditoría: no comprobada (<reason>)" if the audit cannot run. Then:
 
+Section "tamaño" and "tramos" (D-0059, D-0060): "tamaño: <n> líneas (<k> tramos)", counted as diff_size.py, and one
+line per tramo, "tramo <i>: <a>..<b> (<n> líneas)", plus " tramo grande" if it passes the threshold. The tramos are
+runs of consecutive commits, greedy and in order, of at most `[review] max_lines_per_reviewer` lines, read from
+`.harness-config.toml` of the base branch (D-0054). A `test(...)` commit is never apart from the commit after it, and
+a commit over the threshold is a tramo of its own. Without the key, or if the branch fits, one tramo: `<base>..HEAD`.
+
 Section "TODO sin ticket": the TODO, FIXME, XXX and HACK comments that `git diff <base>...HEAD`
 adds, with no ticket on the same line, one `file:line` per line. A ticket is `#<n>`,
 `<PROJECT>-<n>` or a URL. Only the comment shape counts: the word in capitals, then `:`
@@ -20,7 +26,10 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 LOCKFILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "uv.lock", "poetry.lock",
              "Cargo.lock", "go.sum", "Gemfile.lock", "composer.lock"}
@@ -90,6 +99,55 @@ def todos_without_ticket(base):
     return found
 
 
+def threshold(base):
+    """`[review] max_lines_per_reviewer` of the base branch's .harness-config.toml (D-0054); None if it is not set."""
+    show = git("show", f"{base}:.harness-config.toml")
+    if show.returncode:
+        return None
+    try:
+        value = tomllib.loads(show.stdout).get("review", {}).get("max_lines_per_reviewer")
+    except (tomllib.TOMLDecodeError, AttributeError):
+        value = None
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+
+def split_tramos(base, limit):
+    """[(first, last, lines, big)] of consecutive commits; greedy, test(...) stays with the next commit."""
+    import diff_size  # next to this script
+    commits = git("rev-list", "--reverse", f"{base}..HEAD", "--").stdout.split()
+    subjects = git("log", "--reverse", "--format=%s", f"{base}..HEAD", "--").stdout.splitlines()
+    short = {c: git("rev-parse", "--short", c).stdout.strip() for c in commits}
+    units, current = [], []  # a unit: the test(...) commits and the commit after them
+    for commit, subject in zip(commits, subjects):
+        current.append((commit, diff_size.counted_lines(f"{commit}^..{commit}", f"{base}...HEAD")))
+        if not subject.startswith("test("):
+            units, current = [*units, current], []
+    if current:
+        units.append(current)
+    tramos = []
+    for unit in units:
+        lines = sum(n for _, n in unit)
+        if tramos and tramos[-1][2] + lines <= limit:
+            tramos[-1][1], tramos[-1][2] = unit[-1][0], tramos[-1][2] + lines
+        else:
+            tramos.append([unit[0][0], unit[-1][0], lines])
+    return [(short[a], short[b], n, n > limit) for a, b, n in tramos]
+
+
+def size_facts(base):
+    """The size of the branch and its tramos (R3, D-0060)."""
+    try:
+        import diff_size
+    except ImportError as error:
+        return print(f"tamaño: no comprobado ({error})")
+    total = diff_size.counted_lines(f"{base}...HEAD")
+    limit = threshold(base)
+    tramos = split_tramos(base, limit) if limit and total > limit else [(f"{base}", "HEAD", total, False)]
+    print(f"tamaño: {total} líneas ({len(tramos)} {'tramo' if len(tramos) == 1 else 'tramos'})\ntramos:")
+    for i, (first, last, lines, big) in enumerate(tramos, 1):
+        print(f"tramo {i}: {first}..{last} ({lines} líneas)" + (" tramo grande" if big else ""))
+
+
 def task_facts():
     """The task or plan of the branch and the read-only audit of task-done (R3, D-0032)."""
     scripts = Path(__file__).resolve().parents[2] / "task-done" / "scripts"
@@ -143,6 +201,7 @@ def main():
     if stat.returncode:
         sys.exit(f"review_facts: git diff failed: {stat.stderr.strip()}")
     print("diff --stat:\n" + stat.stdout.rstrip())
+    size_facts(base)
     task_facts()
     print("TODO sin ticket:")
     print("\n".join(todos_without_ticket(base)) or "ninguno")
