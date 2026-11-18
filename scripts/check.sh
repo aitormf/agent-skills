@@ -1319,10 +1319,13 @@ printf '# TODO: from the lockfile\n' > "$fr/uv.lock"
 printf '# XXX: soon gone\n' > "$fr/src/gone.py"
 gf add -A; gf commit -qm c
 gf rm -q src/gone.py; gf commit -qm rm
+printf '// FIXME(ABC-45): y\n' > "$fr/src/ticketed2.py"; gf add -A; gf commit -qm t2
+gf config diff.noprefix true; gf config color.ui always   # the user's git config must not hide the TODOs
 facts() { (cd "$fr" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "review_facts.py failed" >&2; exit 1; }; }
 facts
 grep -q "^src/invoices.js:12\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E1: the added TODO is not listed as src/invoices.js:12" >&2; exit 1; }
 grep -q "ticketed.py" "$tmp/facts.out" && { echo "E2: a TODO with a ticket or a URL was listed" >&2; exit 1; }
+grep -q "ticketed2.py" "$tmp/facts.out" && { echo "E2: a FIXME(<ticket>) was listed" >&2; exit 1; }
 grep -q "old.js" "$tmp/facts.out" && { echo "E3: a TODO that was already in the base was listed" >&2; exit 1; }
 grep -q "words.py\|notes.md" "$tmp/facts.out" && { echo "E4: a word that is not a TODO comment was listed" >&2; exit 1; }
 grep -q "uv.lock\|gone.py" "$tmp/facts.out" && { echo "E5: a TODO in a lockfile or a deleted file was listed" >&2; exit 1; }

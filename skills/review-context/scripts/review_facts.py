@@ -20,7 +20,8 @@ HUNK = re.compile(r"^@@ -\S+ \+(\d+)")
 
 
 def todos_without_ticket(base):
-    run = subprocess.run(["git", "-c", "core.quotepath=off", "diff", "-U0", "--no-ext-diff", "-M",
+    run = subprocess.run(["git", "-c", "core.quotepath=off", "diff", "-U0", "--no-ext-diff", "--no-textconv", "--no-color",
+                          "--src-prefix=a/", "--dst-prefix=b/", "-M",
                           f"{base}...HEAD", "--"], capture_output=True, text=True)
     if run.returncode:
         sys.exit(f"review_facts: git diff failed: {run.stderr.strip()}")
