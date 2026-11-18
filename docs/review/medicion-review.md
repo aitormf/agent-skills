@@ -59,7 +59,7 @@ B1 es C2, B3 es C1 y B6 es C3 en las tres; B4 es R3 (run-1) y R1 (run-2 y run-3)
 ### Lo que queda abierto
 
 - **B5 se pierde siempre** (3 de 3), como en T10: un Nit sin ticket. Quizá la regla «Max Nits» de la skill o el recorte del prompt lo explique; no se ha investigado, y reforzarlo es otra tarea.
-- **Ruta de Claude** (revisor `claude` con `--plugin-dir <kit>` frente a un plugin `harness` instalado): no se ejecutó ni se comprobó que `--plugin-dir` tenga prioridad sobre un `harness` instalado.
+- **Ruta de Claude** (revisor `claude` con `--plugin-dir <kit>` frente a un plugin `harness` instalado): comprobado después (2026-11-14, Claude Code 2.1.322, con `harness@aitormf` 0.10.0 instalado). Se marcaron en una copia del kit la descripción de la skill `review-prepush` y la de la persona `code-reviewer`, y `claude --plugin-dir <copia> -p` listó las dos con la marca, cada una una sola vez. La copia fijada gana a la instalada y no aparecen duplicadas. No se midió una review completa con `claude` de revisor.
 
 ### Diagnóstico de B5: la misma review sin el hook
 
