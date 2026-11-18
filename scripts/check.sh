@@ -1304,4 +1304,31 @@ grep -q "0.10.0: review cruzada" docs/actualizar.md && grep -q "deny_skip_hooks.
 grep -q "harness-review" README.md docs/review/README.md skills/review-prepush/SKILL.md || { echo "✘ falta harness-review en la documentación"; exit 1; }
 for f in docs/review/README.md skills/setup-guardrails-python/SKILL.md docs/actualizar.md; do grep -q "\[review\]" "$f" || { echo "✘ $f: falta [review]"; exit 1; }; done
 if grep -rIn "review-prepush/assets/pre-push\|<skill>/assets/pre-push" README.md docs skills --exclude-dir=changes --exclude-dir=decisions; then echo "✘ referencia al pre-push copiado"; exit 1; fi
+echo "▶ review: TODO sin ticket (review_facts.py, R1, E1-E5 de 95-hechos-de-la-review, D-0057)"
+rf="$PWD/skills/review-context/scripts/review_facts.py"
+fr="$tmp/facts"; git init -q -b main "$fr"
+gf() { git -C "$fr" -c user.name=t -c user.email=t@t "$@"; }
+mkdir -p "$fr/src"; printf 'a\nb\n// TODO: old one\nc\n' > "$fr/src/old.js"; echo base > "$fr/README.md"; gf add -A; gf commit -qm base
+gf checkout -qb feat
+{ for i in 1 2 3 4 5 6 7 8 9 10 11; do echo "line $i"; done; echo "// TODO: cache invoices in memory"; } > "$fr/src/invoices.js"
+printf 'a\nb\n// TODO: old one\nc\nd\n' > "$fr/src/old.js"
+printf '# TODO(#123): x\n// FIXME ABC-45: y\n// HACK: see https://example.com/issues/9\n' > "$fr/src/ticketed.py"
+printf 'todos = []\nfixmeCount = 1\n' > "$fr/src/words.py"
+printf 'New TODO/FIXME without a ticket\n' > "$fr/notes.md"
+printf '# TODO: from the lockfile\n' > "$fr/uv.lock"
+printf '# XXX: soon gone\n' > "$fr/src/gone.py"
+gf add -A; gf commit -qm c
+gf rm -q src/gone.py; gf commit -qm rm
+printf '// FIXME(ABC-45): y\n' > "$fr/src/ticketed2.py"; gf add -A; gf commit -qm t2
+gf config diff.noprefix true; gf config color.ui always   # the user's git config must not hide the TODOs
+facts() { (cd "$fr" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "review_facts.py failed" >&2; exit 1; }; }
+facts
+grep -q "^src/invoices.js:12\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E1: the added TODO is not listed as src/invoices.js:12" >&2; exit 1; }
+grep -q "ticketed.py" "$tmp/facts.out" && { echo "E2: a TODO with a ticket or a URL was listed" >&2; exit 1; }
+grep -q "ticketed2.py" "$tmp/facts.out" && { echo "E2: a FIXME(<ticket>) was listed" >&2; exit 1; }
+grep -q "old.js" "$tmp/facts.out" && { echo "E3: a TODO that was already in the base was listed" >&2; exit 1; }
+grep -q "words.py\|notes.md" "$tmp/facts.out" && { echo "E4: a word that is not a TODO comment was listed" >&2; exit 1; }
+grep -q "uv.lock\|gone.py" "$tmp/facts.out" && { echo "E5: a TODO in a lockfile or a deleted file was listed" >&2; exit 1; }
+[ "$(grep -c '^[^ ]*:[0-9]*$' "$tmp/facts.out")" = 1 ] || { cat "$tmp/facts.out" >&2; echo "E1: expected exactly one TODO location" >&2; exit 1; }
+
 echo "✔ todo en verde"

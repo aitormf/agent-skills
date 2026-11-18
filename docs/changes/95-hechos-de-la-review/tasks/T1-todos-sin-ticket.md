@@ -1,7 +1,7 @@
 ---
 id: T1
 title: review_facts.py lista los TODO que añade la rama sin ticket
-status: todo
+status: done
 depends_on: []
 examples: [E1, E2, E3, E4, E5]
 verification: scripts/check.sh
