@@ -1321,7 +1321,7 @@ gf add -A; gf commit -qm c
 gf rm -q src/gone.py; gf commit -qm rm
 printf '// FIXME(ABC-45): y\n' > "$fr/src/ticketed2.py"; gf add -A; gf commit -qm t2
 gf config diff.noprefix true; gf config color.ui always   # the user's git config must not hide the TODOs
-facts() { (cd "$fr" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "review_facts.py failed" >&2; exit 1; }; }
+facts() { (cd "$fr" && python3 "$rf" main) > "$tmp/facts.all" 2>&1 || { cat "$tmp/facts.all" >&2; echo "review_facts.py failed" >&2; exit 1; }; sed -n '/^TODO sin ticket:/,$p' "$tmp/facts.all" > "$tmp/facts.out"; }   # only its section: the other facts name the files (T3)
 facts
 grep -q "^src/invoices.js:12\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E1: the added TODO is not listed as src/invoices.js:12" >&2; exit 1; }
 grep -q "ticketed.py" "$tmp/facts.out" && { echo "E2: a TODO with a ticket or a URL was listed" >&2; exit 1; }
