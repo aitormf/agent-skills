@@ -29,7 +29,7 @@ How to turn a review into findings and a report. These rules sit on top of `code
   - tests that cannot fail: no assertion, asserting on the mock, tautologies, catching the error the test should surface;
   - lint rules disabled, inline suppressions added (`eslint-disable`, `# noqa`, `@ts-ignore`, `//nolint`, `#[allow]`), coverage thresholds or type strictness lowered;
   - a new helper that duplicates an existing one in the repo (search before claiming).
-- **Leftovers**: debug output (`console.log`, `print`, `dbg!`, `fmt.Println` used for debugging) and commented-out code are always **Required** in pre-push reviews (that is what the pre-push review is for); the verifier may refute them only if the output is intentional (e.g. a real logger call), never downgrade them. New TODO/FIXME without a ticket and dead code introduced by the change: Nit or Optional.
+- **Leftovers**: debug output (`console.log`, `print`, `dbg!`, `fmt.Println` used for debugging) and commented-out code are always **Required** in pre-push reviews (that is what the pre-push review is for); the verifier may refute them only if the output is intentional (e.g. a real logger call), never downgrade them. Dead code introduced by the change: Nit or Optional. New TODO/FIXME without a ticket: in `review-prepush` a script lists them (D-0057) and the main session writes them as one single Nit, outside `Max Nits` and without the `finding-verifier`; the reviewer does not report them again. Elsewhere (`review-pr`): Nit or Optional.
 
 ## 2. Severity scale
 

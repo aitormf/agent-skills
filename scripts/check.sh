@@ -1331,4 +1331,27 @@ grep -q "words.py\|notes.md" "$tmp/facts.out" && { echo "E4: a word that is not 
 grep -q "uv.lock\|gone.py" "$tmp/facts.out" && { echo "E5: a TODO in a lockfile or a deleted file was listed" >&2; exit 1; }
 [ "$(grep -c '^[^ ]*:[0-9]*$' "$tmp/facts.out")" = 1 ] || { cat "$tmp/facts.out" >&2; echo "E1: expected exactly one TODO location" >&2; exit 1; }
 
+echo "▶ review: el Nit de TODO sin ticket (R2, E6-E7 de 95-hechos-de-la-review, D-0057)"
+python3 - <<'EOF2' || { echo "E6/E7: review-prepush or review-report do not say how the TODO Nit is written (D-0057)" >&2; exit 1; }
+import re
+from pathlib import Path
+pre = Path("skills/review-prepush/SKILL.md").read_text(encoding="utf-8")
+rep = Path("skills/review-report/SKILL.md").read_text(encoding="utf-8")
+bad = []
+def sec(t, h):  # a "## ..." section up to the next one
+    m = re.search(rf"^## {h}.*?(?=^## |\Z)", t, re.S | re.M)
+    return m.group(0) if m else ""
+step5 = sec(pre, "Step 5")
+for name, ok in {
+    "review-prepush runs review_facts.py": "review_facts.py" in pre,
+    "E6 Step 5: one Nit with the locations of the script": bool(re.search(r"one (single )?Nit", step5)) and "locations" in step5 and "without a ticket" in step5,
+    "E6 Step 5: outside Max Nits": "outside" in step5 and "Max Nits" in step5,
+    "E6 Step 4: they do not go through the verifier": "not" in sec(pre, "Step 4") and "TODO" in sec(pre, "Step 4"),
+    "E6 Step 3: the reviewer does not report them again": bool(re.search(r"TODO.*(do not|not) (report|repeat)|(do not|not) (report|repeat).*TODO", sec(pre, "Step 3"), re.S | re.I)),
+    "E7 Step 5: no Nit if the script lists none": bool(re.search(r"(lists none|no TODO|ninguno|none)", step5)) and "no Nit" in step5,
+    "review-report: exception to the Nit limit and the verifier": "D-0057" in rep and "Max Nits" in rep.split("D-0057")[0][-900:] + rep.split("D-0057")[1][:900],
+}.items():
+    if not ok: bad.append(name)
+if bad: print("\n".join(bad)); raise SystemExit(1)
+EOF2
 echo "✔ todo en verde"

@@ -1,7 +1,7 @@
 ---
 id: T2
 title: El informe de review-prepush recoge los TODO del script en un solo Nit
-status: todo
+status: done
 depends_on: [T1]
 examples: [E6, E7]
 verification: scripts/check.sh
