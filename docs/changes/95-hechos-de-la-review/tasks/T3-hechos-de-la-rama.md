@@ -1,7 +1,7 @@
 ---
 id: T3
 title: review_facts.py imprime la base, la rama, el log, el diff y el estado
-status: todo
+status: done
 depends_on: [T1]
 examples: [E9, E10, E12]
 verification: scripts/check.sh
