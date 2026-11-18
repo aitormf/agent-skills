@@ -6,7 +6,10 @@
 Prints the base (the argument; else the "Base branch" of the Code review section of AGENTS.md; else
 origin/HEAD, main or master; `origin/<base>` when it exists), the branch, `git log <base>..HEAD`,
 `git diff --stat <base>...HEAD` and a warning about uncommitted changes. With no commits ahead of the
-base it prints "sin cambios frente a <base>" and exits 0. Then:
+base it prints "sin cambios frente a <base>" and exits 0. Then the task of the branch (`<change>/T<n>` or
+`<change>/plan`, as gate.py reads it): "tarea: <file> (<status>)" and the output and exit code of
+`task_done.py --audit` (../../task-done/scripts, next to this skill); "tarea: ninguna" with no change folder,
+and "auditoría: no comprobada (<reason>)" if the audit cannot run. Then:
 
 Section "TODO sin ticket": the TODO, FIXME, XXX and HACK comments that `git diff <base>...HEAD`
 adds, with no ticket on the same line, one `file:line` per line. A ticket is `#<n>`,
@@ -17,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 LOCKFILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "uv.lock", "poetry.lock",
              "Cargo.lock", "go.sum", "Gemfile.lock", "composer.lock"}
@@ -86,6 +90,37 @@ def todos_without_ticket(base):
     return found
 
 
+def task_facts():
+    """The task or plan of the branch and the read-only audit of task-done (R3, D-0032)."""
+    scripts = Path(__file__).resolve().parents[2] / "task-done" / "scripts"
+    sys.path.insert(0, str(scripts))
+    try:
+        from board import TASK_ID  # the id shape gate.py uses
+    except ImportError:
+        TASK_ID = re.compile(r"T\d+")
+    names = git("branch", "--show-current").stdout.strip().split("/")
+    folder = Path("docs/changes") / names[-2] if len(names) > 1 else None
+    task = names[-1]
+    if not folder or not folder.is_dir() or not (task == "plan" or TASK_ID.fullmatch(task)):
+        return print("tarea: ninguna")
+    found = next((folder / "tasks").glob(f"{task}-*.md"), None) if task != "plan" else folder / "README.md"
+    if not found or not found.is_file():
+        return print(f"tarea: {task} sin fichero en {folder}/")
+    status = re.search(r"^status:\s*(\S+)", found.read_text(encoding="utf-8"), re.M)
+    print(f"tarea: {found.as_posix()} ({status[1] if status else 'sin estado'})")
+    script = scripts / "task_done.py"
+    if not script.is_file():
+        return print(f"auditoría: no comprobada (no encuentro {script})")
+    try:
+        audit = subprocess.run([sys.executable, str(script), "--audit", str(folder), *([] if task == "plan" else [task])],
+                               capture_output=True, text=True)
+    except OSError as error:
+        return print(f"auditoría: no comprobada ({error})")
+    if audit.returncode not in (0, 3):
+        return print(f"auditoría: no comprobada (sale {audit.returncode}: {(audit.stderr or audit.stdout).strip()})")
+    print(f"auditoría: código {audit.returncode}\n{audit.stdout.rstrip()}")
+
+
 def main():
     if len(sys.argv) > 2:
         sys.exit("usage: review_facts.py [<base>]")
@@ -108,6 +143,7 @@ def main():
     if stat.returncode:
         sys.exit(f"review_facts: git diff failed: {stat.stderr.strip()}")
     print("diff --stat:\n" + stat.stdout.rstrip())
+    task_facts()
     print("TODO sin ticket:")
     print("\n".join(todos_without_ticket(base)) or "ninguno")
     return 0

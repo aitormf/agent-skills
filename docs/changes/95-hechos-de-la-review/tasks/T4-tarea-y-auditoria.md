@@ -1,7 +1,7 @@
 ---
 id: T4
 title: review_facts.py añade la tarea de la rama y la auditoría de task-done
-status: todo
+status: done
 depends_on: [T3]
 examples: [E8, E11, E13]
 verification: scripts/check.sh
