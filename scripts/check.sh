@@ -1386,4 +1386,26 @@ printf '## Code review\n- Base branch: `develop`\n' > "$fc/AGENTS.md"; gc2 add -
 grep -q "^base: origin/develop\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E12: the base of AGENTS.md was not used" >&2; exit 1; }
 (cd "$fc" && python3 "$rf" trunk) > "$tmp/facts.out" 2>&1 || { echo "E12: failed with an argument" >&2; exit 1; }
 grep -q "^base: origin/trunk\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E12: the argument did not win over AGENTS.md" >&2; exit 1; }
+echo "▶ review: la tarea de la rama y la auditoría de task-done (review_facts.py, R3, E8 E11 E13 de 95-hechos-de-la-review, D-0032)"
+ft="$tmp/facts-task"; git init -q -b main "$ft"
+gt() { git -C "$ft" -c user.name=t -c user.email=t@t "$@"; }
+mkdir -p "$ft/docs/changes/42-cancelar/tasks"; echo base > "$ft/a.txt"
+printf '# Cancelar\nstatus: open\n\n## Mapa de ejemplos\n```\nRule R1: x\n  E1: cancelar funciona\n```\n' > "$ft/docs/changes/42-cancelar/README.md"
+printf -- '---\nid: T2\ntitle: cancelar\nstatus: todo\ndepends_on: []\nexamples: [E1]\nverification: true\n---\n**Propósito:** x\n' > "$ft/docs/changes/42-cancelar/tasks/T2-cancelar.md"
+gt add -A; gt commit -qm base
+gt checkout -qb 42-cancelar/T2; echo '// TODO: later' > "$ft/b.js"; gt add -A; gt commit -qm "feat(T2): b"
+(cd "$ft" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E8: failed on a task branch" >&2; exit 1; }
+grep -q "^tarea: docs/changes/42-cancelar/tasks/T2-cancelar.md (todo)\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E8: the task file and its status are missing" >&2; exit 1; }
+grep -q "^auditoría: código [0-9]" "$tmp/facts.out" && grep -q -- "--- audit of" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E8: the audit output and its exit code are missing" >&2; exit 1; }
+[ "$(tail -n 2 "$tmp/facts.out" | head -n 1)" = "TODO sin ticket:" ] || { cat "$tmp/facts.out" >&2; echo "E8: the TODO section is not the last one" >&2; exit 1; }
+gt checkout -q -b fix/errata main; echo x >> "$ft/a.txt"; gt commit -qam "fix: errata"
+(cd "$ft" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { echo "E11: failed on a branch with no change folder" >&2; exit 1; }
+grep -q "^tarea: ninguna\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E11: tarea: ninguna is missing" >&2; exit 1; }
+grep -q "audit\|^auditoría" "$tmp/facts.out" && { cat "$tmp/facts.out" >&2; echo "E11: the audit ran without a change folder" >&2; exit 1; }
+gt checkout -q 42-cancelar/T2
+# E13: no task-done next to the script (the audit cannot run); the rest of the facts still come out
+iso="$tmp/facts-iso/review-context/scripts"; mkdir -p "$iso"; cp "$rf" "$iso/"
+(cd "$ft" && python3 "$iso/review_facts.py" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E13: failed when the audit cannot run" >&2; exit 1; }
+grep -q "^auditoría: no comprobada (.\+)\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E13: auditoría: no comprobada (<motivo>) is missing" >&2; exit 1; }
+grep -q "^b.js:1\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E13: the rest of the facts were lost" >&2; exit 1; }
 echo "✔ todo en verde"
