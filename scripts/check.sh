@@ -1321,7 +1321,7 @@ gf add -A; gf commit -qm c
 gf rm -q src/gone.py; gf commit -qm rm
 printf '// FIXME(ABC-45): y\n' > "$fr/src/ticketed2.py"; gf add -A; gf commit -qm t2
 gf config diff.noprefix true; gf config color.ui always   # the user's git config must not hide the TODOs
-facts() { (cd "$fr" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "review_facts.py failed" >&2; exit 1; }; }
+facts() { (cd "$fr" && python3 "$rf" main) > "$tmp/facts.all" 2>&1 || { cat "$tmp/facts.all" >&2; echo "review_facts.py failed" >&2; exit 1; }; sed -n '/^TODO sin ticket:/,$p' "$tmp/facts.all" > "$tmp/facts.out"; }   # only its section: the other facts name the files (T3)
 facts
 grep -q "^src/invoices.js:12\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E1: the added TODO is not listed as src/invoices.js:12" >&2; exit 1; }
 grep -q "ticketed.py" "$tmp/facts.out" && { echo "E2: a TODO with a ticket or a URL was listed" >&2; exit 1; }
@@ -1354,4 +1354,36 @@ for name, ok in {
     if not ok: bad.append(name)
 if bad: print("\n".join(bad)); raise SystemExit(1)
 EOF2
+echo "▶ review: base, rama, log, diff y estado (review_facts.py, R3, E9 E10 E12 de 95-hechos-de-la-review, D-0057)"
+gf config log.showSignature true; gf config log.decorate full; gf config format.pretty short; gf config status.short true; gf config diff.mnemonicPrefix true
+(cd "$fr" && python3 "$rf") > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E12: review_facts.py failed without an argument" >&2; exit 1; }
+grep -q "^base: main\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E12: the base was not resolved to main" >&2; exit 1; }
+grep -q "^rama: feat\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "R3: the branch is not printed" >&2; exit 1; }
+grep -q "^[0-9a-f]\{7,\} base\$" "$tmp/facts.out" && { echo "R3: the log lists a commit of the base" >&2; exit 1; }
+grep -q "^[0-9a-f]\{7,\} t2\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "R3: the log of base..HEAD is missing or changed by the user's git config" >&2; exit 1; }
+grep -q "src/invoices.js *| *12" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "R3: the diff --stat is missing" >&2; exit 1; }
+grep -q "^src/invoices.js:12\$" "$tmp/facts.out" || { echo "R1: the TODO section was lost" >&2; exit 1; }
+grep -q "sin commit" "$tmp/facts.out" && { echo "E10: warned about uncommitted changes in a clean tree" >&2; exit 1; }
+printf 'x\n' >> "$fr/README.md"
+(cd "$fr" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || { echo "E10: failed with uncommitted changes" >&2; exit 1; }
+grep -q "los cambios sin commit no se revisan ni se suben" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E10: no warning about uncommitted changes" >&2; exit 1; }
+gf checkout -q -- README.md
+gf checkout -q main
+rc=0; (cd "$fr" && python3 "$rf" main) > "$tmp/facts.out" 2>&1 || rc=$?
+[ "$rc" = 0 ] && grep -q "^sin cambios frente a main\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E9: a branch with no commits ahead did not say so with exit 0" >&2; exit 1; }
+gf checkout -q feat
+# E12: the base of the Code review section of AGENTS.md, and origin/<base> when it exists
+fo="$tmp/facts-origin.git"; fc="$tmp/facts-clone"
+git init -q --bare -b trunk "$fo"; git clone -q "$fo" "$fc" 2>/dev/null
+gc2() { git -C "$fc" -c user.name=t -c user.email=t@t "$@"; }
+echo a > "$fc/a"; gc2 add -A; gc2 commit -qm one; gc2 push -q origin HEAD:trunk; gc2 remote set-head origin trunk >/dev/null 2>&1 || true
+gc2 checkout -qb work; echo b > "$fc/b"; gc2 add -A; gc2 commit -qm two
+(cd "$fc" && python3 "$rf") > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E12: failed in a clone" >&2; exit 1; }
+grep -q "^base: origin/trunk\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E12: the base is not origin/HEAD resolved to origin/trunk" >&2; exit 1; }
+gc2 checkout -q trunk; gc2 checkout -qb develop; gc2 push -q origin develop; gc2 checkout -q work
+printf '## Code review\n- Base branch: `develop`\n' > "$fc/AGENTS.md"; gc2 add -A; gc2 commit -qm agents
+(cd "$fc" && python3 "$rf") > "$tmp/facts.out" 2>&1 || { cat "$tmp/facts.out" >&2; echo "E12: failed with AGENTS.md" >&2; exit 1; }
+grep -q "^base: origin/develop\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E12: the base of AGENTS.md was not used" >&2; exit 1; }
+(cd "$fc" && python3 "$rf" trunk) > "$tmp/facts.out" 2>&1 || { echo "E12: failed with an argument" >&2; exit 1; }
+grep -q "^base: origin/trunk\$" "$tmp/facts.out" || { cat "$tmp/facts.out" >&2; echo "E12: the argument did not win over AGENTS.md" >&2; exit 1; }
 echo "✔ todo en verde"
