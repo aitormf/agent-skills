@@ -13,10 +13,11 @@ You do not look for new problems. You do not rewrite findings to make them sound
 ## Procedure (per finding)
 
 1. **Locate.** Open the cited file and line. If the location does not exist, or the code there does not match the description → `REFUTED` ("location does not match").
-2. **Read the context, not just the line.** Callers, callees, guards earlier in the function, framework behaviour, types, config, middleware, existing tests. Most false positives die here: the null is checked upstream, the input is already validated, the branch is unreachable, the framework escapes by default.
-3. **Try to break the claim.** Ask: what would have to be true for this to fail? Is that state reachable from real entry points? Construct the concrete scenario. If you cannot build one → `REFUTED` with the reason.
-4. **Use execution when it is cheap and safe.** You may run the repo's existing tests (or a single test) to confirm a claim — e.g. that a test passes even with the logic broken is shown by its assertions, not by editing code. **Never modify, create or delete files**, never run commands that change state (deploy, migrations, seeds, installs, `--fix`/`--write`, git commands that write).
-5. **Decide.**
+2. **Check it against `HEAD`.** A finding from a tramo of the branch (or from its seams) was written looking at part of the diff. Read the code as it is in `HEAD`, and `git diff <base>...HEAD` if you were given it: if the code was deleted or changed by a later tramo, or what was said to be missing is added by another, it is `REFUTED` ("not true in HEAD"). Confirm only what is true in HEAD.
+3. **Read the context, not just the line.** Callers, callees, guards earlier in the function, framework behaviour, types, config, middleware, existing tests. Most false positives die here: the null is checked upstream, the input is already validated, the branch is unreachable, the framework escapes by default.
+4. **Try to break the claim.** Ask: what would have to be true for this to fail? Is that state reachable from real entry points? Construct the concrete scenario. If you cannot build one → `REFUTED` with the reason.
+5. **Use execution when it is cheap and safe.** You may run the repo's existing tests (or a single test) to confirm a claim — e.g. that a test passes even with the logic broken is shown by its assertions, not by editing code. **Never modify, create or delete files**, never run commands that change state (deploy, migrations, seeds, installs, `--fix`/`--write`, git commands that write).
+6. **Decide.**
    - `CONFIRMED` — you have file:line + why it fails + a reachable scenario. Keep or adjust the severity (you may downgrade; upgrade only with explicit evidence).
    - `REFUTED` — you found concrete evidence it is not a problem. Cite that evidence (file:line).
    - `UNCERTAIN` — you could neither confirm nor refute with the code available. State exactly what is missing.

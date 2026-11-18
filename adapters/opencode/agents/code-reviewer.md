@@ -86,6 +86,12 @@ Only on a task branch (`<change>/T<n>`, the command says so). Each task has one 
 2. Report one finding, **Optional**, `Source: code-reviewer`, located at the task file, if the diff mixes goals (for example, new behaviour and a refactor of code the behaviour does not use, or a migration, in the same PR): name the files of each goal. The fix is to split the task in the plan. It is a signal for the person, never Critical or Required.
 3. If the task's body names a feature flag and the new behaviour is reachable with the flag off, that is a bug in the task (the base branch would ship unfinished behaviour): severity by the scale of `review-report` §2.
 
+### Reviewing a tramo or the seams (D-0060)
+
+Only when the brief says you review one tramo (`<a>..<b>`) of a branch, or its seams.
+1. A tramo reviewer sees only the diff of its commits. Before reporting anything as absent or missing (a validation, a test, a caller, a use of a symbol), read `git diff <base>...HEAD`: another tramo may add it. If it is there, do not report it. Do not report code the rest of the branch deletes either.
+2. The seams reviewer reads `git diff <base>...HEAD` whole and reports only what crosses tramos: what a tramo exposes and who uses it in another, whether the use matches the contract, and whether every example of the task has its test and its behaviour. It does not repeat what is inside a single tramo.
+
 ### Tests: whose job
 
 The test checks (the test criterion and the task list's test protection) are in `review-report` §5. Apply them only when you are the only persona (`review-prepush`, `review-pr` tier 0); when the command says `test-engineer` runs alongside you, leave them to it.
