@@ -2,11 +2,11 @@
 id: D-0053
 title: El gate del flujo avisa cuando una tarea pasa de 200 líneas, pero no bloquea; el tamaño sigue siendo una señal para partir el plan (D-0037)
 type: rule
-status: accepted
+status: superseded
 date: 2026-11-12
 affects: [skills/task-done/scripts/]
 supersedes: null
-superseded_by: null
+superseded_by: D-0059
 issue: null
 ---
 

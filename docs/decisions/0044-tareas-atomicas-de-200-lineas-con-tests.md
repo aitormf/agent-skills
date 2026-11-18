@@ -2,11 +2,11 @@
 id: D-0044
 title: Cada tarea es atómica (un solo propósito y un solo cambio) y su diff tiene como mucho 200 líneas con los tests; deja la rama base desplegable y lo que está a medias va detrás de un flag que retira la última tarea
 type: rule
-status: accepted
+status: superseded
 date: 2026-11-03
 affects: [skills/idea-to-change/, skills/plan-to-tasks/, agents/implement.md, agents/code-reviewer.md]
 supersedes: D-0033
-superseded_by: null
+superseded_by: D-0058
 issue: null
 ---
 

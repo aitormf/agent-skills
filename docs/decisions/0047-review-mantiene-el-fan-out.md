@@ -2,11 +2,11 @@
 id: D-0047
 title: La review mantiene sus revisores separados (code-reviewer solo en review-prepush; las tres personas en los tiers 1–2 de review-pr), sin elegirlos por el tamaño del diff; el tamaño del diff solo sirve para el límite de las tareas
 type: architecture
-status: accepted
+status: superseded
 date: 2026-11-04
 affects: [skills/review-prepush/, skills/review-pr/, skills/review-context/, agents/code-reviewer.md]
 supersedes: D-0045
-superseded_by: null
+superseded_by: D-0060
 issue: null
 ---
 
