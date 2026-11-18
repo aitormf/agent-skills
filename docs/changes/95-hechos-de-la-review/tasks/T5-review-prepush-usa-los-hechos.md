@@ -1,7 +1,7 @@
 ---
 id: T5
 title: review-prepush reúne los hechos con una llamada a review_facts.py
-status: todo
+status: done
 depends_on: [T2, T4]
 examples: [E14]
 verification: scripts/check.sh
