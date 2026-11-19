@@ -282,6 +282,20 @@ sed -i 's/^status: todo /status: wip /' "$f/tasks/T2-t.md"
 python3 "$td" "$f" T2 -- true >"$tmp/out" 2>&1 && fail "accepted a task file with a malformed frontmatter"
 grep -q "status 'wip'" "$tmp/out" || fail "did not say what is malformed in the task file"
 
+echo "▶ task-done: in a git worktree, with GIT_DIR exported by the hook, the dependencies done in the base are seen (#96)"
+here=$PWD; wr=$(mktemp -d); wg() { git -C "$wr/r" "$@"; }
+git init -q -b main "$wr/r"; wg config user.email t@t; wg config user.name t
+mkdir -p "$wr/r/docs/changes/96-wt/tasks"
+printf -- '---\nstatus: open\nissue: null\n---\n\n# wt\n\n## Mapa de ejemplos\n\n```\nRule R1: r\n```\n' > "$wr/r/docs/changes/96-wt/README.md"
+printf -- '---\nid: T1\ntitle: t1\nstatus: done\ndepends_on: []\nexamples: []\nverification: "true"\n---\n' > "$wr/r/docs/changes/96-wt/tasks/T1-a.md"
+printf -- '---\nid: T2\ntitle: t2\nstatus: todo\ndepends_on: [T1]\nexamples: []\nverification: "true"\n---\n' > "$wr/r/docs/changes/96-wt/tasks/T2-b.md"
+wg add -A; wg commit -qm init; wg branch -q 96-wt/T2
+wg worktree add -q "$wr/wt" 96-wt/T2
+wt_git_dir=$(git -C "$wr/wt" rev-parse --absolute-git-dir)
+(cd "$wr/wt" && GIT_DIR="$wt_git_dir" python3 "$here/$td" --audit docs/changes/96-wt T2) > "$wr/out" 2>&1 || true
+! grep -q "not done in" "$wr/out" && grep -q "^T2 " "$wr/out" || { cat "$wr/out"; fail "--audit in a worktree with GIT_DIR set took the dependency T1 for not done (#96)"; }
+rm -rf "$wr"
+
 echo "▶ task-done: red commit protection (commits of the branch since the base branch)"
 r="$tmp/repo"; mkdir -p "$r/tests" "$r/src"; git -C "$r" init -q -b main
 ch="$r/docs/changes/a"
