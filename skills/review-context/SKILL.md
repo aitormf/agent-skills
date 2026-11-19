@@ -24,6 +24,8 @@ Defaults when the section is missing: base branch = the remote default branch (`
 
 ## 2. Verification (run before reviewing)
 
+**From the hook.** If `REVIEW_KIT_VERIFICATION` names a readable file, the hook already ran the verification commands and Semgrep (D-0061): run no verification command and no Semgrep, and skip the steps below. Quote the file under Verification: each command with its exit code, the failing lines, and the last line of the Semgrep output. Its Semgrep findings are candidate findings: they go through the precision rules (`review-report` §1) and the verifier, as in step 6. If the variable is not set, or the file is not readable, follow the steps below.
+
 1. Find the verification commands in AGENTS.md (§1). Repos set up with `generate-project-context` or `setup-guardrails-python` have a single aggregate command there (usually `./scripts/check.sh`). If there is an aggregate command, run only that one. Otherwise run each test / lint / type-check / format-check / build command you found.
 2. **Only run commands that check. Never run commands that change state**: deploy, release, publish, migrate, seed, db reset, `install`/`add`, `--fix`, `--write`, `format` without a check flag, `git` commands other than read-only ones, anything that pushes or calls production services. If you cannot tell whether a command is read-only, do not run it — list it under Verification as "not run (ambiguous)".
 3. Run them from the repo root. If a command takes very long or hangs, stop it and say so.
