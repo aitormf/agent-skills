@@ -2,7 +2,75 @@
 
 Cuántos tokens gastan y qué encuentran `review-pr` y `review-prepush` **tal como están hoy**, ejecutadas con Codex sobre el sandbox de `tests/review-sandbox/`. Es la referencia con la que comparar el reviewer unificado (cambio `review-unificada`). Las secciones de T17, T20 y T1 no sacan conclusiones sobre el reviewer unificado; la de T10 (la primera) lo compara con ellas.
 
-Hay cuatro mediciones, cada una válida para su esfuerzo. **La de T20** (`medium`, la primera sección) es la referencia para T10 en `review-prepush`; en `review-pr` no tiene ejecuciones válidas. **La de T17** (`low`) sigue siendo válida para ese esfuerzo. La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
+Hay cinco mediciones (la de T4 de `tareas-por-objetivo`, la sección más nueva, mide la review por tramos y recomienda `max_lines_per_reviewer`; no sustituye a la referencia de T20), cada una válida para su esfuerzo. **La de T20** (`medium`, la primera sección) es la referencia para T10 en `review-prepush`; en `review-pr` no tiene ejecuciones válidas. **La de T17** (`low`) sigue siendo válida para ese esfuerzo. La de T1, más abajo, quedó marcada como no comparable: los subagentes usaron las personas globales, no las del sandbox.
+
+## Review por tramos con el cambio 95 (T4, cambio `tareas-por-objetivo`)
+
+Mide `review-prepush` partido en tramos de commits (D-0060) sobre una rama real: los commits de T2 a T6 del cambio `95-hechos-de-la-review` juntos, y recomienda un valor de `[review] max_lines_per_reviewer`. Kit `29e9569` (`origin/main` con T1 a T3 de este cambio), `codex-cli 0.169.0`, `gpt-6.1-terra`, `medium`, 2026-11-19.
+
+**Resumen.** Con 2 o 3 tramos no aparece **ningún** hallazgo de «falta X, que está en otro tramo» (0 en 9 ejecuciones con tramos y 0 en 3 con uno), el verifier no refuta nada en ninguna de las 9, y la pasada de costuras no encuentra nada que no hubieran encontrado ya los tramos (0 hallazgos solo suyos; en una ejecución repite uno). Partir cuesta: frente a una sola revisión de la misma rama, la entrada total sube un 56% con 2 tramos (umbral 300) y un 107% con 3 (umbral 150); el tiempo de reloj no sube. El rendimiento no compensa de forma clara el coste: 3 tramos encontraron más cosas (la decisión de idioma D-0009, 3 de 3) pero con n = 3 y sin verdad de referencia no se puede atribuir al corte. **Valor recomendado: `max_lines_per_reviewer = 300`** (justificación al final). Quien lo pone en `.harness-config.toml` es la persona, directamente en `main`: es un fichero de control (D-0054) y el gate bloquea que una rama de tarea lo cambie.
+
+### Cómo se midió
+
+| | |
+|---|---|
+| Rama medida | `build.sh` (en `docs/review/medicion-review/tramos-95/`) arma un repo en `tests/review-sandbox/repo/`: `main` = el kit en `be48495^` (antes de T2 de 95) con la disposición de Codex de `tests/review-sandbox/build.sh --codex` (skills y personas del kit `29e9569`) y el `.harness-config.toml` del escenario; la rama `feature/orders-pagination-invoices` (el nombre lo exige `measure.sh`; no tiene que ver con pedidos) lleva, como 5 commits, `cherry-pick` de `be48495` (T2), `5072da7` (T3), `b75282c` (T4), `96fbd51` (T5) y `8660035` (T6, solo en la rama `95-hechos-de-la-review/T6`). Los 5 commits suman 811 líneas por commit (35, 115, 62, 56 y 543) y `review_facts.py` cuenta 801 sobre la rama |
+| Escenarios | `[review] max_lines_per_reviewer` solo en el `.harness-config.toml` de ese repo de medición (no el de este repo): **150** → 3 tramos (`018df9f..fea7142` 150 líneas, `373d158..adea83e` 118, `28c6b20` 543 «tramo grande»); **300** → 2 tramos (T2 a T5: 268 líneas; T6: 543, «tramo grande»); **sin clave** → un tramo (la review de antes de T2). 3 ejecuciones de cada una |
+| Ejecución | `tests/review-sandbox/measure.sh review-prepush 3`, sin cambios en el script: `codex exec -m gpt-6.1-terra -c model_reasoning_effort=medium -s read-only`, prompt «ejecuta review-prepush con `main`», las personas del sandbox por `-c agents.<rol>.config_file`. Sin push: el hook no entra |
+| Validez | `summarize.py` da `problems` vacío en las 9: modelo y esfuerzo correctos en todos los agentes y persona del sandbox cargada en cada `code-reviewer` y `finding-verifier` |
+| Resultados | `report.md`, `summary.json` y `meta.json` de cada ejecución en `docs/review/medicion-review/tramos-95/<umbral>/run-<n>/` (sin `events.jsonl`; rutas sustituidas por `repo/` y `<kit>/`) |
+
+Límites: n = 3 por escenario y **una sola rama**; no hay verdad de referencia (como en `EXPECTED.md`) para la rama de 95, así que «confirmado» es lo que dejó pasar el `finding-verifier` y lo que yo leí en los informes, no un recuento de bugs plantados; sin `AGENTS.md` en el repo de medición (no hay `Commands`, no corre `check.sh`) y Semgrep sigue sin ejecutarse bajo `read-only` (#97); no hay tarea en la rama (`tarea: ninguna`); la rama contiene los scripts y skills que revisa, y a la vez el kit que revisa es el de `29e9569`; idioma de los informes mezclado (algunos en inglés, otros en español, según la ejecución). Lo medido en T6 de 95 (commit `8660035`, que está en la rama `95-hechos-de-la-review/T6` y no en `main`; sus cifras se toman de ese commit) usó otra rama (el sandbox de errores plantados, mucho más pequeña) y el kit `96fbd51`, así que **no es comparable en números absolutos** con esto: sirve de orden de magnitud.
+
+### Tokens (medias de 3 ejecuciones)
+
+| | Entrada total | Sesión principal | Subagentes | Sin caché | Salida | Llamadas (total) | Llamadas (principal) | Duración (s) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Sin clave (1 tramo) | 833.494 | 408.309 | 425.185 | 140.460 | 5.732 | 22,7 | 11,3 | 121 |
+| 300 (2 tramos) | 1.302.326 | 536.753 | 765.573 | 143.414 | 7.453 | 37,0 | 15,7 | 112 |
+| 150 (3 tramos) | 1.723.993 | 628.156 | 1.095.837 | 200.239 | 9.518 | 46,3 | 16,7 | 120 |
+| T6 de 95 (sandbox pequeño, referencia) | 510.711 | 309.821 | 200.890 | 61.474 | 6.097 | 18,3 | 10,7 | 130 |
+
+Subagentes por ejecución: 1 `code-reviewer` y 1 `finding-verifier` sin clave; 2 `code-reviewer` de tramo y 1 de costuras y 1 `finding-verifier` con 300; 3 de tramo y 1 de costuras y 1 verifier con 150. Los tramos corren en paralelo, por eso la duración no sube. Cada `code-reviewer` extra gasta unos 135.000 a 300.000 de entrada. Entrada total por ejecución: sin clave 906.085 / 835.119 / 759.279; 300: 1.457.904 / 1.198.487 / 1.250.587; 150: 1.799.105 / 1.681.465 / 1.691.410. Las llamadas totales de T6 salen de las tablas de esa medición (20, 18 y 17).
+
+### Qué encuentran
+
+Sin verdad de referencia, se cuentan los hallazgos de cada informe (sin el Nit del TODO, que sale igual en las 9) y se agrupan los que son el mismo problema.
+
+| | Hallazgos Critical + Required por informe | Veredicto de las 3 ejecuciones | Refutados por el verifier |
+|---|---|---|---|
+| Sin clave | 2, 2, 2 | PASS, BLOCK (2 Critical), PASS | 0, 0, 0 |
+| 300 | 2, 1, 2 | PASS, PASS, BLOCK (1 Critical) | 0, 0, 0 |
+| 150 | 5, 3, 3 | PASS, BLOCK (1 Critical), BLOCK (1 Critical) | 0, 0, 0 |
+
+(El veredicto del hook sale del `REVIEW_RESULT` del informe; la severidad de un mismo problema cambia entre ejecuciones, así que el bloqueo no es estable ni con un tramo.)
+
+Problemas distintos, por escenario (ejecuciones de 3 en las que aparece):
+
+| Problema | Sin clave | 300 | 150 |
+|---|:-:|:-:|:-:|
+| Si falla `review_facts.py`, el paso 3 salta la verificación del paso 2 (`review-prepush/SKILL.md:37`) | 3 | 3 | 3 |
+| La auditoría usa una base distinta de la de la review (`review_facts.py:115`) | 1 | 1 | 1 |
+| Falta el fichero de la tarea y la auditoría se omite sin avisar (`review_facts.py:106-108`) | 0 | 1 | 2 |
+| Los mensajes del script y los informes nuevos van en español, contra D-0009 | 0 | 0 | 3 |
+| El `Base branch:` del `AGENTS.md` solo se lee en una forma (`review_facts.py:30`) | 0 | 0 | 1 |
+| Con `tarea: ninguna` no se aplica el respaldo de la carpeta del cambio (`SKILL.md:42`) | 1 | 0 | 0 |
+| Falta un test de la auditoría de una rama de plan | 1 | 0 | 0 |
+
+### Lo que se pedía mirar
+
+- **«Falta X, que está en otro tramo»: 0.** Ningún informe de las 6 ejecuciones con tramos (ni de las 3 de una pieza) pide algo que otro tramo añade. La instrucción del brief de tramo («antes de decir que falta algo, lee `git diff <base>...HEAD`») parece cumplirse, pero con 0 casos no se puede decir que sea eso lo que lo evita: en una sola revisión tampoco hay ninguno.
+- **Costuras: 0 hallazgos propios.** Las 6 pasadas de costuras dicen que no hay nada entre tramos, salvo una (150, run-1) que «encontró R1 por su cuenta» y se informa una vez. Es decir, en esta rama la pasada gasta una llamada de `code-reviewer` (unos 135.000 a 250.000 de entrada) y no aporta nada que los tramos no vieran. Una rama con 5 cambios en el mismo script de hechos podría ser justo una donde las costuras importan; aquí no se vio.
+- **Confirmados frente a refutados: 0 refutados en las 9.** Se parece a T6 de 95 (también 0 refutados). El verifier confirma lo que se le pasa; de ahí no sale una medida de precisión.
+- **Lo que solo ven los tramos.** Con 150 aparecen dos hallazgos que ni 300 ni una pieza vieron: el idioma de D-0009 (3 de 3) y el `Base branch:` de una sola forma (1 de 3). El commit de T6 (543 líneas, con informes en inglés) es un tramo propio en los dos escenarios con tramos; con 300 el tramo de T2 a T5 (268 líneas, con los mensajes en español del script) no lo señaló. Con n = 3 es una pista, no una prueba.
+
+### Recomendación: `max_lines_per_reviewer = 300`
+
+- Cuesta menos que 150 (+56% de entrada total frente a +107%, 2 `code-reviewer` de tramo en vez de 3) y no pierde nada medido frente a una pieza: encontró lo mismo (los dos problemas comunes en las 3) con 0 refutados y 0 «falta X en otro tramo».
+- Las ramas de menos de 300 líneas siguen como hoy (un solo tramo, E10 de este cambio), que es el caso de casi todas las tareas de 200 líneas con tests. El umbral solo parte ramas grandes, donde la pasada única pierde foco.
+- 150 parte ramas que una pasada cubre bien y duplica el coste; su único posible beneficio (más hallazgos de idioma y de lectura del `AGENTS.md`) tiene n = 3 y una rama.
+- **Qué no sostiene el dato:** que 300 sea mejor que 250 o 400: solo se probaron 150 y 300 sobre una rama de 801 líneas. Tampoco prueba que partir mejore la calidad en ramas muy grandes (más de 1.500 líneas), donde se esperaría ver «falta X en otro tramo»; si aparece, se mira de nuevo con una rama así.
+- Si más adelante el dato de la review real (`last-prepush.md`) muestra «falta X» en ramas partidas, el valor sube (menos tramos) o la instrucción del brief se cambia: otro cambio, fuera de T4.
 
 ## Review cruzada con el sandbox (T9, cambio `8-review-cruzada`)
 
