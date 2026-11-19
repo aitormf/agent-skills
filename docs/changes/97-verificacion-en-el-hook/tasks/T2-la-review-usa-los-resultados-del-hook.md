@@ -1,7 +1,7 @@
 ---
 id: T2
 title: review-prepush usa los resultados del hook
-status: todo
+status: done
 depends_on: [T1]
 examples: [E13, E14]
 verification: scripts/check.sh

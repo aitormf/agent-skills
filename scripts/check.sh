@@ -1606,4 +1606,29 @@ if bad:
     print("\n".join(bad))
     raise SystemExit(1)
 EOF2
+echo "▶ review: la review usa los resultados del hook y no ejecuta nada (R4, E13 E14 de 97-verificacion-en-el-hook, D-0061)"
+python3 - <<'EOF2' || { echo "97 E13/E14: review-prepush or review-context do not say what to do with REVIEW_KIT_VERIFICATION (D-0061)" >&2; exit 1; }
+import re
+from pathlib import Path
+def sec(text, pat):
+    m = re.search(pat + r".*?(?=^## |\Z)", text, re.S | re.M)
+    return m.group(0) if m else ""
+pre = sec(Path("skills/review-prepush/SKILL.md").read_text(encoding="utf-8"), r"^## Step 2")
+ctx = sec(Path("skills/review-context/SKILL.md").read_text(encoding="utf-8"), r"^## 2\.")
+bad = []
+for name, s in (("review-prepush Step 2", pre), ("review-context §2", ctx)):
+    # E13: with the variable naming a readable file, nothing is run; the file is quoted; Semgrep findings are candidates
+    if "REVIEW_KIT_VERIFICATION" not in s: bad.append(f"E13 {name}: does not name REVIEW_KIT_VERIFICATION")
+    if not re.search(r"readable file", s): bad.append(f"E13 {name}: does not say the variable must name a readable file")
+    if not re.search(r"(?i)no verification command|run nothing|do not run", s): bad.append(f"E13 {name}: does not say to run nothing")
+# the detail lives in review-context §2: quote, exit codes, Semgrep last line, candidates through the verifier
+for w in ("exit code", "last line", "candidate", "verifier", "Semgrep"):
+    if w not in ctx: bad.append(f"E13 review-context §2: missing '{w}' for the hook results")
+# E14: without the variable, today's step 2 stays
+if not re.search(r"(?i)(without|not set|unset)", pre): bad.append("E14 review-prepush Step 2: does not say what happens without the variable")
+for w in ("aggregate command", "only read-only commands", "§2.6"):
+    if w not in pre + ctx: bad.append(f"E14: today's step 2 lost '{w}'")
+if "semgrep_added.py" not in ctx or "AGENTS.md" not in ctx: bad.append("E14 review-context §2: lost the commands from AGENTS.md or semgrep_added.py")
+if bad: print("\n".join(bad)); raise SystemExit(1)
+EOF2
 echo "✔ todo en verde"
