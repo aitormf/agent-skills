@@ -4,6 +4,23 @@ Lo que se instala como plugin (o con `npx skills`) llega al actualizar. Lo que `
 
 La alternativa a seguir los pasos a mano es volver a ejecutar `setup-guardrails-python` en el proyecto: nunca sobrescribe, detecta lo que falta y propone el diff de cada fichero.
 
+## 0.11.0: verificación en el hook y tareas por objetivo
+
+Qué trae:
+- **Verificación en el hook.** En el push de un agente, `harness-review` ejecuta los comandos de `[review] verify` y Semgrep antes de lanzar al revisor, y le pasa los resultados. Una verificación en rojo, o que tarda más de 600 s, bloquea el push sin gastar la review. Con Codex en `read-only`, la review ya no se queda sin tests ni Semgrep. Por qué: [97-verificacion-en-el-hook](changes/97-verificacion-en-el-hook/README.md), D-0061 y D-0062.
+- **Tareas por objetivo.** `idea-to-change` y `plan-to-tasks` parten por objetivo, sin el límite de 200 líneas, y el gate ya no avisa por tamaño. La review por tramos de commits es opcional. Por qué: [tareas-por-objetivo](changes/tareas-por-objetivo/README.md), D-0058, D-0059 y D-0060.
+- **Hechos de la review en una llamada.** `review_facts.py` reúne los hechos de la rama en una sola llamada y los TODO sin ticket van en un solo Nit (#90). Por qué: [95-hechos-de-la-review](changes/95-hechos-de-la-review/README.md) y D-0057.
+- **Arreglo:** el gate y la auditoría funcionan en un worktree (#96).
+
+Si el proyecto no tiene aún la 0.10.0, haz antes su sección.
+
+- [ ] **Plugin:** actualiza `harness@aitormf` (Claude Code y Codex) o ejecuta `npx skills update`. En Codex, vuelve a copiar `adapters/codex/agents/*.toml` a `.codex/agents/`, porque cambian `code-reviewer` y `finding-verifier`.
+- [ ] En `.pre-commit-config.yaml`, sube la `rev` del kit a `v0.11.0` (`prek autoupdate`). Es un fichero de control, así que va en una PR propia.
+- [ ] **Recomendado:** añade `verify` a `[review]` en `.harness-config.toml`, con los comandos que comprueban el proyecto. Por ejemplo, `verify = ["./scripts/check.sh"]`. Va en la misma PR, porque también es un fichero de control y se lee de la rama base. Sin la clave, el revisor ejecuta la verificación como antes, y Codex en `read-only` no puede hacerlo.
+- [ ] Instala `semgrep` donde se hace el push si quieres sus hallazgos. Si no está, el fichero de resultados dice «Semgrep: no disponible» y el push sigue. `[review] semgrep = false` lo desactiva.
+- [ ] A partir de ahora, un push de agente con la verificación en rojo se bloquea. Es lo que ya exige `implement` antes de cada PR.
+- [ ] **No hace falta:** `[review] max_lines_per_reviewer`, que activa la review por tramos. No tiene valor por defecto y la medición no justifica activarla todavía (ver `docs/review/medicion-review.md`).
+
 ## 0.10.0: review cruzada
 
 Qué trae: el hook `harness-review` sustituye al `pre-push` copiado. Corre el gate primero y, si el push es de un agente, lo revisa un revisor de otra familia que el autor (por defecto `claude` y `codex`, el primero instalado que no sea el autor); sin ninguno, el push se bloquea. Por qué: [review-cruzada](changes/8-review-cruzada/README.md), D-0054, D-0055 y D-0056.
