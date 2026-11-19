@@ -1,5 +1,5 @@
 ---
-status: open
+status: done
 issue: 95
 ---
 # Hechos de la review en una sola llamada
