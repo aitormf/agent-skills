@@ -30,6 +30,7 @@ exist or a cycle.
 
 import json
 import re
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -48,11 +49,17 @@ def fail(msg: str) -> None:
     sys.exit(2)
 
 
+# A hook in a git worktree inherits GIT_DIR without GIT_WORK_TREE, and then git takes the directory of -C as the
+# root of the working tree: a change folder would be taken for the repo root (#96). -C finds the repo by itself.
+GIT_ENV = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR")}
+
+
 def git(root: Path, *args: str) -> str:
     # core.quotePath=false: paths with non-ASCII characters (test_canción.py) come out as they are.
     # log.showSignature=false: signature checks must not mix into the output that is parsed.
     result = subprocess.run(
         ["git", "-c", "core.quotePath=false", "-c", "log.showSignature=false", "-C", str(root), *args],
+        env=GIT_ENV,
         capture_output=True,
         encoding="utf-8",
         errors="surrogateescape",
