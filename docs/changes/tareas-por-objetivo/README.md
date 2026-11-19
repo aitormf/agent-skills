@@ -1,5 +1,5 @@
 ---
-status: open
+status: done
 issue: null
 ---
 
@@ -55,7 +55,7 @@ Rule R4: con varios tramos, review-prepush lanza un code-reviewer por tramo, ver
 Decidido: la pasada de costuras la hace un code-reviewer más, sin historial (D-0046), con un brief de costuras (descartado: la sesión principal al fusionar, sin contexto limpio)
 ```
 
-La medición final (sin ejemplos) junta en una rama los commits de T2 a T6 del cambio `95-hechos-de-la-review` y la revisa por tramos con `tests/review-sandbox` (Codex, `gpt-6.1-terra`, `medium`, 3 ejecuciones). La compara con lo medido en T6: coste, hallazgos confirmados frente a refutados, hallazgos de «falta X, que está en otro tramo» (deberían ser casi cero) y lo que encuentra solo la pasada de costuras. Con ese dato, la misma tarea pone `[review] max_lines_per_reviewer` en el `.harness-config.toml` de este repo.
+La medición final (sin ejemplos) junta en una rama los commits de T2 a T6 del cambio `95-hechos-de-la-review` y la revisa por tramos con `tests/review-sandbox` (Codex, `gpt-6.1-terra`, `medium`, 3 ejecuciones). La compara con lo medido en T6: coste, hallazgos confirmados frente a refutados, hallazgos de «falta X, que está en otro tramo» (deberían ser casi cero) y lo que encuentra solo la pasada de costuras. Con ese dato, la misma tarea escribe en `docs/review/medicion-review.md` la recomendación sobre `[review] max_lines_per_reviewer` (si se activa y con qué valor) y su justificación. La tarea no toca el `.harness-config.toml` de este repo: es un fichero de control (D-0054) y el gate lo bloquea en una rama de tarea; si se activa, la persona pone el valor directamente en `main`.
 
 ## Supuestos
 
