@@ -71,6 +71,51 @@ Problemas distintos, por escenario (ejecuciones de 3 en las que aparece):
 - **No hace falta activarlo.** La clave no tiene valor por defecto (D-0060): sin ella, cada rama es un solo tramo y la review es la de antes. Este repo se queda sin la clave.
 - **Qué falta para decidir:** una medición donde la revisión de un solo tramo pueda fallar de verdad, con una rama bastante más grande o con fallos plantados entre tramos que el sandbox reconozca como B. Así también tendría algo que refutar el verifier, que ahora confirma todo. Si esa medición enseña que partir encuentra más de lo que cuesta, se activa con el valor que salga. Eso es otro cambio, fuera de T4.
 
+## Hechos de la review en una llamada (T6, cambio `95-hechos-de-la-review`)
+Repite la medición de T9 (misma review que lanza el hook del kit cuando empuja un agente Claude) con el kit que ya reúne los hechos de la rama con una llamada a `review_facts.py` (T1 a T5). Kit `96fbd51` (`origin/main` con T1 a T5), `codex-cli 0.169.0` (T9 usó 0.167.0), 2026-11-18. Mismo método, mismo sandbox y mismos scripts que T9; solo cambian el kit y la versión de codex.
+**Resumen.** **No se cumple el objetivo del cambio**: B5 aparece en las tres ejecuciones y las tres dan **6 de 6** (T9: 5 de 6), sin señuelos, pero la sesión principal **no gasta menos entrada**: 309.821 de media frente a 302.693 en T9 (+2%), con 10,7 llamadas frente a 10,0. La entrada total sube un 2% (510.711 frente a 501.326), lo que no se cachea sube un 49% (61.474 frente a 41.294) y el tiempo pasa de 120 s a 130 s (run-1 tardó 160 s). Lo que se arregla es el hallazgo (B5, #90); lo que no se consigue es bajar el coste. Por eso T6 **no se marca como hecha**, el cambio sigue en `doing` y la PR usa `Refs #95` y `Refs #90`, no `Closes`.
+### Cómo se midió
+| Sandbox | `tests/review-sandbox/build.sh --codex` sobre el kit de `96fbd51`; `repo/` con un remoto local vacío como `origin` (`main` subido con `--no-verify`) y `origin/HEAD` -> `main`. Sin cambios en los scripts del sandbox |
+| Ejecución | `git push -u origin feature/orders-pagination-invoices` con `CLAUDECODE=1 REVIEW_KIT_RERUN=1`, por el hook `.git/hooks/pre-push` (llama a `harness-review.sh` del kit), con el envoltorio `codex` de `docs/review/medicion-review/t9/` (`codex-shim.sh`, `run.sh`); revisor `codex`, `gpt-6.1-terra`, `medium` |
+| Tokens y subagentes | `summarize.py` sobre `events.jsonl` y los registros de sesión de Codex; `problems` vacío en las tres (modelo y esfuerzo correctos en todos los agentes, `gpt-6.1-terra` y `medium`) y persona del sandbox cargada en `code-reviewer` y `finding-verifier` de cada ejecución |
+| Duración | reloj del `git push` completo |
+| Resultados | `report.md` y `summary.json` de cada ejecución en `docs/review/medicion-review/t6-hechos/run-<n>/` (sin `events.jsonl`; ruta del sandbox sustituida por `repo/`) |
+Límites: n = 3; el envoltorio de medición no está en el hook real; el sandbox no tiene tarea en la rama (`tarea: ninguna`), así que la parte de tarea y auditoría de `review_facts.py` no se ejerce; la versión de codex cambió respecto a T9. Los tres empujes terminaron en `rc=1` (el hook bloquea por Critical confirmados). Los tres informes empiezan con líneas de aviso de codex (proyecto no confiable, stdin), que no son del informe. Los tres informes están en inglés.
+### `review_facts.py` en la sesión principal
+- **Se ejecutó en las tres**: `python3 <kit>/skills/review-context/scripts/review_facts.py origin/main`, una vez por ejecución, salida 0, bajo el sandbox `read-only` de codex. Imprimió la base, la rama, el log, el `diff --stat`, `tarea: ninguna` y `TODO sin ticket: src/invoices.js:8`. No necesita directorio temporal.
+- **#97 (sin directorio temporal en `read-only`)**: no afecta a `review_facts.py`, pero sí a Semgrep. `semgrep_added.py` falló en las tres con `FileNotFoundError: No usable temporary directory found` (salida 2) y los informes lo dicen («Semgrep: skipped / failed»). `check.sh` no se ejecutó (el sandbox no tiene `AGENTS.md` con `Commands`; la sesión corrió `npm test`, que pasó). La auditoría de `task-done` no entró en juego (no hay tarea).
+- **B5 viene del script**: el TODO llega en los hechos y los tres informes lo ponen como Nit `N1 1 TODO/FIXME without a ticket`, fuera del límite de Nits (run-1: «The ticketless TODO is reported outside the limit»).
+### Tokens
+Entrada / en caché / sin caché / salida / razonamiento (llamadas a la API entre paréntesis). `code-reviewer` y `finding-verifier` lanzados: sí y sí en las tres.
+| Agente | run-1 | run-2 | run-3 |
+|---|---:|---:|---:|
+| sesión principal | 344.946 / 324.736 / 20.210 / 3.710 / 71 (12) | 293.439 / 268.032 / 25.407 / 3.319 / 53 (10) | 291.077 / 258.944 / 32.133 / 3.185 / 26 (10) |
+| code-reviewer | 105.566 / 89.344 / 16.222 / 1.580 / 80 (4) | 133.926 / 111.360 / 22.566 / 1.544 / 66 (5) | 104.099 / 82.688 / 21.411 / 1.089 / 35 (4) |
+| finding-verifier | 104.391 / 88.576 / 15.815 / 1.922 / 86 (4) | 77.301 / 61.952 / 15.349 / 735 / 81 (3) | 77.389 / 62.080 / 15.309 / 1.207 / 26 (3) |
+| **Total** | **554.903 / 502.656 / 52.247 / 7.212 / 237 (20)** | **504.666 / 441.344 / 63.322 / 5.598 / 200 (18)** | **472.565 / 403.712 / 68.853 / 5.481 / 87 (17)** |
+| Duración (s) | 160 | 117 | 114 |
+| Veredicto | `BLOCK critical=3 required=3` | `BLOCK critical=3 required=2` | `BLOCK critical=3 required=2` |
+### Qué encuentra
+Puntuado a mano contra `tests/review-sandbox/EXPECTED.md` con el criterio de T9.
+| | B1 | B2 | B3 | B4 | **B5** | B6 | B7 | B8 | B9 | D1 | D2 | D3 | B1–B6 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| run-1 | sí | sí | sí | sí | **sí** | sí | no | no | no | no | no | no | 6/6 |
+| run-2 | sí | sí | sí | sí | **sí** | sí | no | no | no | no | no | no | 6/6 |
+| run-3 | sí | sí | sí | sí | **sí** | sí | no | no | no | no | no | no | 6/6 |
+B1 es C2, B3 es C1 y B6 es C3 en las tres (en run-1 el C3 apunta a `src/orders.js:16` en vez de a `src/stats.js`, pero describe `firstOrder()`); B4 es R1 en las tres y B2 es R2 en las tres (el test acepta resultados incorrectos). B5 es el Nit N1 en las tres. Ni B7, B8 y B9 ni los señuelos aparecen; el verifier refutó 0 hallazgos en las tres. Fuera de `EXPECTED.md`: falta de test de `/invoices` (discutible; run-1 como R3 propio, run-2 y run-3 dentro de R2).
+### Comparación con T9
+Medias de tres ejecuciones.
+| | B1–B6 | B5 | Llamadas sesión principal | Entrada sesión principal | Entrada total | Sin caché | Duración (s) |
+|---|---:|:-:|---:|---:|---:|---:|---:|
+| T9 | 5,0 | 0 de 3 | 10,0 | 302.693 | 501.326 | 41.294 | 120 |
+| **T6** | **6,0** | **3 de 3** | **10,7** | **309.821** | **510.711** | **61.474** | **130** |
+| Diferencia | +1,0 | +3 | +0,7 | +2% | +2% | +49% | +8% |
+Resto de la media de T6: en caché 449.237, salida 6.097, razonamiento 175.
+### Lo que queda abierto
+- **El objetivo de bajar entrada no se cumple.** Con `review_facts.py` la sesión principal sigue leyendo las skills (`review-prepush`, `review-context`, `review-report` y su formato) y corre `npm test` y Semgrep; el script sustituye a unos `git` pero no recorta el resto. La dispersión entre ejecuciones (T9 principal 258.574 a 344.873; T6, 291.077 a 344.946) es mayor que la diferencia de medias, así que con n = 3 tampoco se puede decir que suba: solo que no baja. No se ha investigado por qué; reducir la entrada es otro cambio.
+- **Sin caché sube** (de 41.294 a 61.474): lo mide el mismo `summarize.py`, pero no se ha separado cuánto es del kit y cuánto de `codex-cli` 0.169.0 frente a 0.167.0 (no se midió T9 otra vez con 0.169.0).
+- **Semgrep sigue sin ejecutarse bajo `read-only`** (#97), con o sin el script de hechos.
+
 ## Review cruzada con el sandbox (T9, cambio `8-review-cruzada`)
 
 Mide la review que lanza el hook del kit (`harness-review.sh`) cuando empuja un agente Claude (`CLAUDECODE=1`): el hook elige `codex`, con `gpt-6.1-terra` y `medium`, y la skill y las personas del kit (S2). Kit `844dda6` (`origin/main` con T1 a T8 y T10, más la corrección del prompt de codex), `codex-cli 0.167.0`, 2026-11-13. No sustituye a las secciones de abajo: el prompt es otro (apunta al `SKILL.md` del kit).
