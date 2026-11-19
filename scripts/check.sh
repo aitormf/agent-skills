@@ -1342,6 +1342,14 @@ for f in skills/setup-guardrails-python/SKILL.md README.md; do
     grep -qi -- "$t" "$f" || { echo "S1: $f no menciona '$t'" >&2; exit 1; }
   done
 done
+echo "▶ setup-guardrails-python: el .harness-config.toml que genera trae [review] verify (R5 de 97-verificacion-en-el-hook, D-0061)"
+python3 - <<'EOF2' || fail "97 E16: the .harness-config.toml of setup-guardrails-python does not have [review] verify = [\"./scripts/check.sh\"], or the skill does not explain it"
+import sys, tomllib
+from pathlib import Path
+cfg = tomllib.loads(Path("skills/setup-guardrails-python/assets/files/.harness-config.toml").read_text())
+skill = Path("skills/setup-guardrails-python/SKILL.md").read_text()
+sys.exit(0 if cfg.get("review", {}).get("verify") == ["./scripts/check.sh"] and "verify" in skill and "reviewers" in skill else 1)
+EOF2
 echo "▶ los agentes no se saltan los hooks del push: Claude Code, Codex y OpenCode (E23 a E25, T6 de review-cruzada)"
 tpl=skills/setup-guardrails-python/assets/files
 python3 - "$tpl" <<'EOF2' || fail "E23: the Claude Code hook does not deny the ways of skipping the hooks of a push or commit (or denies a normal one)"

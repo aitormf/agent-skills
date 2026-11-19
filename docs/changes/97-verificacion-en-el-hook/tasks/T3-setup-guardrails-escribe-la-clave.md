@@ -1,7 +1,7 @@
 ---
 id: T3
 title: setup-guardrails-python escribe [review] verify
-status: todo
+status: done
 depends_on: []
 examples: [E16]
 verification: scripts/check.sh
