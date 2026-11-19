@@ -1,7 +1,7 @@
 ---
 id: T6
 title: Medir la review con el script de hechos frente a T9
-status: todo
+status: done
 depends_on: [T5]
 examples: []
 verification: scripts/check.sh
