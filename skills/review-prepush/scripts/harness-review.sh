@@ -23,6 +23,10 @@
 #                               origin/master, main or master)
 #   REVIEW_KIT_RERUN=1          ignore a saved verdict and review again
 #
+# Verification (D-0061, D-0062): on an agent's push, after the verdict cache, the hook runs the commands of
+# `[review] verify` of the base branch (verify.py, 600 s each) and Semgrep on the added lines, and passes the
+# results file to the reviewer in REVIEW_KIT_VERIFICATION. A red command blocks the push without the reviewer.
+#
 # Verdict cache: the result is saved in .git/review-kit/verdicts with the sha256 of
 # `git diff <base>...HEAD`. A later push of the same diff (a retry after a network error,
 # another remote) reuses it instead of paying for the review again; any change to the
@@ -30,6 +34,7 @@
 # that family is not an author of the push. Without a base branch nothing is cached.
 
 set -u
+unset REVIEW_KIT_VERIFICATION   # only the hook sets it (D-0061), for the reviewer it launches
 
 # Who pushes (D-0056): the families of the agent, by concrete markers of the environment the hook
 # inherits (never prefixes: a Codex launched from Claude Code inherits CLAUDE_CODE_* but not CLAUDECODE).
@@ -145,11 +150,19 @@ remember() {  # remember PASS|BLOCK: the verdict for this diff, with its base an
   return 0
 }
 
+# The verification (D-0061, D-0062), after the verdict cache: what [review] verify of the base says, and
+# Semgrep, run here and not by the reviewer, which in a read-only sandbox cannot. Red blocks, no verdict saved.
+verification="$(cd "$out_dir" && pwd)/verification.md"; rm -f "$verification"
+python3 "$(dirname "$0")/verify.py" "$base" "$verification"; vrc=$?
+[ $vrc -eq 1 ] && exit 1
+[ $vrc -ne 0 ] && fail "could not run the verification."
+
 echo "review-kit: running $cmd (Ctrl+C or SKIP_CLAUDE_REVIEW=1 to skip)…" >&2
 
 gh_config=$(mktemp -d) || fail "could not create an empty gh config directory."
 trap 'rm -rf "$gh_config"' EXIT
 no_github=(env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u GITHUB_ENTERPRISE_TOKEN GH_CONFIG_DIR="$gh_config")
+[ -f "$verification" ] && no_github+=(REVIEW_KIT_VERIFICATION="$verification")
 
 args=(--plugin-dir "$kit" -p "$cmd" --output-format text --allowedTools "$allowed" --disallowedTools "$denied")
 [ -n "${REVIEW_KIT_MODEL:-}" ] && args+=(--model "$REVIEW_KIT_MODEL")
