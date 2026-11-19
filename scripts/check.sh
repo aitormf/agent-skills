@@ -1146,6 +1146,81 @@ rmarks=(CODEX_THREAD_ID=t1); rsame; [ $rc = 1 ] && [ -z "$(who)" ] && grep -q "a
 rm -rf "$hr/.codex"; hrg add -A; hrg commit -qm "no agents" --allow-empty
 sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"; chmod +x "$tmp/review-bin/codex"
 rcfg ''
+# 97-verificacion-en-el-hook T1 (D-0061, D-0062): the hook runs [review] verify of the base and Semgrep before the reviewer
+echo "▶ hook del kit: harness-review ejecuta la verificación y Semgrep antes del revisor (R1-R3 de 97-verificacion-en-el-hook)"
+hrg checkout -q main; mkdir -p "$hr/scripts"
+cat > "$hr/scripts/check.sh" <<'FAKE'
+#!/usr/bin/env bash
+g=$(git rev-parse --git-dir); echo ran >> "$g/verify.log"
+[ -f "$g/verify.many" ] && seq 1 50 | sed 's/^/out /'
+echo "last line of check"; exit "$(cat "$g/verify.rc" 2>/dev/null || echo 0)"
+FAKE
+chmod +x "$hr/scripts/check.sh"; hrg add -A; hrg commit -qm "fake check"
+vcfg() {  # vcfg <extra [review] lines>: base config with the codex reviewer, the verification and the extra lines
+  rcfg "[review]
+reviewers = [\"codex\"]
+$1"
+}
+vruns() { [ -f "$hr/.git/verify.log" ] && wc -l < "$hr/.git/verify.log" | tr -d ' ' || echo 0; }
+vreset() { rm -f "$hr/.git/verify.log" "$hr/.git/verify.rc" "$hr/.git/verify.many" "$hr/.git/verif.copy" "$hr/.git/review-kit/verdicts"; }
+fakecodex 'echo "REVIEW_RESULT: PASS critical=0 required=0 uncertain=0"; echo "verif=${REVIEW_KIT_VERIFICATION:-}" >> "$CLAUDE_CALLS"; [ -z "${REVIEW_KIT_VERIFICATION:-}" ] || cp "$REVIEW_KIT_VERIFICATION" "$(dirname "$CLAUDE_CALLS")/.git/verif.copy"'
+sbin="$tmp/semgrep-bin"; mkdir -p "$sbin"   # a semgrep with a finding on the first line of a.txt, an added line
+cat > "$sbin/semgrep" <<'FAKE'
+#!/usr/bin/env python3
+import json
+print(json.dumps({"results": [{"path": "a.txt", "start": {"line": 1}, "end": {"line": 1}, "check_id": "rule1", "extra": {"severity": "ERROR", "message": "bad"}}]}))
+FAKE
+chmod +x "$sbin/semgrep"
+nosemgrep="$tmp/nosemgrep-bin"; mkdir -p "$nosemgrep"; npath="$nosemgrep"   # a PATH without semgrep
+for d in ${PATH//:/ }; do
+  if [ -x "$d/semgrep" ]; then for f in "$d"/*; do [ -x "$f" ] && [ "${f##*/}" != semgrep ] && ln -sf "$f" "$nosemgrep/" || true; done
+  else npath="$npath:$d"; fi
+done
+v="$hr/.git/review-kit/verification.md"
+rmarks=(CLAUDECODE=1)
+# E1, E15: the base has verify; the agent's push runs it from the repo root and the reviewer gets the file
+vreset; vcfg 'verify = ["./scripts/check.sh"]'
+rpath="$sbin:$tmp/review-bin:$PATH"; rpush fix/v1; rpath=""
+[ $rc = 0 ] && [ "$(vruns)" = 1 ] || { cat "$tmp/out" >&2; fail "97 E1: the hook did not run ./scripts/check.sh once before the reviewer"; }
+grep -q "verif=$v" "$hr/calls" && grep -q "./scripts/check.sh" "$hr/.git/verif.copy" && grep -q "exit 0" "$hr/.git/verif.copy" || { cat "$hr/calls" >&2; fail "97 E15: the reviewer did not get REVIEW_KIT_VERIFICATION with the result of check.sh"; }
+# E10: a Semgrep finding on an added line appears in the file with the final line of semgrep_added.py
+grep -q "a.txt:1 ERROR rule1" "$hr/.git/verif.copy" && grep -q "Semgrep: 1 finding(s) on added lines" "$hr/.git/verif.copy" || { cat "$hr/.git/verif.copy" >&2; fail "97 E10: the Semgrep finding is not in the results file"; }
+# E2: the branch changes verify to true: the base's one is used
+vreset; rbcfg='[review]
+reviewers = ["codex"]
+verify = ["true"]'; rpush fix/v2; rbcfg=""
+[ $rc = 0 ] && [ "$(vruns)" = 1 ] || { cat "$tmp/out" >&2; fail "97 E2: the verify of the branch was used instead of the base's"; }
+# E3: two commands, in order, each with its result
+vreset; vcfg 'verify = ["echo first; echo x >> .git/verify.log", "echo second"]'; rpush fix/v3
+grep -q "echo first" "$hr/.git/verif.copy" && grep -q "echo second" "$hr/.git/verif.copy" && [ "$(grep -n 'echo first' "$hr/.git/verif.copy" | head -1 | cut -d: -f1)" -lt "$(grep -n 'echo second' "$hr/.git/verif.copy" | head -1 | cut -d: -f1)" ] || { cat "$hr/.git/verif.copy" >&2; fail "97 E3: the two commands were not run in order with their results"; }
+# E4: without the key nothing runs and the reviewer gets no file
+vreset; vcfg ''; rpath="$sbin:$tmp/review-bin:$PATH"; rpush fix/v4; rpath=""
+[ $rc = 0 ] && grep -q "verif=$" "$hr/calls" && [ ! -f "$hr/.git/verif.copy" ] || { cat "$hr/calls" >&2; fail "97 E4: without verify the hook ran something or passed a file"; }
+# E5: a person's push runs nothing
+vreset; vcfg 'verify = ["./scripts/check.sh"]'; rmarks=(); rpush fix/v5 SKIP_CLAUDE_REVIEW=0; rmarks=(CLAUDECODE=1)
+[ "$(vruns)" = 0 ] && [ -z "$(who)" ] || fail "97 E5: a person's push ran the verification"
+# E7: red: the message, the last 40 lines, exit 1, no reviewer, no verdict
+vreset; echo 1 > "$hr/.git/verify.rc"; touch "$hr/.git/verify.many"; vcfg 'verify = ["./scripts/check.sh"]'; rpush fix/v7
+[ $rc = 1 ] && [ -z "$(who)" ] && grep -q "review-kit: verificación en rojo: ./scripts/check.sh (exit 1)" "$tmp/out" && grep -qx "last line of check" "$tmp/out" && grep -qx "out 12" "$tmp/out" && ! grep -qx "out 10" "$tmp/out" && [ ! -s "$hr/.git/review-kit/verdicts" ] || { cat "$tmp/out" >&2; fail "97 E7: a red verification did not block with the command, the exit code and the last 40 lines"; }
+# E9: green: goes on with the review
+vreset; vcfg 'verify = ["./scripts/check.sh"]'; rpush fix/v9
+[ $rc = 0 ] && [ "$(who)" = "codex " ] || { cat "$tmp/out" >&2; fail "97 E9: a green verification did not go on with the review"; }
+# E6: a verdict for this diff is reused without verifying
+rm -f "$hr/.git/verify.log"; rsame; [ $rc = 0 ] && [ -z "$(who)" ] && [ "$(vruns)" = 0 ] && grep -q "already reviewed" "$tmp/out" || { cat "$tmp/out" >&2; fail "97 E6: the saved verdict was not reused before verifying"; }
+# E8: a command over the time limit blocks too (the copy of the kit has a 1 s limit)
+grep -q "^TIMEOUT = 600" skills/review-prepush/scripts/verify.py || fail "97 E8: the limit is not 600 s"
+kc="$tmp/kit-copy"; rm -rf "$kc"; mkdir -p "$kc"; cp -r skills adapters "$kc/" 2>/dev/null; sed -i 's/^TIMEOUT = 600/TIMEOUT = 1/' "$kc/skills/review-prepush/scripts/verify.py"
+vreset; vcfg 'verify = ["sleep 30"]'; review="$kc/skills/review-prepush/scripts/harness-review.sh"; rpush fix/v8; review="$PWD/skills/review-prepush/scripts/harness-review.sh"
+[ $rc = 1 ] && [ -z "$(who)" ] && grep -q "verificación en rojo: sleep 30 (timeout 1 s)" "$tmp/out" || { cat "$tmp/out" >&2; fail "97 E8: a command over the time limit did not block"; }
+# E11: Semgrep not installed: the file says so and the push goes on
+vreset; vcfg 'verify = ["true"]'; rpath="$tmp/review-bin:$npath"; rpush fix/v11; rpath=""
+[ $rc = 0 ] && grep -q "Semgrep: no disponible" "$hr/.git/verif.copy" || { cat "$tmp/out" >&2; fail "97 E11: without Semgrep the file does not say so or the push did not go on"; }
+# E12: semgrep = false: not run, and the file says so
+vreset; vcfg 'verify = ["true"]
+semgrep = false'; rpath="$sbin:$tmp/review-bin:$PATH"; rpush fix/v12; rpath=""
+[ $rc = 0 ] && grep -q "semgrep = false" "$hr/.git/verif.copy" && ! grep -q "rule1" "$hr/.git/verif.copy" || { cat "$hr/.git/verif.copy" >&2; fail "97 E12: [review] semgrep = false did not skip Semgrep and say so"; }
+rcfg ''; vreset
+sed 's/run claude/run codex $*/' "$tmp/review-bin/claude" > "$tmp/review-bin/codex"; chmod +x "$tmp/review-bin/codex"
 python3 - <<'EOF2' || fail "E3: harness-review is not declared in .pre-commit-hooks.yaml"
 import sys, yaml
 from pathlib import Path
