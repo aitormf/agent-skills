@@ -1,0 +1,5 @@
+# Configuración del arnés. Es un fichero de control: la rama base manda y cambiarlo va en una PR propia.
+[review]
+# Los comandos que el hook harness-review ejecuta en el push de un agente, antes de lanzar al revisor.
+# Una verificación en rojo bloquea el push.
+verify = ["./scripts/check.sh"]
