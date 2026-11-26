@@ -604,6 +604,7 @@ grep -q -- '--metrics=off' "$s/bin/semgrep.args" && grep -q 'new.py old.py$' "$s
 
 echo "▶ review: debtector_diff.py lists what the branch adds, one finding per line, then a count"
 d="$tmp/debtector"; mkdir -p "$d/bin"
+rmdir "$d/bin" && ln -s . "$d/bin"  # the fake keeps its files next to itself, so bin points to the directory
 cat > "$d/bin/debtector" <<'FAKE'
 #!/usr/bin/env python3
 import os, sys
