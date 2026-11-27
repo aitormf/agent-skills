@@ -602,6 +602,65 @@ grep -q -- '--metrics=off' "$s/bin/semgrep.args" && grep -q 'new.py old.py$' "$s
 (cd "$s" && PATH="/usr/bin:/bin" python3 "$sa" main) >/dev/null 2>&1 && rc=0 || rc=$?
 [ $rc = 2 ] || { echo "semgrep_added.py did not exit 2 without semgrep" >&2; exit 1; }
 
+echo "▶ review: debtector_diff.py lists what the branch adds, one finding per line, then a count"
+d="$tmp/debtector"; mkdir -p "$d/bin"
+rmdir "$d/bin" && ln -s . "$d/bin"  # the fake keeps its files next to itself, so bin points to the directory
+cat > "$d/bin/debtector" <<'FAKE'
+#!/usr/bin/env python3
+import os, sys
+here = os.path.dirname(os.path.abspath(sys.argv[0]))
+print(" ".join(sys.argv[1:]), file=open(here + "/args", "w"))
+sys.stdout.write(open(here + "/result.json").read())
+sys.stderr.write(open(here + "/stderr").read() if os.path.exists(here + "/stderr") else "")
+sys.exit(int(open(here + "/rc").read()))
+FAKE
+chmod +x "$d/bin/debtector"
+dd_py="$PWD/skills/review-context/scripts/debtector_diff.py"
+empty='{"new_cycles":[],"resolved_cycles":[],"new_god_modules":[],"resolved_god_modules":[],"new_sdp_violations":[],"resolved_sdp_violations":[],"instability_regressions":[],"worsened_functions":[],"improved_functions":[],"new_hotspots":[],"worsened_hotspots":[],"skipped":[]}'
+# dd <rc> <json>: run the script against the fake debtector, leaving the output in $d/out and the exit code in $rc
+dd() { printf '%s' "$1" > "$d/rc"; printf '%s' "$2" > "$d/result.json"; (cd "$d" && PATH="$d/bin:$PATH" python3 "$dd_py" main) > "$d/out" 2> "$d/err" && rc=0 || rc=$?; }
+rm -f "$d/stderr"
+dd 0 '{"new_cycles":[["a.py","b.py"]],"worsened_functions":[{"qualified_name":"pkg/x.py::f","file_path":"pkg/x.py","before":8,"after":15,"severity":"high"}],"improved_functions":[]}'  # test_E1
+[ $rc = 0 ] && printf '%s\n' 'cycle a.py → b.py → a.py' 'complexity pkg/x.py::f 8 → 15 (high)' 'debtector: 2 new or worse; 0 resolved' | diff - "$d/out" >&2 \
+  || { echo "E1: debtector_diff.py did not list the new cycle and the worse function with their count" >&2; cat "$d/err" >&2; exit 1; }
+grep -qx -- '--json diff --base main' "$d/args" || { echo "E1: debtector_diff.py did not run 'debtector --json diff --base <base>'" >&2; exit 1; }
+dd 0 "$empty"  # test_E2
+[ $rc = 0 ] && [ "$(cat "$d/out")" = "debtector: 0 new or worse; 0 resolved" ] || { echo "E2: a branch with no change did not give only the zero count" >&2; cat "$d/out" >&2; exit 1; }
+dd 1 '{"new_cycles":[["a.py","b.py"]]}'  # test_E3
+[ $rc = 0 ] && [ "$(cat "$d/out")" = "$(printf '%s\n' 'cycle a.py → b.py → a.py' 'debtector: 1 new or worse; 0 resolved; would block its CI job')" ] \
+  || { echo "E3: debtector exit 1 did not end the count in '; would block its CI job' with exit 0" >&2; cat "$d/out" >&2; exit 1; }
+(cd "$d" && PATH="/usr/bin:/bin" python3 "$dd_py" main) >/dev/null 2> "$d/err" && rc=0 || rc=$?  # test_E4
+[ $rc = 2 ] && grep -qx "debtector_diff: debtector is not on PATH" "$d/err" || { echo "E4: debtector_diff.py did not exit 2 saying debtector is not on PATH" >&2; exit 1; }
+printf 'Error: Index not found: x' > "$d/stderr"; dd 2 ''  # test_E5
+[ $rc = 2 ] && grep -q "Error: Index not found: x" "$d/err" || { echo "E5: debtector exit 2 did not give exit 2 with its message on stderr" >&2; cat "$d/err" >&2; exit 1; }
+rm -f "$d/stderr"
+dd 0 '{"new_hotspots":[{"file_path":"h.py","churn":9,"complexity":30,"hotspot_score":270,"severity":"high"}],"skipped":[{"section":"hotspots","reason":"shallow clone"}]}'  # test_E6
+[ $rc = 0 ] && printf '%s\n' 'hotspot h.py churn 9 complexity 30 (high)' 'skipped hotspots: shallow clone' 'debtector: 1 new or worse; 0 resolved' | diff - "$d/out" >&2 \
+  || { echo "E6: debtector_diff.py did not print the skipped line before the count" >&2; cat "$d/out" >&2; exit 1; }
+dd 0 '{"resolved_cycles":[["a.py","b.py"]],"resolved_god_modules":["g.py"],"new_cycles":[]}'  # test_E7
+[ $rc = 0 ] && [ "$(cat "$d/out")" = "debtector: 0 new or worse; 2 resolved" ] || { echo "E7: resolved items were not only counted" >&2; cat "$d/out" >&2; exit 1; }
+dd 0 '{"new_god_modules":["g.py"],"new_sdp_violations":[{"source":"a.py","target":"b.py","source_instability":0.1,"target_instability":0.9}],"instability_regressions":[{"file_path":"c.py","metric":"instability","before":0.2,"after":0.5}],"worsened_hotspots":[{"file_path":"w.py","churn":4,"complexity_before":10,"complexity_after":25,"severity_before":"medium","severity":"high"}],"worsened_functions":[{"qualified_name":"n.py::g","file_path":"n.py","before":null,"after":12,"severity":"medium"}]}'
+[ $rc = 0 ] && printf '%s\n' 'god module g.py' 'sdp a.py → b.py (instability 0.1 → 0.9)' 'instability c.py 0.2 → 0.5' \
+  'complexity n.py::g new → 12 (medium)' 'hotspot w.py complexity 10 → 25 (medium → high)' 'debtector: 5 new or worse; 0 resolved' | diff - "$d/out" >&2 \
+  || { echo "debtector_diff.py did not print one line per god module, SDP violation, regression, new function and worsened hotspot" >&2; cat "$d/out" >&2; exit 1; }
+dd 0 '{"new_cycles":[["c.py","b.py","a.py"]]}'
+[ $rc = 0 ] && [ "$(head -1 "$d/out")" = "cycle among c.py, b.py, a.py" ] \
+  || { echo "debtector_diff.py invented an order for a cycle of three modules instead of listing its members" >&2; cat "$d/out" >&2; exit 1; }
+dd 0 '{"new_god_modules":["x\ny.py"],"skipped":[{"section":"hotspots","reason":"a\rb"}]}'
+[ $rc = 0 ] && printf '%s\n' 'god module x\ny.py' 'skipped hotspots: a\rb' 'debtector: 1 new or worse; 0 resolved' | diff - "$d/out" >&2 \
+  || { echo "debtector_diff.py did not keep a finding with a line break in one line" >&2; cat "$d/out" >&2; exit 1; }
+mkdir -p "$d/nobin" "$d/broken"; py="$(command -v python3)"
+(cd "$d" && PATH="$d/nobin" "$py" "$dd_py" main) >/dev/null 2> "$d/err" && rc=0 || rc=$?
+[ $rc = 2 ] && grep -qx "debtector_diff: debtector is not on PATH" "$d/err" || { echo "debtector_diff.py did not exit 2 with an empty PATH" >&2; exit 1; }
+printf '#!/nonexistent/python\n' > "$d/broken/debtector"; chmod +x "$d/broken/debtector"
+(cd "$d" && PATH="$d/broken:$PATH" "$py" "$dd_py" main) >/dev/null 2> "$d/err" && rc=0 || rc=$?
+[ $rc = 2 ] && grep -q "debtector_diff: debtector could not start" "$d/err" || { echo "debtector_diff.py did not exit 2 when debtector cannot start" >&2; cat "$d/err" >&2; exit 1; }
+for bad in '[]' '{}' '{"error":"comparison failed"}' '{"resolved_cycles":null}' '{"new_cycles":[["a.py","b.py"]],"improved_functions":5}'; do
+  dd 0 "$bad"
+  [ $rc = 2 ] && [ ! -s "$d/out" ] && grep -q "debtector_diff: debtector failed" "$d/err" \
+    || { echo "debtector_diff.py did not exit 2, printing nothing, on JSON with another shape: $bad" >&2; cat "$d/out" "$d/err" >&2; exit 1; }
+done
+
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
 ! grep -Eq '^ +(issues|pull-requests): read' "$wf" || { echo "the review job of claude-review.yml can read issues or PRs" >&2; exit 1; }
