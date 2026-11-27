@@ -655,6 +655,11 @@ mkdir -p "$d/nobin" "$d/broken"; py="$(command -v python3)"
 printf '#!/nonexistent/python\n' > "$d/broken/debtector"; chmod +x "$d/broken/debtector"
 (cd "$d" && PATH="$d/broken:$PATH" "$py" "$dd_py" main) >/dev/null 2> "$d/err" && rc=0 || rc=$?
 [ $rc = 2 ] && grep -q "debtector_diff: debtector could not start" "$d/err" || { echo "debtector_diff.py did not exit 2 when debtector cannot start" >&2; cat "$d/err" >&2; exit 1; }
+for bad in '[]' '{"resolved_cycles":null}' '{"new_cycles":[["a.py","b.py"]],"improved_functions":5}'; do
+  dd 0 "$bad"
+  [ $rc = 2 ] && [ ! -s "$d/out" ] && grep -q "debtector_diff: debtector failed" "$d/err" \
+    || { echo "debtector_diff.py did not exit 2, printing nothing, on JSON with another shape: $bad" >&2; cat "$d/out" "$d/err" >&2; exit 1; }
+done
 
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }

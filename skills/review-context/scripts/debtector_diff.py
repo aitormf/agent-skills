@@ -18,10 +18,10 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 
 TIMEOUT = 600  # it indexes the base in a temporary worktree, so it can take a while
 GRACE = 30  # seconds debtector gets after SIGINT to remove its worktree before it is killed
-WORKTREE_PREFIX = "debtector-diff-"  # tempfile prefix of the worktree debtector diff --base creates
 NEW_OR_WORSE = ("new_cycles", "new_god_modules", "new_sdp_violations", "instability_regressions",
                 "worsened_functions", "new_hotspots", "worsened_hotspots")
 RESOLVED = ("resolved_cycles", "resolved_god_modules", "resolved_sdp_violations", "improved_functions")
@@ -58,37 +58,56 @@ def one_line(text):
     return text.replace("\n", "\\n").replace("\r", "\\r")
 
 
-def remove_leftover_worktrees():
-    """Remove the worktrees a killed debtector left registered; the others are not touched."""
+def remove_worktrees_under(directory):
+    """Remove the worktrees a killed debtector left under *directory*, its private temporary directory."""
     listed = subprocess.run(["git", "worktree", "list", "--porcelain"], capture_output=True, text=True)
     for line in listed.stdout.splitlines():
         path = line.removeprefix("worktree ")
-        if line.startswith("worktree ") and WORKTREE_PREFIX in path:
+        if line.startswith("worktree ") and os.path.commonpath([path, directory]) == directory:
             subprocess.run(["git", "worktree", "remove", "--force", path], capture_output=True)
     subprocess.run(["git", "worktree", "prune"], capture_output=True)
+
+
+def stop(process, tmp):
+    """SIGINT the debtector process group so its own cleanup runs; kill it after GRACE seconds."""
+    os.killpg(process.pid, signal.SIGINT)
+    try:
+        process.communicate(timeout=GRACE)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.communicate()
+    remove_worktrees_under(tmp)
 
 
 def run_debtector(base):
     """(exit code, stdout, stderr) of debtector diff, or None if it went over TIMEOUT.
 
-    On timeout it gets SIGINT first, so its own cleanup removes the temporary worktree; if it is
-    still running after GRACE seconds, it is killed and its leftover worktree removed here.
+    debtector gets a private TMPDIR, so its temporary worktree is the only one this script may
+    remove. On timeout or on Ctrl-C, debtector is stopped (see stop) before returning or re-raising.
     """
-    process = subprocess.Popen(["debtector", "--json", "diff", "--base", base], stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, stdin=subprocess.DEVNULL, text=True,
-                               start_new_session=True)
-    try:
-        out, err = process.communicate(timeout=TIMEOUT)
-        return process.returncode, out, err
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGINT)
+    with tempfile.TemporaryDirectory(prefix="debtector-diff-run-") as tmp:
+        tmp = os.path.realpath(tmp)
+        process = subprocess.Popen(["debtector", "--json", "diff", "--base", base],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                                   text=True, start_new_session=True, env={**os.environ, "TMPDIR": tmp})
         try:
-            process.communicate(timeout=GRACE)
+            out, err = process.communicate(timeout=TIMEOUT)
+            return process.returncode, out, err
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.communicate()
-        remove_leftover_worktrees()
-        return None
+            stop(process, tmp)
+            return None
+        except BaseException:
+            stop(process, tmp)
+            raise
+
+
+def counts(result):
+    """(new or worse, resolved) of a diff result; ValueError if it does not have debtector's shape."""
+    if not isinstance(result, dict) or not all(isinstance(result.get(k, []), list)
+                                               for k in (*NEW_OR_WORSE, *RESOLVED, "skipped")):
+        raise ValueError("unexpected JSON shape")
+    return (sum(len(result.get(k, [])) for k in NEW_OR_WORSE),
+            sum(len(result.get(k, [])) for k in RESOLVED))
 
 
 def main():
@@ -110,6 +129,7 @@ def main():
         if code not in (0, 1):
             raise ValueError
         result = json.loads(stdout)
+        new, resolved = counts(result)
         out = list(lines(result))
         out += [f"skipped {s['section']}: {s['reason']}" for s in result.get("skipped", [])]
     except (ValueError, KeyError, TypeError):
@@ -117,8 +137,6 @@ def main():
         return 2
     for line in out:
         print(one_line(line))
-    new = sum(len(result.get(k, [])) for k in NEW_OR_WORSE)
-    resolved = sum(len(result.get(k, [])) for k in RESOLVED)
     block = "; would block its CI job" if code == 1 else ""
     print(f"debtector: {new} new or worse; {resolved} resolved{block}")
     return 0
