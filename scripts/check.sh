@@ -643,6 +643,18 @@ dd 0 '{"new_god_modules":["g.py"],"new_sdp_violations":[{"source":"a.py","target
 [ $rc = 0 ] && printf '%s\n' 'god module g.py' 'sdp a.py → b.py (instability 0.1 → 0.9)' 'instability c.py 0.2 → 0.5' \
   'complexity n.py::g new → 12 (medium)' 'hotspot w.py complexity 10 → 25 (medium → high)' 'debtector: 5 new or worse; 0 resolved' | diff - "$d/out" >&2 \
   || { echo "debtector_diff.py did not print one line per god module, SDP violation, regression, new function and worsened hotspot" >&2; cat "$d/out" >&2; exit 1; }
+dd 0 '{"new_cycles":[["c.py","b.py","a.py"]]}'
+[ $rc = 0 ] && [ "$(head -1 "$d/out")" = "cycle among c.py, b.py, a.py" ] \
+  || { echo "debtector_diff.py invented an order for a cycle of three modules instead of listing its members" >&2; cat "$d/out" >&2; exit 1; }
+dd 0 '{"new_god_modules":["x\ny.py"],"skipped":[{"section":"hotspots","reason":"a\rb"}]}'
+[ $rc = 0 ] && printf '%s\n' 'god module x\ny.py' 'skipped hotspots: a\rb' 'debtector: 1 new or worse; 0 resolved' | diff - "$d/out" >&2 \
+  || { echo "debtector_diff.py did not keep a finding with a line break in one line" >&2; cat "$d/out" >&2; exit 1; }
+mkdir -p "$d/nobin" "$d/broken"; py="$(command -v python3)"
+(cd "$d" && PATH="$d/nobin" "$py" "$dd_py" main) >/dev/null 2> "$d/err" && rc=0 || rc=$?
+[ $rc = 2 ] && grep -qx "debtector_diff: debtector is not on PATH" "$d/err" || { echo "debtector_diff.py did not exit 2 with an empty PATH" >&2; exit 1; }
+printf '#!/nonexistent/python\n' > "$d/broken/debtector"; chmod +x "$d/broken/debtector"
+(cd "$d" && PATH="$d/broken:$PATH" "$py" "$dd_py" main) >/dev/null 2> "$d/err" && rc=0 || rc=$?
+[ $rc = 2 ] && grep -q "debtector_diff: debtector could not start" "$d/err" || { echo "debtector_diff.py did not exit 2 when debtector cannot start" >&2; cat "$d/err" >&2; exit 1; }
 
 wf=skills/review-pr/assets/claude-review.yml
 grep -q -- '--disallowedTools ".*Bash(gh:\*)' "$wf" || { echo "claude-review.yml does not deny Bash(gh:*) in the review job" >&2; exit 1; }
