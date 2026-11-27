@@ -64,8 +64,9 @@ def remove_worktrees_under(directory):
     for line in listed.stdout.splitlines():
         path = line.removeprefix("worktree ")
         if line.startswith("worktree ") and os.path.commonpath([path, directory]) == directory:
-            subprocess.run(["git", "worktree", "remove", "--force", path], capture_output=True)
-    subprocess.run(["git", "worktree", "prune"], capture_output=True)
+            # Twice --force: a worktree killed while `git worktree add` ran can be left locked.
+            # No `git worktree prune`: it would also drop other worktrees whose directory is missing.
+            subprocess.run(["git", "worktree", "remove", "--force", "--force", path], capture_output=True)
 
 
 def stop(process, tmp):
@@ -103,8 +104,9 @@ def run_debtector(base):
 
 def counts(result):
     """(new or worse, resolved) of a diff result; ValueError if it does not have debtector's shape."""
-    if not isinstance(result, dict) or not all(isinstance(result.get(k, []), list)
-                                               for k in (*NEW_OR_WORSE, *RESOLVED, "skipped")):
+    known = (*NEW_OR_WORSE, *RESOLVED, "skipped")
+    if (not isinstance(result, dict) or not any(k in result for k in known)
+            or not all(isinstance(result.get(k, []), list) for k in known)):
         raise ValueError("unexpected JSON shape")
     return (sum(len(result.get(k, [])) for k in NEW_OR_WORSE),
             sum(len(result.get(k, [])) for k in RESOLVED))
